@@ -1,0 +1,39 @@
+[
+  {
+    "filename": "bdmap_server.py",
+    "description": "提供百度地图相关的地理服务，包括地址坐标转换、地点搜索、路线规划、天气与路况查询等功能。"
+  },
+  {
+    "filename": "api_server.py",
+    "description": "提供多种数据接口能力，如天气查询、翻译服务与星座运势查询等。"
+  },
+  {
+    "filename": "filesystem_server.py",
+    "description": "提供文件系统管理功能，包括文件与目录的读取、写入、搜索、移动及元信息获取等操作。"
+  },
+  {
+    "filename": "gdmap_server.py",
+    "description": "提供高德地图相关功能，包括地理编码、IP定位、天气查询、路径规划及POI搜索等服务。"
+  },
+  {
+    "filename": "kylin_server.py",
+    "description": "提供系统控制与设备管理能力，包括蓝牙、音量、亮度、鼠标及系统设置的控制与调整。"
+  },
+  {
+    "filename": "local_server.py",
+    "description": "提供本地系统信息服务，包括当前时间日期及GPU显存使用情况查询。"
+  },
+  {
+      "filename": "kylin_sdk_server.py",
+      "description": "提供麒麟系统硬件信息查询能力，包括CPU、内存、磁盘、GPU、网卡、BIOS、主板、USB设备等。"
+  },
+  {
+    "filename": "kylin_desktop_control_server.py",
+    "description": "提供麒麟桌面管控能力，包括控制面板模块的显示/隐藏、禁用/启用控制，支持蓝牙、打印机、触摸板、无线网络等系统设置项的管控。"
+  },
+  {
+    "filename": "hermes_bridge.py",
+    "description": "Hermes Agent 桥接服务：记忆系统（偏好捕捉/知识存储/关联检索/版本管理/敏感信息过滤）、技能库调用、多源数据统一接入与结构化处理。"
+  }
+
+]

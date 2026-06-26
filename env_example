@@ -1,0 +1,38 @@
+# 修改为.env
+# LLM Environment variables
+
+# Reasoning LLM (for complex reasoning tasks)
+REASONING_API_KEY=
+REASONING_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+REASONING_MODEL=qwq-plus
+
+# Non-reasoning LLM (for straightforward tasks)
+BASIC_API_KEY=
+BASIC_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+BASIC_MODEL=qwen-max-latest
+
+# Vision-language LLM (for tasks requiring visual understanding)
+VL_API_KEY=
+VL_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+VL_MODEL=qwen2.5-vl-72b-instruct
+
+
+# text2image
+VL_API_KEY=
+VL_BASE_URL=https://dashscope.aliyuncs.com/api/v1
+VL_MODEL=qwen-image-plus
+
+# Application Settings
+DEBUG=True
+APP_ENV=development
+
+# Add other environment variables as needed
+TAVILY_API_KEY=
+# CHROME_INSTANCE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+QWEN_API_KEY=
+OPENAI_API_KEY=
+DS_API_KEY=
+DS_API_BASE=https://api.deepseek.com/v1
+DS_API_MODEL=deepseek-chat
+AMAP_MAPS_API_KEY=

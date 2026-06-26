@@ -1,0 +1,74 @@
+aiohttp
+baidusearch
+browser-use
+chardet
+clock
+decorators
+dotenv
+fastapi
+flask
+httpx[socks]
+json_repair
+langchain
+langchain-community
+langchain-core
+langchain-deepseek
+langchain-experimental
+langchain-google-genai
+langchain-openai
+langchain-text-splitters
+langgraph
+langgraph-checkpoint
+langgraph-checkpoint-sqlite
+langgraph-prebuilt
+lightrag-hku[api]
+markdownify
+mcp
+mcp-cli
+mysql-connector-python
+numpy
+openpyxl
+pandas
+pdfplumber
+pipmaster
+playwright
+psutil
+python-docx
+python-dotenv
+python-pptx
+pymilvus
+qwen_vl_utils
+readabilipy
+socksio
+sse-starlette
+tenacity
+tiktoken
+trafilatura
+uvicorn
+watchdog
+yfinance
+torch
+dashscope
+xlrd
+PyPDF2
+crewai[tools]
+a2a-sdk
+pydantic
+pillow
+click
+litellm
+asyncclick
+starlette
+httpx-sse
+jwcrypto
+pyjwt
+typing-extensions
+
+#playwright install chromium
+#sudo apt install mysql-server
+#sudo mysql -u root -p
+#ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'your_password';
+#FLUSH PRIVILEGES;
+#exit;
+#sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf 修改bind-address = 0.0.0.0
+#sudo systemctl restart mysql

@@ -1,0 +1,37 @@
+确认了——不是环境配置问题，是版本不匹配。
+
+  根因
+
+  ┌────────────────────────────────────┬─────────┬───────────────────────────┐
+  │                组件                │  版本   │   期望的模型元数据格式    │
+  ├────────────────────────────────────┼─────────┼───────────────────────────┤
+  │ libkylin-ondevice-embedding-engine │ 1.2.0.0 │ model_catalog: { TEXT:    │
+  │                                    │         │ [{channel_info: ...}] }   │
+  ├────────────────────────────────────┼─────────┼───────────────────────────┤
+  │                                    │         │ 旧格式：others_info: "{   │
+  │ kylin-gte-base-model               │ 1.0.0.1 │ channel_info: ... }"      │
+  │                                    │         │ (嵌套 JSON 字符串)        │
+  └────────────────────────────────────┴─────────┴───────────────────────────┘
+
+  kylin-gte-base-model
+  已经是最新版（仓库无更新），它的元数据格式是旧版引擎的——channel_info 藏在
+  others_info 字段里（一个 JSON 字符串）。v1.2.0 的 ondevice engine 期望
+  channel_info 出现在 model_catalog.TEXT[] 的顶层，解析不到就报 ModelInfo format
+  error → 错误码 3/10。
+
+  证据
+
+  模型文件存在、权限正常、依赖无缺失。但每次加载都会：
+
+  embd_model_list: {...}           ← 模型列表获取成功
+  ensemble_embd_model_list: {...}  ← ensemble 模型也在
+  Invalid JSON: 'channel_info' not found.  ← 解析失败
+  ModelInfo format error.                  ← 元数据格式不匹配
+  Get default model failed: getModelList failed, errorCode: 3
+
+  结论
+
+  麒麟团队需要发布新版 kylin-gte-base-model 适配 v1.2.0
+  引擎的元数据格式。在此之前，ONNX 降级方案已经是唯一的
+  workaround——模型文件本身没问题，只是引擎的元数据管道读不懂旧格式。
+

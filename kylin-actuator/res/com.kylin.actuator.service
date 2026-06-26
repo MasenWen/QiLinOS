@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.kylin.actuator
+Exec=/usr/bin/kylin-actuator
+User=root

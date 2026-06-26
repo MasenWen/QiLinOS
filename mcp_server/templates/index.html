@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>NexAgent</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+
+<div id="sessionPanel">
+    <div class="panel-header">
+        <h3><i class="fa-regular fa-comments"></i> NexAgent</h3>
+        <div class="panel-header-actions">
+            <button id="createSessionBtn" class="btn btn-sm btn-outline-primary" title="新会话">
+                <i class="fa-solid fa-plus"></i> 新会话
+            </button>
+            <button id="toggleSessionPanel" class="panel-toggle-btn" title="收起侧边栏">
+                <i class="fa-solid fa-angles-left"></i>
+            </button>
+        </div>
+    </div>
+    <ul id="sessionList" class="list-unstyled m-0">
+        <li class="text-center text-secondary py-2">(加载中...)</li>
+    </ul>
+</div>
+
+<div class="flex-fill">
+    <div class="chat-container position-relative">
+        <div id="chatHeader" class="chat-header border-bottom bg-light p-3 mb-0">
+            <div id="chatTitle">对话窗口</div>
+            <div class="chat-header-right">
+                <span id="chatStatus" class="status-pill">就绪</span>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <div id="loading" class="text-center py-2 text-muted" style="display:none;">
+            <span id="taskText">任务执行中...</span>
+            <button id="sessionStateBtn" class="btn btn-sm btn-outline-secondary">加载中</button>
+        </div>
+
+        <div id="dragOverlay">
+            <div class="overlay-content">
+                <i class="fa-solid fa-upload fa-3x mb-3"></i>
+                <p class="fw-semibold">拖拽文件到此上传</p>
+            </div>
+        </div>
+
+        <div class="input-area d-flex gap-2 align-items-end" id="uploadDropZone">
+            <label for="fileInput" class="btn btn-outline-secondary" title="上传文件">
+                <i class="fa-solid fa-paperclip"></i>
+            </label>
+            <input id="fileInput" type="file" style="display:none;"/>
+            <textarea id="userInput" class="form-control flex-grow-1" rows="1"
+                      placeholder="输入您的问题 (按 Enter 发送,Shift+Enter 换行)" autocomplete="off"
+                      disabled></textarea>
+            <button id="sendButton" class="btn btn-primary" disabled>发送</button>
+        </div>
+    </div>
+</div>
+
+<div id="rightPanel">
+    <div id="callProcessPanel">
+        <div class="panel-header right-panel-header">
+            <div class="panel-header-left">
+                <button id="toggleRightPanel" class="panel-toggle-btn" title="收起侧边栏">
+                    <i class="fa-solid fa-angles-right"></i>
+                </button>
+            </div>
+
+            <h3 class="panel-header-title"><i class="fa-solid fa-list"></i> 流程日志</h3>
+
+            <div class="panel-header-right">
+                <a id="openMcpServerBtn"
+                   class="btn btn-sm btn-outline-secondary mcp-server-btn"
+                   href="http://127.0.0.1:50066/ui"
+                   target="_blank" rel="noopener"
+                   title="打开 MCP Server">
+                    <i class="fa-solid fa-gear"></i> MCP Server
+                </a>
+            </div>
+        </div>
+        <ul id="callLogList" class="list-unstyled m-0">
+            <li class="text-center text-secondary py-2">(请先选择会话)</li>
+        </ul>
+    </div>
+</div>
+
+<div id="pageLoading">
+    <div class="text-center">
+        <div class="spinner-border text-primary" style="width:3rem;height:3rem;" role="status"></div>
+        <div class="mt-3 fw-semibold" id="pageLoadingText">请稍候...</div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
