@@ -1,0 +1,53 @@
+{
+    "database": {
+        "host": "localhost",
+        "port": 7687,
+        "username": "neo4j",
+        "password": "123456789asd",
+        "database": "neo4j",
+        "connection_timeout": 30,
+        "max_connection_pool_size": 100
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "file_path": "logs/app.log",
+        "max_file_size": "10MB",
+        "backup_count": 5,
+        "console_output": true
+    },
+    "llm": {
+        "model_name": "deepseek-chat",
+        "api_key": "sk-c8e21bc6c3b4404dbbacc0a1c3af031c",
+        "api_base": "https://api.deepseek.com/chat/completions",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "timeout": 60,
+        "enable_llm_analysis": true,
+        "retry_count": 3
+    },
+    "document": {
+        "supported_formats": ["pdf", "doc", "docx", "xls", "xlsx", "txt"],
+        "max_file_size": "100MB",
+        "temp_dir": "temp",
+        "ocr_enabled": true,
+        "ocr_language": "chi_sim",
+        "extract_images": true
+    },
+    "monitors": {
+        "analysis_interval": 5,
+        "monitor_paths": [],
+        "enable_file_watcher": true,
+        "max_file_size": "10MB",
+        "supported_extensions": [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt"]
+    },
+    "system": {
+        "app_name": "表单自动填写软件",
+        "version": "1.0.0",
+        "data_dir": "data",
+        "cache_dir": "cache",
+        "max_concurrent_tasks": 5,
+        "auto_backup": true,
+        "backup_interval_hours": 24
+    }
+} 

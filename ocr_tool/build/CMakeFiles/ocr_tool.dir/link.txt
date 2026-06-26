@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/ocr_tool.dir/main.cpp.o -o ocr_tool  -lkysdk-coreai-vision -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lgio-2.0 -lgobject-2.0 

@@ -1,0 +1,6 @@
+学术演示:academic_template.pptx:适合学术演示、技术讲座和会议的LaTeX Beamer风格模板，采用典型的Beamer布局和排版，适用于包含公式、图表和结构化部分的幻灯片
+中科院软件所中文信息处理实验室:iscas_nlp_template.pptx:专为中国科学院软件研究所中文信息处理实验室设计的学术专业演示模板
+深绿通用:deep_green_template.pptx:以深绿色为主色调的通用演示模板，适合展示一般文本和图片内容
+哈尔滨工业大学风格:hit_template.pptx:专为哈尔滨工业大学风格定制的演示模板
+清华大学风格:tsinghua_template.pptx:采用清华大学品牌标识和配色方案的演示模板，适合学术演示和机构活动
+中国科学院大学风格:ucas_template.pptx:采用中国科学院大学品牌标识和配色方案的演示模板，适合学术演示和机构活动

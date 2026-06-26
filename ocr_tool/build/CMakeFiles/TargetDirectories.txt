@@ -1,0 +1,7 @@
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/ocr_tool.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/edit_cache.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/rebuild_cache.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/list_install_components.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/install.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/install/local.dir
+/data/usershare/nex-agent-master/ocr_tool/build/CMakeFiles/install/strip.dir
