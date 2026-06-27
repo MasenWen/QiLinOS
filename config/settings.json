@@ -18,7 +18,7 @@
     },
     "llm": {
         "model_name": "deepseek-chat",
-        "api_key": "sk-c8e21bc6c3b4404dbbacc0a1c3af031c",
+        "api_key": "",
         "api_base": "https://api.deepseek.com/chat/completions",
         "max_tokens": 4096,
         "temperature": 0.7,
