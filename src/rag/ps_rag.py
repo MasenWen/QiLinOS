@@ -29,9 +29,7 @@ from pathlib import Path
 from datetime import datetime  # 添加这个导入
 
 # 麒麟 AI SDK 文本向量化 — 原生 C API (ctypes)
-# from src.rag.kylin_embedding_sdk import kylin_sdk_embedding_func, get_kylin_embedder
-# 麒麟 AI SDK 文本向量化 — ONNX Runtime（当前可用）
-from src.rag.kylin_embedding_onnx import kylin_onnx_embedding_func, get_onnx_embedder
+from src.rag.kylin_embedding_sdk import kylin_sdk_embedding_func, get_kylin_embedder
 
 setup_logger("ps_rag", level="INFO")
 
@@ -197,24 +195,44 @@ async def llm_model_func(
 #     )
 # ================================================================
 
-# 麒麟 AI SDK 文本向量化 — ONNX Runtime
+# 麒麟 AI SDK 文本向量化
 async def embedding_func(texts: list[str]) -> np.ndarray:
-    return await kylin_onnx_embedding_func(texts)
+    return await kylin_sdk_embedding_func(texts)
 
+
+# async def initialize_rag() -> LightRAG:
+    # ================================================================
+    # 原代码：PostgreSQL + Qwen text-embedding-v3 (1024维)
+    # rag = LightRAG(
+    #     working_dir=WORKING_DIR,
+    #     llm_model_func=llm_model_func,
+    #     embedding_func=EmbeddingFunc(
+    #         embedding_dim=1024,
+    #         func=embedding_func,
+    #     ),
+    # )
+    # ================================================================
 
 async def initialize_rag() -> LightRAG:
-    # ================================================================
-    # 原代码：embedding_dim=1024 (Qwen text-embedding-v3)
-    # ================================================================
+    # 麒麟向量数据库 — pymilvus 嵌入式模式
+    os.environ["MILVUS_URI"] = os.path.expanduser(
+        "~/.nex-agent/rag_vectordb.db")
+
     rag = LightRAG(
         working_dir=WORKING_DIR,
         llm_model_func=llm_model_func,
         embedding_func=EmbeddingFunc(
-            embedding_dim=get_onnx_embedder().dim,  # GTE-base 768维
-            func=embedding_func
-        )
+            embedding_dim=get_kylin_embedder().dim,  # GTE-base 768维
+            func=embedding_func,
+        ),
+        vector_storage="MilvusVectorDBStorage",      # 麒麟向量数据库
+        graph_storage="NetworkXStorage",              # 本地图存储
+        kv_storage="JsonKVStorage",                   # 本地 KV
+        doc_status_storage="JsonDocStatusStorage",    # 本地文档状态
     )
     return rag
+
+
 
     
 # 为表单填写系统添加的专用函数
@@ -510,15 +528,13 @@ class RAG_PS:
             stats = {
                 'working_dir': rag.working_dir if hasattr(rag, 'working_dir') else './rag_storage',
                 'storage_types': {
-                    'graph_storage': 'PGGraphStorage',
-                    'kv_storage': 'PGKVStorage', 
-                    'vector_storage': 'PGVectorStorage',
-                    'doc_status_storage': 'PGDocStatusStorage'
+                    'graph_storage': 'NetworkXStorage',
+                    'kv_storage': 'JsonKVStorage',
+                    'vector_storage': 'MilvusVectorDBStorage',
+                    'doc_status_storage': 'JsonDocStatusStorage'
                 },
+                'vector_db_path': os.path.expanduser('~/.nex-agent/rag_vectordb.db'),
                 'database_info': {
-                    'host': os.getenv('POSTGRES_HOST'),
-                    'database': os.getenv('POSTGRES_DATABASE'),
-                    'user': os.getenv('POSTGRES_USER')
                 },
                 'entity_types': FORM_FILLER_ENTITY_TYPES,
                 'relationship_types': FORM_FILLER_RELATIONSHIPS

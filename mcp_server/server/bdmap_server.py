@@ -12,7 +12,7 @@ mcp = FastMCP(
 )
 server_name = '百度地图'
 
-api_key='2BmhewiTmcQtNhYaO6xodjVS7ivkoYZo'
+api_key='<API_KEY>'
 api_url = "https://api.map.baidu.com"
 
 

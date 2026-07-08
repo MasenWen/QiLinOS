@@ -6,3 +6,9 @@ logs/
 *.log
 docs/
 新建文本文档.txt
+test.py
+*.db
+rag_storage/
+uploads/
+milvus_demo.db/
+.env

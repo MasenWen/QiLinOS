@@ -81,3 +81,5 @@ def km_add_file(file: Annotated[str, "file adding to knowledge base"]) -> HumanM
     flag = asyncio.run(ainsert_document(content, file))
     db_manager.set_km_updated()
     return HumanMessage(content="以上文件内容已添加到知识库" if flag else "无法添加文件中的内容到知识库，请检查文件是否存在或可读！")
+
+

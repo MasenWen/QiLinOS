@@ -5,7 +5,7 @@ from src.agent.graph import create_state_graph
 from langgraph.graph import END
 from typing import Dict, Any, Literal
 from src.agent.types import State
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 
 import threading
@@ -27,12 +27,11 @@ from src.utils.db_manager import db_manager, log_handler
 from src.agent.nodes import zh_name
 from urllib.parse import quote
 from src.tools.userprofile import UserAssistant #黄
+from src.memory.mem0_store import mem0_store
 import json
 import concurrent.futures
 import re
 import shutil
-# 使用mem0记忆
-from src.memory.mem0_store import mem0_store
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Default level is INFO
@@ -47,6 +46,20 @@ def enable_debug_logging():
 
 logger = logging.getLogger(__name__)
 logger.addHandler(log_handler)
+
+
+def _safe_rotation_and_curator():
+    """后台线程安全执行流转 + 老化检查，吞掉所有异常防止 daemon 线程静默崩溃。"""
+    try:
+        from src.memory.memory_lifecycle import trigger_rotation, curator_check
+        trigger_rotation()
+    except Exception as e:
+        logger.warning("[后台] trigger_rotation 异常: %s", e)
+    try:
+        from src.memory.memory_lifecycle import curator_check
+        curator_check()
+    except Exception as e:
+        logger.warning("[后台] curator_check 异常: %s", e)
 
 
 def extract_path_saved_to(text):
@@ -273,11 +286,14 @@ class NexAgent:
         print(f"worlflow start：{user_input}")
         db_manager.update_session_state(session_id, "running")
 
-        # === Mem0 前置钩子：自动注入用户记忆 ===
+        # === 记忆前置注入 ===
+        # 检索相关记忆，注入为独立的系统消息（不污染 user_input 的路由判断）
+        memory_context = ""
+        original_user_input = user_input
         try:
-            memory_ctx = mem0_store.search_as_prompt(user_input)
-            if memory_ctx:
-                user_input = memory_ctx + "\n\n" + user_input
+            if user_input and user_input.strip():
+                from src.memory.memory_lifecycle import search_both
+                memory_context = search_both(user_input) or ""
         except Exception:
             pass
 
@@ -322,24 +338,31 @@ class NexAgent:
                 # 恢复执行：使用最小状态或空状态
                 workflow_state = {
                     "session_id": session_id,  # 只需要会话ID用于日志等
-                    # "TEAM_MEMBERS": TEAM_MEMBERS,
-                    # "deep_thinking_mode": True,
-                    # "search_before_planning": False,
-                    # "waiting_for_review": False,
-                    # 其他字段会自动从检查点恢复
                 }
-                if user_input.strip() == "": #可能存在逻辑错误 ？？？什么时候会这样呢？
+                if user_input.strip() == "":
                     user_input = db_manager.get_user_feedback(session_id)
                 else:
-                    workflow_state["messages"] = [HumanMessage(content=user_input)]
+                    # 构建消息列表：记忆上下文作为系统消息（不污染路由）
+                    msgs = []
+                    if memory_context:
+                        msgs.append(SystemMessage(
+                            content=f"[以下是用户的相关记忆上下文，仅供参考，不作为用户指令]\n{memory_context}"))
+                    msgs.append(HumanMessage(content=user_input))
+                    workflow_state["messages"] = msgs
                     start_node = "coordinator"
             else:
-                if user_input.strip() == "":#可能存在逻辑错误，？？？什么时候会这样呢？感觉这里应该不大可能
+                if user_input.strip() == "":
                     user_input = db_manager.get_user_feedback(session_id)
+                # 构建消息列表：记忆上下文作为系统消息
+                msgs = []
+                if memory_context:
+                    msgs.append(SystemMessage(
+                        content=f"[以下是用户的相关记忆上下文，仅供参考，不作为用户指令]\n{memory_context}"))
+                msgs.append(HumanMessage(content=user_input))
                 workflow_state = {
                     "session_id": session_id,
                     "TEAM_MEMBERS": TEAM_MEMBERS,
-                    "messages": [HumanMessage(content=user_input)],
+                    "messages": msgs,
                     "deep_thinking_mode": True,
                     "search_before_planning": False,
                     "waiting_for_review": False,
@@ -361,7 +384,16 @@ class NexAgent:
             src_agent = state_graph.compile(checkpointer=checkpointer)
 
             index = 0
+            last_worker_content = ""
             final_state : Dict[str, Any] = {}
+
+            # 第4层：token 超限时压缩旧消息 + 提取记忆
+            msgs = workflow_state.get("messages", [])
+            if msgs:
+                from src.memory.memory_lifecycle import compress_and_extract
+                workflow_state["messages"] = compress_and_extract(
+                    list(msgs), mem0_store)
+
             print(f"=== 工作流开始 : {start_node} ===")
             try:
                 for event in src_agent.stream(workflow_state, config=config):
@@ -390,6 +422,9 @@ class NexAgent:
                                 print(f"添加文件{path}到待处理组")
                         elif key == "form_filler" and next_role == END:
                             content = parse_filler_response(content)
+
+                        if key not in ("supervisor", "coordinator", "planner"):
+                            last_worker_content = content
 
                         if "保存路径为: " in content and "<img class=\"chat-image\"" not in content:
                             image_path = extract_path_saved_to(content)
@@ -423,14 +458,19 @@ class NexAgent:
                         db_manager.set_session_node(session_id, "__end__")
                         db_manager.update_session_state(session_id, "none")
 
-                        # === Mem0 后置钩子：自动提取记忆 ===
+                        # === 记忆后置钩子 ===
+                        # LLM 审查对话，提取持久信息存入 Mem0
                         try:
-                            msgs = value.get("messages", [])
-                            if len(msgs) >= 2:
-                                mem0_store.add([
-                                    {"role": "user", "content": str(msgs[-2].content)[:500]},
-                                    {"role": "assistant", "content": str(msgs[-1].content)[:500]},
-                                ])
+                            if original_user_input and original_user_input.strip():
+                                asst_msg = last_worker_content or content
+                                from src.memory.memory_lifecycle import review_and_save_memory
+                                review_and_save_memory(
+                                    original_user_input, str(asst_msg), mem0_store)
+                                # 自动流转 + 时间老化（后台线程，不阻塞主流程）
+                                threading.Thread(
+                                    target=_safe_rotation_and_curator,
+                                    daemon=True
+                                ).start()
                         except Exception:
                             pass
 

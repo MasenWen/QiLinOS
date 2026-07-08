@@ -19,10 +19,11 @@ _config_dict = {
         "config": {"model": "gte-base", "embedding_dims": 768},
     },
     "vector_store": {
-        "provider": "qdrant",
+        "provider": "qdrant",  # 绕过 Pydantic 校验，实际类已被替换
         "config": {
-            "path": os.path.join(MEM0_DIR, "qdrant"),
+            "collection_name": "mem0_memories",
             "embedding_model_dims": 768,
+            "path": os.path.expanduser("~/.nex-agent/mem0_vectordb.db"),
             "on_disk": True,
         },
     },
@@ -44,8 +45,9 @@ class Mem0Store:
 
     def __init__(self):
         cfg = MemoryConfig(**_config_dict)
-        # 替换为麒麟 embedder（绕过 Pydantic 白名单校验）
-        cfg.embedder.provider = "kylin_onnx"
+        # 替换为麒麟后端（绕过 Pydantic 白名单校验）
+        cfg.embedder.provider = "kylin_sdk"
+        cfg.vector_store.provider = "kylin_vectordb"
         self._memory = Memory(cfg)
         self._default_user = "nex_user"
 
@@ -74,10 +76,19 @@ class Mem0Store:
 
     def add(self, messages: list[dict], user_id: str = None):
         try:
+            # 去重：检查是否已有高度相似的记忆
+            user_msg = messages[0]["content"] if messages else ""
+            if user_msg:
+                existing = self.search(user_msg, user_id=user_id, top_k=2)
+                if existing and existing[0].get("score", 0) > 0.87:
+                    print(f"[Mem0] 跳过重复: {user_msg[:30]}...")
+                    return
+
             result = self._memory.add(
                 messages,
                 user_id=user_id or self._default_user,
-                prompt="请用中文提取并存储用户的事实信息。",  # 强制中文输出
+                prompt="请用中文提取并存储用户的事实信息，只提取用户明确表达的个人偏好/习惯/信息，"
+                       "不要记录系统的猜测、推荐、提醒或临时任务。",
             )
             print(f"[Mem0] add 成功: {len(result) if result else 0} 条记忆")
         except Exception as e:
@@ -92,18 +103,18 @@ class Mem0Store:
 
 mem0_store = Mem0Store()
 
-# 消除 QdrantClient.__del__ 在 Python 退出时的报错
-# 根因: qdrant-client 本地模式在 close() 中 import portalocker，
-# 但 Python 退出时 import 机制已卸载 → ImportError
-# 解决: atexit 中提前关闭（此时 import 仍可用），然后禁用 __del__
-import atexit
-from qdrant_client import QdrantClient
-_qdrant_del = QdrantClient.__del__
-QdrantClient.__del__ = lambda self: None  # 禁用自动清理
-
-def _cleanup():
-    try:
-        _qdrant_del(mem0_store._memory.vector_store.client)
-    except Exception:
-        pass
-atexit.register(_cleanup)
+# # 消除 QdrantClient.__del__ 在 Python 退出时的报错
+# # 根因: qdrant-client 本地模式在 close() 中 import portalocker，
+# # 但 Python 退出时 import 机制已卸载 → ImportError
+# # 解决: atexit 中提前关闭（此时 import 仍可用），然后禁用 __del__
+# import atexit
+# from qdrant_client import QdrantClient
+# _qdrant_del = QdrantClient.__del__
+# QdrantClient.__del__ = lambda self: None  # 禁用自动清理
+#
+# def _cleanup():
+#     try:
+#         _qdrant_del(mem0_store._memory.vector_store.client)
+#     except Exception:
+#         pass
+# atexit.register(_cleanup)

@@ -5,8 +5,8 @@ def reset_database():
     """重置数据库"""
     config = {
     "host": "127.0.0.1",
-    "user": "root",
-    "password": "12345678",
+    "user": "<USER>",
+    "password": "<PASSWORD>",
     "database": "mcp_server"
 }
     

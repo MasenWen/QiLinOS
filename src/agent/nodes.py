@@ -1078,7 +1078,7 @@ def social_node(state: State) -> Command[Literal["planner", "__end__"]]:
 
 
 
-def ask_mcp(messages, session_id, allow_servers=None, dry_run=False, timeout_ms=60000, base_url="http://127.0.0.1:50066"):
+def ask_mcp(messages, session_id, allow_servers=None, dry_run=False, timeout_ms=180000, base_url="http://127.0.0.1:50066"):
     """
     向MCP代理发送查询请求
     
@@ -1095,6 +1095,16 @@ def ask_mcp(messages, session_id, allow_servers=None, dry_run=False, timeout_ms=
     new_messages = deepcopy(messages)
     query = new_messages[-1].content
 
+    # 提取最近几轮对话上下文，作为独立字段传给 MCP
+    # 解决多轮对话时 hermes_ask 丢失上一轮信息的问题
+    context_parts = []
+    for msg in new_messages[-5:]:
+        role = getattr(msg, 'name', None) or getattr(msg, 'type', 'unknown')
+        content = str(msg.content)[:300] if hasattr(msg, 'content') else ''
+        if role and role not in ('unknown',) and content:
+            context_parts.append(f"[{role}]: {content}")
+    context_messages = "\n".join(context_parts) if context_parts else None
+
     # 构建请求负载
     count = 1
     while count < 6:
@@ -1106,6 +1116,10 @@ def ask_mcp(messages, session_id, allow_servers=None, dry_run=False, timeout_ms=
             "session_id": session_id,
             "dry_run": dry_run
         }
+
+        # 多轮对话上下文
+        if context_messages:
+            payload["context_messages"] = context_messages
         
         # 如果指定了允许的服务器，添加到payload中
         if allow_servers is not None:
@@ -1530,6 +1544,9 @@ def coordinator_node(state: State) -> Command[Literal["planner", "conversational
         goto = "knowledge_manager"
     elif "handoff_to_form_filler" in full_response:
         goto = "form_filler"
+    # 兜底：LLM 没输出路由指令时，非空输入转交谈者处理
+    elif goto == "__end__" and full_response.strip():
+        goto = "conversationalist"
     name = zh_name(goto)
     logger.info(f"{session_id}-=-协调员===协调 {name} 完成该任务")
     if goto == END:
