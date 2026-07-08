@@ -16,7 +16,7 @@ async def get_city_weather(city: str) -> str:
     根据城市名称查询实况天气
     """
     adcode_df = pd.read_excel("./mcp_server/server/AMap_adcode_citycode.xlsx")
-    GAODE_API_KEY = "155de882f6f10487bd3d7089dd9e7d00"
+    GAODE_API_KEY = "<API_KEY>"
     adcode_row = adcode_df[adcode_df["中文名"].str.contains(city, na=False)]
 
     if adcode_row.empty:
@@ -57,8 +57,8 @@ async def get_baidu_translate(text: str, from_lang: str = 'en', to_lang: str = '
     """
     根据内容进行翻译（百度翻译）
     """
-    appid = '20250411002330118'
-    appkey = '4ElzHyqPaQoCASadsWa1'
+    appid = "<APPID>"
+    appkey = "<APPKEY>"
 
     endpoint = 'http://api.fanyi.baidu.com'
     path = '/api/trans/vip/translate'
@@ -108,7 +108,7 @@ async def get_constellation_fortune(
       - fortune_type: 运势类型，可选 "today", "tomorrow", "week", "month", "year"
           默认 "today"（今日运势）
     """
-    API_KEY = "7c863292b8309def8af21d5a01de2395"
+    API_KEY = "<API_KEY>"
     BASE_URL = "https://api.tanshuapi.com/api/constellation/v1/index"
     NAME_TO_CID: Dict[str, str] = {
         "白羊座": "1",

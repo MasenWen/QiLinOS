@@ -32,6 +32,7 @@ class UpdateServerRequest(BaseModel):
 class AgentAskRequest(BaseModel):
     session_id: Optional[int] = Field(default=None, description="会话ID（可选；用于写入 call_logs）")
     query: str
+    context_messages: Optional[str] = Field(default=None, description="最近对话上下文（多轮对话的前几轮摘要，用于保持上下文连贯）")
     allow_servers: Optional[List[str]] = None
     dry_run: bool = False
     timeout_ms: int = Field(default=60_000, ge=1_000, le=600_000)

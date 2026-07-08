@@ -109,19 +109,16 @@ async def _ensure_connected_and_tools(client, registry, server: str, timeout_ms:
     return await client.list_tools(server)
 
 
-async def _plan_once(llm: DeepSeekClient, query: str, catalog: List[Dict[str, Any]], extra: Optional[str], timeout_ms: int) -> Dict[str, Any]:
+async def _plan_once(llm: DeepSeekClient, query: str, catalog: List[Dict[str, Any]], extra: Optional[str], timeout_ms: int, context: Optional[str] = None) -> Dict[str, Any]:
     sys = (
         "你是一个MCP工具调用规划器。你只能输出JSON对象（不要输出多余文本）。\n"
         "你会得到一个server->tools目录。请在可用工具中选择最合适的一个server和tool，并构造args。\n"
         "如果信息不够，返回 clarification_needed=true 并给出 clarification.question。\n"
         "重要规则：\n"
-        "- 当没有直接对应的工具时，不要反复要求澄清。优先考虑 hermes_ask / hermes_write_memory 作为兜底方案。\n"
-        "- 对于提醒、闹钟、日历类任务（没有专用工具），使用 hermes_write_memory 记录提醒内容。\n"
-        "- 对于个性化推荐（推荐饮料/食物/电影等）、偏好相关建议、\"有什么好喝的\"/\"推荐一些\"等请求：\n"
-        "  使用 hermes_ask 处理。Hermes 会自动查询用户记忆中的偏好，再给出个性化推荐。\n"
-        "  将用户的推荐请求连同偏好查询意图一起传给 hermes_ask，一步完成。\n"
-        "- 对于查询个人偏好、记忆、习惯类任务，使用 hermes_read_memory。\n"
+        "- 当没有直接对应的工具时，不要反复要求澄清。优先考虑 hermes_ask 作为兜底方案。\n"
+        "- 记忆类请求（记住/查询偏好等）由系统自动处理，无需调用记忆工具。\n"
         "- 对于需要外部信息或复杂推理的任务，使用 hermes_ask 委托给 Hermes 处理。\n"
+        "- 注意利用对话上下文中已有的信息（如地点、时间等），不要重复询问。\n"
         "输出格式固定为：\n"
         "{\n"
         "  \"clarification_needed\": false,\n"
@@ -132,11 +129,12 @@ async def _plan_once(llm: DeepSeekClient, query: str, catalog: List[Dict[str, An
     if extra:
         sys += "\n重要：上一次规划存在问题，请你修正：\n" + extra + "\n"
 
-    messages = [
-        {"role": "system", "content": sys},
-        {"role": "user", "content": "用户问题：\n" + query},
-        {"role": "user", "content": "可用目录（JSON）：\n" + str(catalog)},
-    ]
+    user_parts = [{"role": "user", "content": "用户问题：\n" + query}]
+    if context:
+        user_parts.append({"role": "user", "content": "对话上下文（最近几轮）：\n" + context})
+    user_parts.append({"role": "user", "content": "可用目录（JSON）：\n" + str(catalog)})
+
+    messages = [{"role": "system", "content": sys}] + user_parts
     return await llm.chat_json(messages, timeout_ms=timeout_ms)
 
 
@@ -172,6 +170,8 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
     if not query:
         _maybe_log_call(db, sid, "处理失败", "query 为空", server_name="mcp-host", correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=400, detail="query 不能为空")
+
+    context = (body.context_messages or "").strip() or None
 
     allow = set(body.allow_servers) if body.allow_servers else None
     servers = [
@@ -215,7 +215,7 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
 
     # ③ 规划（校验 + 自动重试一次）
     for _ in range(2):
-        plan_obj = await _plan_once(llm, query, catalog, extra, timeout_ms=body.timeout_ms)
+        plan_obj = await _plan_once(llm, query, catalog, extra, timeout_ms=body.timeout_ms, context=context)
 
         if bool(plan_obj.get("clarification_needed", False)):
             clarification = plan_obj.get("clarification") or {"question": "需要更多信息"}
@@ -321,11 +321,16 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
 
     # ⑤ 生成最终回答
     answer_messages = [
-        {"role": "system", "content": "你是一个助手。根据工具返回结果，给出清晰、简洁的中文回答。"},
+        {"role": "system", "content": "你是一个助手。根据工具返回结果，给出清晰、简洁的中文回答。"
+         "如有对话上下文，利用其中已有的信息（如地点、时间）给出更精准的回答。"},
+    ]
+    if context:
+        answer_messages.append({"role": "user", "content": f"对话上下文：\n{context}"})
+    answer_messages.extend([
         {"role": "user", "content": f"用户问题：{query}"},
         {"role": "user", "content": f"工具调用：server={server}, tool={tool}, args={args}"},
         {"role": "user", "content": f"工具结果（JSON）：{tool_result}"},
-    ]
+    ])
     answer_text = await llm.chat_text_stream(answer_messages, timeout_ms=body.timeout_ms)
 
     audit.log("agent_done", {"server": server, "tool": tool, "success": True}, request_id=rid)

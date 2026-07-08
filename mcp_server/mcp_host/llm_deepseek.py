@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import httpx
 
-DS_API_KEY = os.getenv("DS_API_KEY", "sk-b25a13cec85843c1a72a1bc7ce5efa52")
+DS_API_KEY = os.getenv("DS_API_KEY", "<API_KEY>")
 DS_API_BASE = os.getenv("DS_API_BASE", "https://api.deepseek.com/v1")
 DS_API_MODEL = os.getenv("DS_API_MODEL", "deepseek-chat")
 

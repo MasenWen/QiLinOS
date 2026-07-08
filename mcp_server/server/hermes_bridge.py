@@ -266,6 +266,35 @@ async def hermes_write_memory(filename: str, content: str) -> str:
     }, ensure_ascii=False, indent=2)
 
 
+@mcp.tool()
+async def hermes_memory_forget(content: str) -> str:
+    """精准遗忘 — 从 Hermes 记忆中删除包含指定内容的记录。
+
+    Args:
+        content: 要删除的记忆关键词或内容片段（如 "喜欢喝茶"）
+    """
+    prompt = (
+        f"请从记忆中删除关于'{content}'的信息。"
+        f"使用 memory(action='remove', target='memory', old_text='{content}') "
+        f"和 memory(action='remove', target='user', old_text='{content}') 各执行一次。"
+    )
+    return await _manager.chat(prompt)
+
+
+@mcp.tool()
+async def hermes_data_fetch(source: str, query: str) -> str:
+    """多源数据接入 — 通过 Hermes 从外部源获取结构化数据。
+
+    支持来源: GitHub, 飞书文档, Discord, 网页, RSS, 本地文件等。
+
+    Args:
+        source: 数据来源 (github/feishu/web/local)
+        query: 查询内容
+    """
+    prompt = f"请从{source}获取以下信息，并结构化输出：{query}"
+    return await _manager.chat(prompt)
+
+
 # ============================================================================
 # 清理
 # ============================================================================

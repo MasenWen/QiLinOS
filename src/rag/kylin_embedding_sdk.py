@@ -1,5 +1,5 @@
 """
-麒麟 AI SDK 文本向量化 — 严格对应《麒麟SDK开发指南》9.4.3.1 节
+麒麟 AI SDK 文本向量化 — 对应《麒麟SDK开发指南》9.4.3.1 节
 
 头文件:   #include <coreai/embedding/embedding.h>
 库文件:   libkysdk-coreai-embedding.so
@@ -37,7 +37,7 @@ class _EmbeddingResult(ctypes.Structure):
     pass
 
 # ============================================================
-# 函数签名（严格对应 PDF 9.4.3.1）
+# 函数签名（对应 PDF 9.4.3.1）
 # ============================================================
 
 # --- 会话管理 ---
@@ -75,7 +75,7 @@ _lib.embedding_result_destroy.argtypes = [
     ctypes.POINTER(ctypes.POINTER(_EmbeddingResult)),
 ]
 
-# --- 模型信息（deprecated，兼容旧 runtime） ---
+# --- 模型信息 ---
 _lib.text_embedding_get_model_info.argtypes = [
     ctypes.POINTER(_TextEmbeddingSession),
     ctypes.POINTER(ctypes.c_char_p),

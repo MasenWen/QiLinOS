@@ -21,8 +21,8 @@ class DatabaseConfig:
     """PostgreSQL数据库配置（使用AGE扩展）"""
     host: str = "localhost"
     port: int = 5455
-    username: str = "why"
-    password: str = "123456789"
+    username: str = "<USER>"
+    password: str = "<PASSWORD>"
     database: str = "lightrag"
     connection_timeout: int = 30
     max_connection_pool_size: int = 100
