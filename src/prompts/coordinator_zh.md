@@ -68,6 +68,11 @@
   ```python
   handoff_to_form_filler()
   ```
+- 对于记忆遗忘/删除请求（如“忘记X”、“删除关于X的记忆”、“不再记住X”）：
+  - 按以下格式转给遗忘处理员：
+  ```python
+  handoff_to_forget()
+  ```
 - 对两个以上或较为复杂的问题或任务：
   - 按以下格式转给规划者：
   ```python

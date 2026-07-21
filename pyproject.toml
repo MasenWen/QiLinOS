@@ -78,6 +78,8 @@ dependencies = [
     "langchain-cohere>=0.6.0",
     "langchain-huggingface>=1.2.2",
     "pyautogui>=0.9.54",
+    "onnxruntime",
+    "tokenizers>=0.21,<0.22",
 ]
 
 [project.optional-dependencies]

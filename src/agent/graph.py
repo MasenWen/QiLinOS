@@ -20,6 +20,7 @@ from .nodes import (
     mcp_node,
     browser_node,
     reporter_node,
+    forget_node,
 )
 from .types import State
 
@@ -50,6 +51,7 @@ def create_state_graph(start_node="coordinator"):
     builder.add_node("mcp_server", mcp_node)
     builder.add_node("browser", browser_node)
     builder.add_node("reporter", reporter_node)
+    builder.add_node("forget", forget_node)
 
     # 设置入口点
     builder.set_entry_point(start_node)
@@ -61,6 +63,9 @@ def create_state_graph(start_node="coordinator"):
     builder.add_edge("reviewer", "review_processor")
     builder.add_edge("knowledge_manager",  "__end__")
     builder.add_edge("ocr_tool",  "__end__")
+
+    # forget 节点
+    builder.add_edge("forget", "__end__")
 
 
     # Add conditional edges for review processor
@@ -78,6 +83,7 @@ def create_state_graph(start_node="coordinator"):
             "ocr_tool": "ocr_tool",
             "pic_maker": "pic_maker",
             "form_filler": "form_filler",
+            "forget": "forget",
         }
     )
     

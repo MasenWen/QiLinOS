@@ -1097,7 +1097,10 @@ def ask_mcp(messages, session_id, allow_servers=None, dry_run=False, timeout_ms=
 
     # 提取最近几轮对话上下文，作为独立字段传给 MCP
     # 解决多轮对话时 hermes_ask 丢失上一轮信息的问题
-    context_parts = []
+    from datetime import datetime
+    context_parts = [
+        f"当前时间: {datetime.now().strftime('%Y年%m月%d日 %H:%M')}",
+    ]
     for msg in new_messages[-5:]:
         role = getattr(msg, 'name', None) or getattr(msg, 'type', 'unknown')
         content = str(msg.content)[:300] if hasattr(msg, 'content') else ''
@@ -1509,7 +1512,7 @@ def planner_node(state: State) -> Command[Literal["reviewer", "__end__"]]:
         }
         
 
-def coordinator_node(state: State) -> Command[Literal["planner", "conversationalist", "knowledge_manager", "operator", "form_filler", "__end__"]]:
+def coordinator_node(state: State) -> Command[Literal["planner", "conversationalist", "knowledge_manager", "operator", "form_filler", "forget", "__end__"]]:
     """Coordinator node that communicate with customers."""
     session_id = state["session_id"]
     logger.info("-"*50)
@@ -1518,6 +1521,14 @@ def coordinator_node(state: State) -> Command[Literal["planner", "conversational
     db_manager.set_session_node(session_id, "coordinator")
     if db_manager.get_session_stop(session_id):
         raise CustomInterrupt("收到终止信号，协调员工作中止")
+
+    # === 新增：检测遗忘确认的待处理状态，直接路由无需 LLM ===
+    if state.get("forget_pending_candidates", ""):
+        logger.info(f"{session_id}-=-协调员===检测到待处理遗忘确认，直接路由到遗忘处理员")
+        return {
+            "cur": "coordinator",
+            "next": "forget",
+        }
 
     messages = apply_prompt_template("coordinator", state)
 
@@ -1544,6 +1555,8 @@ def coordinator_node(state: State) -> Command[Literal["planner", "conversational
         goto = "knowledge_manager"
     elif "handoff_to_form_filler" in full_response:
         goto = "form_filler"
+    elif "handoff_to_forget" in full_response:
+        goto = "forget"
     # 兜底：LLM 没输出路由指令时，非空输入转交谈者处理
     elif goto == "__end__" and full_response.strip():
         goto = "conversationalist"
@@ -1750,3 +1763,333 @@ def review_processor_node(state: State) -> Command[Literal["supervisor", "planne
             }
     else:
         raise CustomInterrupt("复审核异常退出")
+
+
+# ============================================================
+# 自然语言精准遗忘节点
+# ============================================================
+def forget_node(state: State) -> Command[Literal["__end__"]]:
+    """精准遗忘节点：检索候选 → 返回对话让用户确认 → 用户选择后执行删除"""
+    session_id = state["session_id"]
+    logger.info("-"*50)
+    logger.info(f"{session_id}-=-遗忘处理员===开始工作...")
+
+    messages = state.get("messages", [])
+    if not messages:
+        return _forget_end("遗忘处理员", "没有收到需要遗忘的内容")
+
+    user_query = messages[-1].content if hasattr(messages[-1], 'content') else str(messages[-1])
+
+    # ====== 分支判断：（检索展示）还是 （确认删除） ======
+    pending_json = state.get("forget_pending_candidates", "")
+    if pending_json:
+        # Phase 2：用户已看到候选列表，现在处理选择回复
+        return _process_forget_selection(state, session_id, pending_json)
+    else:
+        # Phase 1：提取关键词 → 搜索 → 展示候选给用户
+        return _present_forget_candidates(state, session_id, user_query)
+
+def _present_forget_candidates(state: State, session_id: int, user_query: str) -> dict:
+    """Phase 1: 提取关键词 → 搜索候选 → 展示给用户确认"""
+
+    # ---- 第一步：LLM 提取关键词 ----
+    try:
+        from src.agent.llm import basic_llm
+        keyword_prompt = (
+            f"从以下遗忘请求中提取用户真正想忘记的内容关键词（只输出核心名词短语）：\n"
+            f"请求: {user_query}\n"
+            f"关键词:"
+        )
+        keyword = basic_llm.invoke(keyword_prompt).content.strip()
+        logger.info(f"{session_id}-=-遗忘处理员===提取关键词: {keyword}")
+    except Exception:
+        keyword = user_query
+
+    # ---- 第二步：检索候选记忆 ----
+    from src.memory.memory_lifecycle import forget_by_keyword
+    result = forget_by_keyword(keyword, dry_run=True)
+    candidates = result.get("candidates", [])
+
+    if not candidates:
+        return _forget_end("遗忘处理员", f"未找到与「{keyword}」相关的记忆")
+
+    # ---- 第三步：格式化展示，存 pending 状态 ----
+    candidate_list = _format_candidates(candidates)
+    pending_json = json.dumps(candidates, ensure_ascii=False)
+
+    if len(candidates) == 1:
+        text_preview = candidates[0]["text"][:80]
+        tier = candidates[0]["tier"]
+        response = (
+            f"🔍 找到 1 条相关记忆：\n\n"
+            f"  [{tier}] {text_preview}\n\n"
+            f"是否删除这条记忆？（回复 **是/否**）"
+        )
+    else:
+        response = (
+            f"🔍 找到 {len(candidates)} 条候选记忆：\n\n"
+            f"{candidate_list}\n\n"
+            f"请回复要删除的编号（如 **1,3**），回复 **all** 全部删除，或回复 **取消** 放弃"
+        )
+
+    logger.info(f"{session_id}-=-遗忘处理员===展示{len(candidates)}条候选，等待用户确认")
+    return {
+        "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+        "cur": "forget",
+        "next": "__end__",
+        "forget_pending_candidates": pending_json,
+        "forget_pending_keyword": keyword,
+    }
+
+def _process_forget_selection(state: State, session_id: int, pending_json: str) -> dict:
+    """Phase 2: 解析用户回复 → 执行删除 → 清除 pending"""
+
+    try:
+        candidates = json.loads(pending_json)
+    except Exception:
+        return _forget_end("遗忘处理员", "内部错误：无法解析待处理状态，请重新发起遗忘请求",
+                           clear_pending=True)
+
+    keyword = state.get("forget_pending_keyword", "")
+
+    # 获取用户回复
+    messages = state.get("messages", [])
+    if not messages:
+        return _forget_end("遗忘处理员", "没有收到确认信息", clear_pending=True)
+
+    user_reply = messages[-1].content.strip() if hasattr(messages[-1], 'content') else str(messages[-1])
+
+    # ---- 单条候选：处理 yes/no ----
+    if len(candidates) == 1:
+        if user_reply.lower() in ["是", "y", "yes", "确认", "同意", "ok", "好", "删", "删除"]:
+            return _execute_deletion(candidates, session_id)
+        elif user_reply.lower() in ["否", "n", "no", "不", "取消", "cancel"]:
+            return _forget_end("遗忘处理员",
+                               f"已取消删除「{candidates[0]['text'][:40]}...」", clear_pending=True)
+        else:
+            # 无法识别，重新询问
+            text_preview = candidates[0]["text"][:80]
+            response = f"无法识别「{user_reply}」，请回复 **是** 或 **否**：\n\n  [{candidates[0]['tier']}] {text_preview}"
+            return {
+                "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+                "cur": "forget",
+                "next": "__end__",
+                "forget_pending_candidates": pending_json,
+                "forget_pending_keyword": keyword,
+            }
+
+    # ---- 多条候选：处理编号选择 ----
+    # 取消
+    if user_reply.strip() == "0" or user_reply.lower() in ["取消", "cancel", "不删", "否", "n", "no"]:
+        return _forget_end("遗忘处理员", f"已取消，共 {len(candidates)} 条候选均未删除", clear_pending=True)
+
+    # 全选
+    if user_reply.lower() in ["all", "全部", "全部删除", "都删", "全选", "yes", "y", "是"]:
+        return _execute_deletion(candidates, session_id)
+
+    # 按编号选择
+    import re
+    numbers = re.findall(r'\d+', user_reply)
+    indices = sorted(set(
+        int(n) - 1 for n in numbers if 0 < int(n) <= len(candidates)
+    ))
+
+    if not indices:
+        # 无法解析，重新询问
+        candidate_list = _format_candidates(candidates)
+        response = (
+            f"❌ 无法识别「{user_reply}」，请重新输入编号（如 **1,3**），"
+            f"或回复 **all** 全部删除，**取消** 放弃：\n\n{candidate_list}"
+        )
+        return {
+            "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+            "cur": "forget",
+            "next": "__end__",
+            "forget_pending_candidates": pending_json,
+            "forget_pending_keyword": keyword,
+        }
+
+    # 只删除用户选择的
+    selected = [candidates[i] for i in indices]
+    return _execute_deletion(selected, session_id, total_candidates=len(candidates))
+
+def _format_candidates(candidates: list) -> str:
+    """格式化候选记忆列表为展示文本"""
+    lines = []
+    for i, c in enumerate(candidates, 1):
+        tier_icon = "🟡" if c["tier"] == "中期" else "🔵"
+        text = c["text"][:80] + ("..." if len(c["text"]) > 80 else "")
+        score = c.get("score", 0)
+        lines.append(f"  {i}. {tier_icon} [{c['tier']}] {text} (相关度: {score:.2f})")
+    return "\n".join(lines)
+
+
+def _execute_deletion(candidates: list, session_id: int, total_candidates: int = 0) -> dict:
+    """执行删除操作并返回结果"""
+    from src.memory.mem0_store import mem0_store
+    from src.memory.memory_lifecycle import _get_long_store
+
+    deleted = 0
+    deleted_texts = []
+
+    for c in candidates:
+        try:
+            if not c.get("id"):
+                continue
+            if c.get("tier") == "中期":
+                mem0_store._memory.delete(c["id"])
+            elif c.get("tier") == "长期":
+                _get_long_store().delete(c["id"])
+            deleted += 1
+            deleted_texts.append(f"  - [{c['tier']}] {c['text'][:60]}")
+        except Exception as e:
+            logger.warning("[遗忘] 删除失败 %s: %s", c.get("id"), e)
+
+    previews = "\n".join(deleted_texts) if deleted_texts else "（无）"
+    skipped = total_candidates - deleted if total_candidates else 0
+
+    if deleted > 0:
+        msg = f"✅ 已删除 {deleted} 条记忆：\n{previews}"
+        if skipped > 0:
+            msg += f"\n（另有 {skipped} 条保留未删除）"
+    else:
+        msg = "❌ 删除失败，请稍后重试"
+
+    logger.info(f"{session_id}-=-遗忘处理员==={msg}")
+    return {
+        "messages": [HumanMessage(content=msg, name=zh_name("遗忘处理员"))],
+        "cur": "forget",
+        "next": "__end__",
+        "forget_pending_candidates": "",   # 清除 pending
+        "forget_pending_keyword": "",
+    }
+
+
+def _forget_end(name: str, message: str, clear_pending: bool = False) -> dict:
+    """遗忘节点统一结束响应"""
+    result = {
+        "messages": [HumanMessage(content=message, name=zh_name(name))],
+        "cur": "forget",
+        "next": "__end__",
+    }
+    if clear_pending:
+        result["forget_pending_candidates"] = ""
+        result["forget_pending_keyword"] = ""
+    return result
+
+
+# def forget_node(state: State) -> Command[Literal["__end__"]]:
+#     """精准遗忘节点：LLM 提取关键词 → 搜索 → LLM 确认 → 仅删确认的"""
+#     session_id = state["session_id"]
+#     logger.info("-"*50)
+#     logger.info(f"{session_id}-=-遗忘处理员===开始工作...")
+#
+#     messages = state.get("messages", [])
+#     if not messages:
+#         return goto_end("遗忘处理员", "没有收到需要遗忘的内容")
+#
+#     user_query = messages[-1].content if hasattr(messages[-1], 'content') else str(messages[-1])
+#
+#     # 第一步：用 LLM 从查询中提取真正的关键词（而非把整句当搜索词）
+#     try:
+#         from src.agent.llm import basic_llm
+#         keyword_prompt = (
+#             f"从以下遗忘请求中提取用户真正想忘记的内容关键词（只输出核心名词短语）：\n"
+#             f"请求: {user_query}\n"
+#             f"关键词:"
+#         )
+#         keyword = basic_llm.invoke(keyword_prompt).content.strip()
+#         logger.info(f"{session_id}-=-遗忘处理员===提取关键词: {keyword}")
+#     except Exception:
+#         keyword = user_query
+#
+#     from src.memory.memory_lifecycle import forget_by_keyword
+#
+#     # 第二步：用关键词搜索候选
+#     result = forget_by_keyword(keyword, dry_run=True)
+#     candidates = result.get("candidates", [])
+#
+#     if not candidates:
+#         response = f"未找到与「{keyword}」相关的记忆"
+#         return {
+#             "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+#             "cur": "forget",
+#             "next": "__end__",
+#         }
+#
+#     # 第三步：多条候选时用 LLM 确认哪些真正相关
+#     if len(candidates) > 1:
+#         candidate_list = "\n".join(
+#             f"  {i}. {c['text']}"
+#             for i, c in enumerate(candidates, 1)
+#         )
+#         confirm_prompt = (
+#             f"用户请求遗忘「{keyword}」。以下是从记忆库中检索到的全部候选，"
+#             f"请逐一判断每条是否真正与「{keyword}」相关，输出需要删除的号码"
+#             f"（用逗号分隔，如: 1,3,5），一条都不相关输出 0。\n\n"
+#             f"{candidate_list}\n\n"
+#             f"只输出数字和逗号:"
+#         )
+#         logger.info(f"{session_id}-=-遗忘处理员===共{len(candidates)}条候选，请LLM确认...")
+#         try:
+#             confirm = basic_llm.invoke(confirm_prompt).content.strip()
+#             logger.info(f"{session_id}-=-遗忘处理员===LLM确认: {confirm}")
+#         except Exception:
+#             confirm = "0"
+#
+#         if confirm.strip() == "0":
+#             response = f"检索到 {len(candidates)} 条候选记忆，但经 LLM 判断均与「{keyword}」无关，未执行删除\n" + candidate_list
+#             return {
+#                 "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+#                 "cur": "forget",
+#                 "next": "__end__",
+#             }
+#
+#         # 解析号码
+#         try:
+#             indices = sorted(set(
+#                 int(x.strip()) - 1 for x in confirm.replace("，", ",").split(",")
+#                 if x.strip().isdigit() and 1 <= int(x.strip()) <= len(candidates)
+#             ))
+#         except Exception:
+#             indices = []
+#
+#         if not indices:
+#             response = f"LLM 确认结果无法解析「{confirm}」，不执行删除"
+#             return {
+#                 "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+#                 "cur": "forget",
+#                 "next": "__end__",
+#             }
+#
+#         # 只删除确认的
+#         from src.memory.mem0_store import mem0_store
+#         deleted = 0
+#         deleted_texts = []
+#         for i in indices:
+#             c = candidates[i]
+#             try:
+#                 if c["tier"] == "中期":
+#                     mem0_store._memory.delete(c["id"])
+#                 elif c["tier"] == "长期":
+#                     from src.memory.memory_lifecycle import _get_long_store
+#                     _get_long_store().delete(c["id"])
+#                 deleted += 1
+#                 deleted_texts.append(f"  - [{c['tier']}] {c['text'][:60]}")
+#             except Exception as e:
+#                 logger.warning("[遗忘] 删除失败 %s: %s", c["id"], e)
+#
+#         skipped = len(candidates) - deleted
+#         previews = "\n".join(deleted_texts)
+#         response = f"已删除 {deleted} 条记忆（{skipped} 条无关保留）：\n{previews}"
+#     else:
+#         # 单条，直接删除
+#         result = forget_by_keyword(keyword, dry_run=False)
+#         response = f"已删除 1 条记忆：{candidates[0]['text'][:50]}"
+#
+#     logger.info(f"{session_id}-=-遗忘处理员==={response}")
+#     return {
+#         "messages": [HumanMessage(content=response, name=zh_name("遗忘处理员"))],
+#         "cur": "forget",
+#         "next": "__end__",
+#     }

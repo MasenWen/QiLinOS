@@ -42,3 +42,6 @@ class State(MessagesState):
     extra_info: str 
     # user_feedback: str = ""  # 添加用户反馈字段
     # history: list[AnyMessage] = []  # To allow other dynamic fields
+    # --- 增加候选记忆列表 、 待遗忘关键词 ---
+    forget_pending_candidates: str = ""
+    forget_pending_keyword: str = ""
