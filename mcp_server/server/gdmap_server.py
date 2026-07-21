@@ -9,7 +9,7 @@ from mcp.server.fastmcp import FastMCP
 server_name = '高德地图'
 def get_api_key() -> str:
     """Get the Amap Maps API key from environment variables"""
-    api_key = os.getenv("AMAP_MAPS_API_KEY", "<API_KEY>")
+    api_key = '<API_KEY>'
     if not api_key:
         raise ValueError("AMAP_MAPS_API_KEY environment variable is required")
     return api_key

@@ -18,6 +18,8 @@ from mem0 import Memory
 from mem0.configs.base import MemoryConfig
 from dotenv import load_dotenv
 
+from src.memory.threat_patterns import is_safe
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -47,7 +49,7 @@ _long_cfg = MemoryConfig(
                   "config": {"collection_name": "mem0_longterm",
                              "embedding_model_dims": 768,
                              "path": LONG_TERM_PATH}},
-    llm={"provider": "openai", "config": {"model": "qwen3-max",
+    llm={"provider": "openai", "config": {"model": "qwen3.7-max",
          "api_key": QWEN_KEY,
          "openai_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"}},
     history_db_path=os.path.expanduser("~/.nex-agent/mem0/history_long.db"),
@@ -64,7 +66,7 @@ _archive_cfg = MemoryConfig(
                   "config": {"collection_name": "mem0_archive",
                              "embedding_model_dims": 768,
                              "path": ARCHIVE_PATH}},
-    llm={"provider": "openai", "config": {"model": "qwen3-max",
+    llm={"provider": "openai", "config": {"model": "qwen3.7-max",
          "api_key": QWEN_KEY,
          "openai_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"}},
     history_db_path=os.path.expanduser("~/.nex-agent/mem0/history_archive.db"),
@@ -108,6 +110,7 @@ def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_ob
     """LLM 审查对话，只提取持久信息存入 Mem0。
 
     通过 LLM 判断什么值得保存，什么只是瞬时噪音。
+    带重试机制应对网络波动。
     """
     if not user_input or not user_input.strip():
         return
@@ -122,7 +125,24 @@ def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_ob
         )
         prompt = _MEMORY_REVIEW_PROMPT + conversation
 
-        verdict = basic_llm.invoke(prompt).content.strip()
+        # 带重试的 LLM 调用
+        max_retries = 2
+        verdict = None
+        for attempt in range(max_retries + 1):
+            try:
+                verdict = basic_llm.invoke(prompt).content.strip()
+                break  # 成功则跳出
+            except Exception as e:
+                if attempt < max_retries:
+                    logger.debug("[审查] LLM 调用失败，重试 %d/%d: %s", attempt + 1, max_retries, e)
+                    import time
+                    time.sleep(2)
+                else:
+                    logger.warning("[审查] LLM 调用失败（已达最大重试）: %s", e)
+                    return  # 网络不行就放弃，不阻塞主流程
+
+        if not verdict:
+            return
 
         if "NOTHING_TO_SAVE" in verdict:
             logger.debug("[审查] 无需保存")
@@ -143,6 +163,12 @@ def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_ob
         # 逐条存入 Mem0（每条作为独立记忆）
         for fact in facts:
             try:
+                # --- 写入前扫描
+                if not is_safe(fact):
+                    logger.warning("[审查] 跳过疑似威胁内容: %s", fact[:60])
+                    print(f"[审查] ⚠ 已拦截不安全记忆: {fact[:40]}...")
+                    continue
+
                 mem0_store_obj.add([
                     {"role": "user", "content": fact},
                     {"role": "assistant", "content": "已记录"},
@@ -184,17 +210,21 @@ def compress_and_extract(messages: list, mem0_store_obj,
             f"用200字以内总结以下对话关键信息(偏好/知识/事实):\n{old_text}"
         ).content
 
-        # 从摘要中提取记忆
-        mem0_store_obj.add([
-            {"role": "user", "content": f"对话摘要: {summary}"},
-            {"role": "assistant", "content": "已处理"},
-        ])
-        from langchain_core.messages import HumanMessage
-        summary_msg = HumanMessage(
-            content=f"[对话摘要] {summary}", name="system")
-        logger.info("[压缩] %d条消息 → 1条摘要 + 记忆提取", len(old))
-        print(f"[压缩] {len(old)}条消息 → 1条摘要 + 记忆提取")
-        return [summary_msg] + list(recent)
+        # --- 写入前扫描
+        if is_safe(f"对话摘要：{summary}"):
+            # 从摘要中提取记忆
+            mem0_store_obj.add([
+                {"role": "user", "content": f"对话摘要: {summary}"},
+                {"role": "assistant", "content": "已处理"},
+            ])
+            from langchain_core.messages import HumanMessage
+            summary_msg = HumanMessage(
+                content=f"[对话摘要] {summary}", name="system")
+            logger.info("[压缩] %d条消息 → 1条摘要 + 记忆提取", len(old))
+            print(f"[压缩] {len(old)}条消息 → 1条摘要 + 记忆提取")
+            return [summary_msg] + list(recent)
+        else:
+            logger.warning("[压缩] 摘要包含威胁内容，跳过记忆存储")
     except Exception as e:
         logger.warning("[压缩] 失败: %s", e)
 
@@ -390,13 +420,85 @@ def search_both(query: str) -> str:
     """同时检索中期+长期"""
     from src.memory.mem0_store import mem0_store
     mid = mem0_store.search(query, user_id="nex_user", top_k=3)
-    r = _long.search(query, filters={"user_id": "nex_user"}, limit=2, threshold=0.3)
+    r = _long.search(query, filters={"user_id": "nex_user"}, limit=2, threshold=0.5)
     long_items = r.get("results", []) if isinstance(r, dict) else []
     lines = []
     if long_items:
         lines.append("[核心偏好]")
-        lines.extend(f"- {m['memory']}" for m in long_items)
+        for m in long_items:
+            mem_text = m['memory']
+            if not is_safe(mem_text):
+                mem_text = "[已过滤: 内容匹配安全规则]"
+            lines.append(f"- {mem_text}")
     if mid:
         lines.append("[近期记忆]")
-        lines.extend(f"- {m['memory']}" for m in mid)
+        for m in mid:
+            mem_text = m['memory']
+            if not is_safe(mem_text):
+                mem_text = "[已过滤: 内容匹配安全规则]"
+            lines.append(f"- {mem_text}")
     return "\n".join(lines)
+
+
+# ============================================================
+# 自然语言精准遗忘
+# ============================================================
+def forget_by_keyword(keyword: str, dry_run: bool = True) -> dict:
+    """
+    自然语言精准遗忘：
+    1. 用关键词检索中期和长期记忆
+    2. dry_run=True → 返回候选列表
+    3. dry_run=False → 直接删除全部匹配记忆
+    """
+    from src.memory.mem0_store import mem0_store
+
+    # 分别检索中期和长期，收集结构化结果
+    candidates = []
+    # 中期
+    mid_items = mem0_store.search(keyword, user_id="nex_user", top_k=5)
+    for m in mid_items:
+        candidates.append({
+            "id": m.get("id", ""),
+            "text": m.get("memory", ""),
+            "score": m.get("score", 0),
+            "tier": "中期",
+        })
+    # 长期
+    r = _long.search(keyword, filters={"user_id": "nex_user"}, limit=5, threshold=0.5)
+    long_items = r.get("results", []) if isinstance(r, dict) else []
+    for m in long_items:
+        candidates.append({
+            "id": m.get("id", ""),
+            "text": m.get("memory", ""),
+            "score": m.get("score", 0),
+            "tier": "长期",
+        })
+
+    if not candidates:
+        return {"deleted": 0, "message": "未找到匹配的记忆", "candidates": []}
+
+    if dry_run:
+        return {
+            "deleted": 0,
+            "candidates": candidates,
+            "message": f"找到 {len(candidates)} 条候选记忆，请确认后删除",
+        }
+
+    deleted = 0
+    for c in candidates:
+        try:
+            if not c["id"]:
+                continue
+            if c["tier"] == "中期":
+                mem0_store._memory.delete(c["id"])
+            elif c["tier"] == "长期":
+                _long.delete(c["id"])
+            deleted += 1
+        except Exception as e:
+            logger.warning("[遗忘] 删除失败 %s: %s", c["id"], e)
+
+    return {"deleted": deleted, "message": f"已删除 {deleted} 条记忆"}
+
+def _get_long_store():
+    """暴露长期存储实例，供 forget_by_keyword 使用"""
+    return _long

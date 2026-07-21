@@ -37,7 +37,7 @@ logging.basicConfig(
     level=logging.INFO,  # Default level is INFO
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-
+t0 = time.perf_counter()
 
 def enable_debug_logging():
     """Enable debug level logging for more detailed execution information."""
@@ -294,9 +294,11 @@ class NexAgent:
             if user_input and user_input.strip():
                 from src.memory.memory_lifecycle import search_both
                 memory_context = search_both(user_input) or ""
+
         except Exception:
             pass
-
+        t1 = time.perf_counter()
+        print('检索所用时间：', t1-t0)
         #黄------------------------
         # self.infoAssistant.handle_query(self.user_input)
         self.extract_user_info_async(self.user_input)
@@ -459,17 +461,25 @@ class NexAgent:
                         db_manager.update_session_state(session_id, "none")
 
                         # === 记忆后置钩子 ===
-                        # LLM 审查对话，提取持久信息存入 Mem0
+                        # 审查 + 流转 + 老化 全部走后台线程
+                        # 延迟 1 秒让主流程先释放 Milvus，避免锁冲突
                         try:
                             if original_user_input and original_user_input.strip():
                                 asst_msg = last_worker_content or content
                                 from src.memory.memory_lifecycle import review_and_save_memory
-                                review_and_save_memory(
-                                    original_user_input, str(asst_msg), mem0_store)
-                                # 自动流转 + 时间老化（后台线程，不阻塞主流程）
+
+                                def _bg_review_and_rotate():
+                                    try:
+                                        time.sleep(1.0)
+                                        review_and_save_memory(
+                                            original_user_input, str(asst_msg), mem0_store)
+                                    except Exception as e:
+                                        logger.warning("[后台] review 异常: %s", e)
+                                    _safe_rotation_and_curator()
+
                                 threading.Thread(
-                                    target=_safe_rotation_and_curator,
-                                    daemon=True
+                                    target=_bg_review_and_rotate,
+                                    daemon=True,
                                 ).start()
                         except Exception:
                             pass
@@ -548,6 +558,8 @@ class NexAgent:
         correlation_id = correlation_id or uuid.uuid4().hex
         
         print(f"用户提问: {query}")
+        global t0
+        t0 = time.perf_counter()
         db_manager.add_chat(session_id, "user", query)
         db_manager.add_log(session_id, "用户", f"{query}")
         self.user_input = query

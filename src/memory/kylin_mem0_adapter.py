@@ -27,7 +27,7 @@ class KylinMem0Adapter(VectorStoreBase):
         db_path = kwargs.get("path", DEFAULT_DB_PATH)
         self.collection_name = collection_name
         self.embedding_model_dims = embedding_model_dims
-        self.client = MilvusClient(uri=db_path)
+        self.client = MilvusClient(uri=db_path, timeout=30)
         self.create_col(collection_name, embedding_model_dims)
 
     # ---- 集合 ----
@@ -85,7 +85,7 @@ class KylinMem0Adapter(VectorStoreBase):
             entity = item.get("entity", {})
             result.append(OutputData(
                 id=entity.get("id", item.get("id", "")),
-                score=item.get("distance", 0),
+                score=round(1.0 - item.get("distance", 0), 4),
                 payload=entity.get("metadata", {}),
             ))
         return result

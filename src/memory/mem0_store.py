@@ -4,6 +4,8 @@ from mem0 import Memory
 from mem0.configs.base import MemoryConfig
 
 import src.memory  # noqa: F401
+from src.memory.threat_patterns import is_safe
+import logging
 
 MEM0_DIR = os.path.expanduser("~/.nex-agent/mem0")
 os.makedirs(MEM0_DIR, exist_ok=True)
@@ -12,12 +14,17 @@ from dotenv import load_dotenv
 load_dotenv()
 QWEN_KEY = os.getenv("QWEN_API_KEY", "")
 
+logger = logging.getLogger(__name__)
 # 用 openai 做 provider 名通过 Pydantic 校验（实际类已被替换）
 _config_dict = {
     "embedder": {
         "provider": "openai",
         "config": {"model": "gte-base", "embedding_dims": 768},
     },
+    # "embedder": {
+    #     "provider": "gte_zh_onnx",
+    #     "config": {"model": "gte-base-zh", "embedding_dims": 768},
+    # },
     "vector_store": {
         "provider": "qdrant",  # 绕过 Pydantic 校验，实际类已被替换
         "config": {
@@ -30,7 +37,7 @@ _config_dict = {
     "llm": {
         "provider": "openai",
         "config": {
-            "model": "qwen3-max",
+            "model": "qwen3.7-max",
             "api_key": QWEN_KEY,
             "openai_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         },
@@ -49,6 +56,7 @@ class Mem0Store:
         cfg.embedder.provider = "kylin_sdk"
         cfg.vector_store.provider = "kylin_vectordb"
         self._memory = Memory(cfg)
+        
         self._default_user = "nex_user"
 
     def search(self, query: str, user_id: str = None, top_k: int = 5):
@@ -57,10 +65,12 @@ class Mem0Store:
                 query,
                 filters={"user_id": user_id or self._default_user},
                 limit=top_k,
-                threshold=0.3,
+                threshold=0.5,
             )
             items = result.get("results", []) if isinstance(result, dict) else []
             print(f"[Mem0] search '{query[:20]}' → {len(items)} 条")
+            for it in items:
+                print(f"  [{it.get('score', 0):.4f}] {it.get('memory', '')[:50]}")
             return items
         except Exception as e:
             print(f"[Mem0] search 失败: {e}")
@@ -82,6 +92,12 @@ class Mem0Store:
                 existing = self.search(user_msg, user_id=user_id, top_k=2)
                 if existing and existing[0].get("score", 0) > 0.87:
                     print(f"[Mem0] 跳过重复: {user_msg[:30]}...")
+                    return
+
+                # --- 新增：威胁扫描 (写入前扫描)---
+                if not is_safe(user_msg):
+                    print(f"[Mem0] ⚠ 跳过不安全内容: {user_msg[:30]}...")
+                    logger.warning("[Mem0] 拦截威胁内容: %s", user_msg[:60])
                     return
 
             result = self._memory.add(

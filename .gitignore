@@ -12,3 +12,15 @@ rag_storage/
 uploads/
 milvus_demo.db/
 .env
+
+
+test_threat.py
+test_retrieval_latency.py
+test_threat_benchmark.py
+记忆精准遗忘流程.vsdx
+
+baidu_python_search_results.json
+baidu_python_search_results.txt
+1.png
+checkpoints.db
+uv.lock

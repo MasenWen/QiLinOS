@@ -57,8 +57,8 @@ async def get_baidu_translate(text: str, from_lang: str = 'en', to_lang: str = '
     """
     根据内容进行翻译（百度翻译）
     """
-    appid = "<APPID>"
-    appkey = "<APPKEY>"
+    appid = '<APPID>'
+    appkey = '<APPKEY>'
 
     endpoint = 'http://api.fanyi.baidu.com'
     path = '/api/trans/vip/translate'
