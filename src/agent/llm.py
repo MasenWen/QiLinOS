@@ -1,19 +1,41 @@
-from langchain_openai import ChatOpenAI
-from langchain_deepseek import ChatDeepSeek
+from __future__ import annotations
+
 from typing import Optional, Dict, Any, Union
 from langchain_openai import ChatOpenAI
-
-# 修改导入
-from langchain_ollama import ChatOllama
-from langchain_anthropic import ChatAnthropic
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_cohere import ChatCohere
-from langchain_huggingface import ChatHuggingFace
 from langchain_openai import AzureChatOpenAI
 
-
-from langchain_community.llms.llamacpp import LlamaCpp
-from langchain_community.llms.vllm import VLLM
+try:
+    from langchain_deepseek import ChatDeepSeek
+except ImportError:
+    ChatDeepSeek = None
+try:
+    from langchain_ollama import ChatOllama
+except ImportError:
+    ChatOllama = None
+try:
+    from langchain_anthropic import ChatAnthropic
+except ImportError:
+    ChatAnthropic = None
+try:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+except ImportError:
+    ChatGoogleGenerativeAI = None
+try:
+    from langchain_cohere import ChatCohere
+except ImportError:
+    ChatCohere = None
+try:
+    from langchain_huggingface import ChatHuggingFace
+except ImportError:
+    ChatHuggingFace = None
+try:
+    from langchain_community.llms.llamacpp import LlamaCpp
+except ImportError:
+    LlamaCpp = None
+try:
+    from langchain_community.llms.vllm import VLLM
+except ImportError:
+    VLLM = None
 
 import os
 
@@ -29,6 +51,12 @@ from src.config import (
     VL_API_KEY,
 )
 from src.config.agents import LLMType
+
+
+def _require_provider(provider_class, package: str):
+    if provider_class is None:
+        raise ImportError(f"Provider dependency is not installed: {package}")
+    return provider_class
 
 
 def create_llm(
@@ -117,7 +145,7 @@ def create_llm(
         if base_url:
             llm_kwargs["base_url"] = base_url
         # Ollama不需要API密钥
-        return ChatOllama(**llm_kwargs)
+        return _require_provider(ChatOllama, "langchain-ollama")(**llm_kwargs)
     
     elif provider == "vllm":
         # VLLM通常使用OpenAI兼容的接口
@@ -133,7 +161,7 @@ def create_llm(
             llm_kwargs["base_url"] = base_url
         if api_key:
             llm_kwargs["anthropic_api_key"] = api_key
-        return ChatAnthropic(**llm_kwargs)
+        return _require_provider(ChatAnthropic, "langchain-anthropic")(**llm_kwargs)
     
     elif provider == "azure_openai":
         # Azure OpenAI需要特定的参数
@@ -156,17 +184,17 @@ def create_llm(
         # 设置默认参数
         llm_kwargs.setdefault("task", "text-generation")
         
-        return ChatHuggingFace(**llm_kwargs)
+        return _require_provider(ChatHuggingFace, "langchain-huggingface")(**llm_kwargs)
     
     elif provider == "google_palm":
         if api_key:
             llm_kwargs["google_api_key"] = api_key
-        return ChatGooglePalm(**llm_kwargs)
+        return _require_provider(ChatGoogleGenerativeAI, "langchain-google-genai")(**llm_kwargs)
     
     elif provider == "cohere":
         if api_key:
             llm_kwargs["cohere_api_key"] = api_key
-        return ChatCohere(**llm_kwargs)
+        return _require_provider(ChatCohere, "langchain-cohere")(**llm_kwargs)
     
     elif provider == "llama_cpp":
         # Llama.cpp本地模型
@@ -176,7 +204,7 @@ def create_llm(
         # 模型路径
         if "model_path" not in llm_kwargs:
             llm_kwargs["model_path"] = model
-        return LlamaCpp(**llm_kwargs)
+        return _require_provider(LlamaCpp, "langchain-community[llamacpp]")(**llm_kwargs)
     
     
     else:
@@ -282,7 +310,7 @@ def create_deepseek_llm(
     api_key: Optional[str] = None,
     temperature: float = 0.0,
     **kwargs,
-) -> ChatDeepSeek:
+) -> Any:
     """
     Create a ChatDeepSeek instance with the specified configuration
     """
@@ -295,14 +323,14 @@ def create_deepseek_llm(
     if api_key:  # This will handle None or empty string
         llm_kwargs["api_key"] = api_key
 
-    return ChatDeepSeek(**llm_kwargs)
+    return _require_provider(ChatDeepSeek, "langchain-deepseek")(**llm_kwargs)
 
 
 # Cache for LLM instances
-_llm_cache: dict[LLMType, ChatOpenAI | ChatDeepSeek] = {}
+_llm_cache: dict[LLMType, Any] = {}
 
 
-def get_llm_by_type(llm_type: LLMType) -> ChatOpenAI | ChatDeepSeek:
+def get_llm_by_type(llm_type: LLMType) -> Any:
     """
     Get LLM instance by type. Returns cached instance if available.
     """

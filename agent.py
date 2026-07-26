@@ -293,7 +293,15 @@ class NexAgent:
         try:
             if user_input and user_input.strip():
                 from src.memory.memory_lifecycle import search_both
-                memory_context = search_both(user_input) or ""
+                memory_context = search_both(
+                    user_input,
+                    context={
+                        "user_id": "nex_user",
+                        "query_time": datetime.now().astimezone().isoformat(),
+                        "task": user_input,
+                        "session_id": str(session_id),
+                    },
+                ) or ""
 
         except Exception:
             pass
@@ -472,7 +480,17 @@ class NexAgent:
                                     try:
                                         time.sleep(1.0)
                                         review_and_save_memory(
-                                            original_user_input, str(asst_msg), mem0_store)
+                                            original_user_input,
+                                            str(asst_msg),
+                                            mem0_store,
+                                            context={
+                                                "user_id": "nex_user",
+                                                "session_id": str(session_id),
+                                                "source_event_id": f"workflow:{session_id}:{correlation_id}:user",
+                                                "event_time": datetime.now().astimezone().isoformat(),
+                                                "task": original_user_input,
+                                            },
+                                        )
                                     except Exception as e:
                                         logger.warning("[后台] review 异常: %s", e)
                                     _safe_rotation_and_curator()

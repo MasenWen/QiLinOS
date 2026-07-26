@@ -106,7 +106,12 @@ _MEMORY_REVIEW_PROMPT = (
 )
 
 
-def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_obj):
+def review_and_save_memory(
+    user_input: str,
+    assistant_output: str,
+    mem0_store_obj,
+    context: dict | None = None,
+):
     """LLM 审查对话，只提取持久信息存入 Mem0。
 
     通过 LLM 判断什么值得保存，什么只是瞬时噪音。
@@ -160,7 +165,10 @@ def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_ob
         if not facts:
             return
 
-        # 逐条存入 Mem0（每条作为独立记忆）
+        write_mode = os.getenv("NEX_MEMORY_WRITE_MODE", "engine_v1").strip().lower()
+
+        writes = []
+        # Each reviewed fact follows the selected, versioned write path.
         for fact in facts:
             try:
                 # --- 写入前扫描
@@ -169,18 +177,47 @@ def review_and_save_memory(user_input: str, assistant_output: str, mem0_store_ob
                     print(f"[审查] ⚠ 已拦截不安全记忆: {fact[:40]}...")
                     continue
 
-                mem0_store_obj.add([
-                    {"role": "user", "content": fact},
-                    {"role": "assistant", "content": "已记录"},
-                ])
+                if write_mode == "legacy":
+                    mem0_store_obj.add([
+                        {"role": "user", "content": fact},
+                        {"role": "assistant", "content": "已记录"},
+                    ])
+                    result = {"status": "ok", "mode": "legacy", "fact": fact}
+                else:
+                    from src.memory_engine.engine import MemoryEngine
+
+                    engine = MemoryEngine()
+                    result = engine.remember_fact(
+                        fact,
+                        mem0_store_obj=mem0_store_obj,
+                        source_text=user_input,
+                        context=context,
+                        index=write_mode != "shadow",
+                    )
+                    if write_mode == "shadow":
+                        mem0_store_obj.add([
+                            {"role": "user", "content": fact},
+                            {"role": "assistant", "content": "已记录"},
+                        ])
+                    logger.info("[MemoryEngine] write result: %s", result)
+                writes.append(result)
                 logger.info("[审查] 保存: %s", fact[:50])
             except Exception as e:
-                logger.warning("[审查] 保存失败 '%s': %s", fact[:30], e)
+                logger.warning("[审查] MemoryEngine 保存失败，回退 legacy '%s': %s", fact[:30], e)
+                try:
+                    mem0_store_obj.add([
+                        {"role": "user", "content": fact},
+                        {"role": "assistant", "content": "已记录"},
+                    ])
+                except Exception as fallback_exc:
+                    logger.warning("[审查] legacy 回退也失败 '%s': %s", fact[:30], fallback_exc)
 
         print(f"[审查] 从对话中提取了 {len(facts)} 条记忆")
+        return {"status": "ok", "write_mode": write_mode, "facts": facts, "writes": writes}
 
     except Exception as e:
         logger.warning("[审查] 执行失败: %s", e)
+        return {"status": "error", "error_type": type(e).__name__, "error": str(e)}
 
 
 # ============================================================
@@ -416,8 +453,8 @@ def curator_check():
 # ============================================================
 # 联合检索：中期 + 长期
 # ============================================================
-def search_both(query: str) -> str:
-    """同时检索中期+长期"""
+def _legacy_search_both(query: str) -> str:
+    """Original mid-term plus long-term retrieval, kept as experiment A."""
     from src.memory.mem0_store import mem0_store
     mid = mem0_store.search(query, user_id="nex_user", top_k=3)
     r = _long.search(query, filters={"user_id": "nex_user"}, limit=2, threshold=0.5)
@@ -440,10 +477,99 @@ def search_both(query: str) -> str:
     return "\n".join(lines)
 
 
+def _memory_engine_search_backend(query: str, user_id: str, limit: int) -> list[dict]:
+    """Recall candidates from both legacy stores for MemoryEngine reranking."""
+    from src.memory.mem0_store import mem0_store
+
+    per_store_limit = max(5, limit)
+    candidates = []
+    mid_result = mem0_store._memory.search(
+        query,
+        filters={"user_id": user_id},
+        limit=per_store_limit,
+        threshold=0.0,
+    )
+    mid_items = mid_result.get("results", []) if isinstance(mid_result, dict) else []
+    for item in mid_items:
+        if is_safe(str(item.get("memory", ""))):
+            candidate = dict(item)
+            candidate["tier"] = "mid"
+            candidates.append(candidate)
+
+    long_result = _long.search(
+        query,
+        filters={"user_id": user_id},
+        limit=per_store_limit,
+        threshold=0.0,
+    )
+    long_items = long_result.get("results", []) if isinstance(long_result, dict) else []
+    for item in long_items:
+        if is_safe(str(item.get("memory", ""))):
+            candidate = dict(item)
+            candidate["tier"] = "long"
+            candidates.append(candidate)
+
+    # SQLite owns lifecycle state. Override stale Mem0 payload fields before
+    # hard filtering while leaving pre-MemoryEngine legacy rows untouched.
+    try:
+        from src.memory_engine.store import MemoryEngineStore
+
+        memory_ids = []
+        for candidate in candidates:
+            metadata = candidate.get("metadata") or {}
+            if isinstance(metadata, dict) and metadata.get("memory_id"):
+                memory_ids.append(str(metadata["memory_id"]))
+        sidecar = MemoryEngineStore().get_memories(memory_ids)
+        for candidate in candidates:
+            metadata = candidate.get("metadata") or {}
+            memory_id = str(metadata.get("memory_id") or "") if isinstance(metadata, dict) else ""
+            record = sidecar.get(memory_id)
+            if record:
+                candidate["metadata"] = {
+                    **metadata,
+                    "memory_family": record.memory_family,
+                    "memory_type": record.memory_type,
+                    "memory_category": record.memory_category,
+                    "status": record.status,
+                    "slot_key": record.slot_key,
+                    "start_time": record.created_at,
+                }
+    except Exception as exc:
+        logger.debug("[MemoryEngine] sidecar metadata enrichment skipped: %s", exc)
+    return candidates
+
+
+def retrieve_both(query: str, context: dict | None = None, top_k: int = 5):
+    """Return structured retrieval output while preserving legacy stores."""
+    from src.memory_engine.engine import MemoryEngine
+
+    current_context = dict(context or {})
+    user_id = str(current_context.get("user_id") or "nex_user")
+    engine = MemoryEngine(
+        _memory_engine_search_backend,
+        candidate_top_k=int(os.getenv("NEX_MEMORY_CANDIDATE_TOP_K", "50")),
+    )
+    return engine.retrieve(query, current_context, top_k=top_k, user_id=user_id)
+
+
+def search_both(query: str, context: dict | None = None) -> str:
+    """Compatibility facade selecting legacy or MemoryEngine retrieval."""
+    mode = os.getenv("NEX_MEMORY_RETRIEVAL_MODE", "structured_v1").strip().lower()
+    if mode == "legacy":
+        return _legacy_search_both(query)
+    try:
+        response = retrieve_both(query, context=context, top_k=5)
+        logger.info("[MemoryEngine] retrieval trace: %s", response.trace)
+        return response.as_prompt()
+    except Exception as exc:
+        logger.warning("[MemoryEngine] structured retrieval failed, using legacy: %s", exc)
+        return _legacy_search_both(query)
+
+
 # ============================================================
 # 自然语言精准遗忘
 # ============================================================
-def forget_by_keyword(keyword: str, dry_run: bool = True) -> dict:
+def _legacy_forget_by_keyword(keyword: str, dry_run: bool = True) -> dict:
     """
     自然语言精准遗忘：
     1. 用关键词检索中期和长期记忆
@@ -498,6 +624,28 @@ def forget_by_keyword(keyword: str, dry_run: bool = True) -> dict:
             logger.warning("[遗忘] 删除失败 %s: %s", c["id"], e)
 
     return {"deleted": deleted, "message": f"已删除 {deleted} 条记忆"}
+
+
+def forget_by_keyword(keyword: str, dry_run: bool = True) -> dict:
+    """Compatibility facade for lineage forgetting with legacy fallback."""
+    mode = os.getenv("NEX_MEMORY_FORGET_MODE", "engine_v1").strip().lower()
+    if mode == "legacy":
+        return _legacy_forget_by_keyword(keyword, dry_run=dry_run)
+    from src.memory.mem0_store import mem0_store
+    try:
+        from src.memory_engine.engine import MemoryEngine
+
+        result = MemoryEngine().forget(
+            keyword,
+            user_id="nex_user",
+            dry_run=dry_run,
+            mem0_store_obj=mem0_store,
+        )
+        if result.get("candidates"):
+            return result
+    except Exception as exc:
+        logger.warning("[MemoryEngine] lineage forget failed, using legacy: %s", exc)
+    return _legacy_forget_by_keyword(keyword, dry_run=dry_run)
 
 def _get_long_store():
     """暴露长期存储实例，供 forget_by_keyword 使用"""

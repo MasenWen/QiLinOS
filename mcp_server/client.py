@@ -11,6 +11,7 @@ from mcp.client.stdio import stdio_client
 from openai import OpenAI
 from dotenv import load_dotenv
 from src.utils.db_manager import DBManager
+from src.memory_engine.observability import record_runtime_event
 
 
 # =========================================================
@@ -253,6 +254,18 @@ class MCPClient:
 
     async def process_query(self, query: str, session_id: int, correlation_id: str | None = None):
         correlation_id = correlation_id or uuid.uuid4().hex
+        runtime_session_id = str(session_id or correlation_id)
+        record_runtime_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": f"{correlation_id}:query",
+                "user_id": "nex_user",
+                "session_id": runtime_session_id,
+                "actor": "user",
+                "content": query,
+                "context": {"correlation_id": correlation_id},
+            }
+        )
         if not self.sessions:
             msg = "❌ 当前没有连接任何服务器，请先连接后重试。"
             self.log_call(session_id, "query_fail", msg, correlation_id=correlation_id, level="warn")
@@ -303,14 +316,48 @@ class MCPClient:
             self.log_chat(session_id, "assistant", msg)
             return msg, correlation_id
 
+        tool_started = time.perf_counter()
         try:
             raw = await sess.call_tool(tool_name, args)
             output = str(raw.content[0].text if hasattr(raw, "content") else str(raw))
+            record_runtime_event(
+                {
+                    "source_type": "tool_result",
+                    "source_event_id": f"{correlation_id}:tool:{provider}:{tool_name}",
+                    "user_id": "nex_user",
+                    "session_id": runtime_session_id,
+                    "tool": tool_name,
+                    "app": provider,
+                    "success": True,
+                    "output_schema_valid": bool(output),
+                    "state_changed": False,
+                    "latency_ms": (time.perf_counter() - tool_started) * 1000,
+                    "input_refs": list(args),
+                    "output": output,
+                    "context": {"correlation_id": correlation_id, "server": provider},
+                }
+            )
             self.log_call(session_id, "tool_call", f"🧩 {tool_name} args={args}",
                           server_name=f"{provider}", correlation_id=correlation_id)
             self.log_chat(session_id, "mcp_server", output, server_name=f"{provider}-{tool_name}")
         except Exception as e:
             msg = f"❌ 工具调用失败: {e}"
+            record_runtime_event(
+                {
+                    "source_type": "tool_result",
+                    "source_event_id": f"{correlation_id}:tool:{provider}:{tool_name}",
+                    "user_id": "nex_user",
+                    "session_id": runtime_session_id,
+                    "tool": tool_name,
+                    "app": provider,
+                    "success": False,
+                    "error_signature": f"{type(e).__name__}:{e}",
+                    "output_schema_valid": False,
+                    "state_changed": False,
+                    "latency_ms": (time.perf_counter() - tool_started) * 1000,
+                    "context": {"correlation_id": correlation_id, "server": provider},
+                }
+            )
             self.log_call(session_id, "tool_fail", msg, server_name=f"{provider}-{tool_name}",
                           correlation_id=correlation_id, level="error")
             self.log_chat(session_id, "assistant", "工具调用失败，请重试。")
