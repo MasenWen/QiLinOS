@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -10,6 +11,7 @@ from .constants import HIDDEN_SERVERS
 from .llm_deepseek import DeepSeekClient
 from .models import AgentAskRequest
 from .runtime import get_audit, get_client, get_registry, get_request_id, get_db
+from src.memory_engine.observability import record_runtime_event
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -171,6 +173,19 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
         _maybe_log_call(db, sid, "处理失败", "query 为空", server_name="mcp-host", correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=400, detail="query 不能为空")
 
+    runtime_session_id = str(sid or rid)
+    record_runtime_event(
+        {
+            "source_type": "dialogue",
+            "source_event_id": f"{rid}:query",
+            "user_id": "nex_user",
+            "session_id": runtime_session_id,
+            "actor": "user",
+            "content": query,
+            "context": {"correlation_id": correlation_id},
+        }
+    )
+
     context = (body.context_messages or "").strip() or None
 
     allow = set(body.allow_servers) if body.allow_servers else None
@@ -300,6 +315,7 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
         correlation_id=correlation_id,
     )
 
+    tool_started = time.perf_counter()
     try:
         info = registry.get_server_info(server)
         if not info:
@@ -309,13 +325,62 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
 
         coro = client.call_tool(server, tool, args)
         tool_result = await asyncio.wait_for(coro, timeout=body.timeout_ms / 1000.0)
+        record_runtime_event(
+            {
+                "source_type": "tool_result",
+                "source_event_id": f"{rid}:tool:{server}:{tool}",
+                "user_id": "nex_user",
+                "session_id": runtime_session_id,
+                "tool": tool,
+                "app": server,
+                "success": True,
+                "output_schema_valid": isinstance(tool_result, dict),
+                "state_changed": False,
+                "latency_ms": (time.perf_counter() - tool_started) * 1000,
+                "input_refs": list(args),
+                "output": tool_result,
+                "context": {"correlation_id": correlation_id, "server": server},
+            }
+        )
         _maybe_log_call(db, sid, "tool_ok", "ok", server_name=f"{server}-{tool}", correlation_id=correlation_id)
     except asyncio.TimeoutError:
         msg = "工具调用超时"
+        record_runtime_event(
+            {
+                "source_type": "tool_result",
+                "source_event_id": f"{rid}:tool:{server}:{tool}",
+                "user_id": "nex_user",
+                "session_id": runtime_session_id,
+                "tool": tool,
+                "app": server,
+                "success": False,
+                "error_signature": "TimeoutError",
+                "output_schema_valid": False,
+                "state_changed": False,
+                "latency_ms": (time.perf_counter() - tool_started) * 1000,
+                "context": {"correlation_id": correlation_id, "server": server},
+            }
+        )
         _maybe_log_call(db, sid, "tool_fail", msg, server_name=f"{server}-{tool}", correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=504, detail=msg)
     except Exception as e:
         msg = str(e)
+        record_runtime_event(
+            {
+                "source_type": "tool_result",
+                "source_event_id": f"{rid}:tool:{server}:{tool}",
+                "user_id": "nex_user",
+                "session_id": runtime_session_id,
+                "tool": tool,
+                "app": server,
+                "success": False,
+                "error_signature": f"{type(e).__name__}:{msg}",
+                "output_schema_valid": False,
+                "state_changed": False,
+                "latency_ms": (time.perf_counter() - tool_started) * 1000,
+                "context": {"correlation_id": correlation_id, "server": server},
+            }
+        )
         _maybe_log_call(db, sid, "tool_fail", msg, server_name=f"{server}-{tool}", correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=500, detail=msg)
 

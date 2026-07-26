@@ -83,9 +83,10 @@ class KylinMem0Adapter(VectorStoreBase):
         result = []
         for item in hits[0]:
             entity = item.get("entity", {})
+            # Milvus COSINE search returns similarity as "distance"; higher is closer.
             result.append(OutputData(
                 id=entity.get("id", item.get("id", "")),
-                score=round(1.0 - item.get("distance", 0), 4),
+                score=round(item.get("distance", 0), 4),
                 payload=entity.get("metadata", {}),
             ))
         return result
