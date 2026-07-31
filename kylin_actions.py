@@ -505,10 +505,9 @@ async def execute_action(dsl: str, timeout: float = 20.0) -> Tuple[int, str]:
     Execute a DSL action.
 
     Dispatch order:
-    1. Security permission check (DSL level)
-    2. Toolkit (closed-loop: execute → verify → log)
-    3. Registered SDK/DBus handler (kylin_actions internal)
-    4. kylin-actuator binary (fallback)
+    1. Toolkit (closed-loop: execute → verify → log)
+    2. Registered SDK/DBus handler (kylin_actions internal)
+    3. kylin-actuator binary (fallback)
 
     Returns (returncode: int, output: str).
     """
@@ -519,21 +518,6 @@ async def execute_action(dsl: str, timeout: float = 20.0) -> Tuple[int, str]:
     # Normalize: wrap in braces if not already
     if not directive.startswith("{") and not directive.endswith("}"):
         directive = "{" + directive + "}"
-
-    # ===== Layer 0: DSL-level permission check =====
-    from security import get_permission_engine, get_audit_logger, Permission
-    perm_result = get_permission_engine().check_action(directive)
-    if perm_result.permission == Permission.DENY:
-        get_audit_logger().log_permission_deny(
-            "kylin_actions", directive, perm_result.reason,
-        )
-        logger.warning("DSL action %r denied by policy: %s", directive, perm_result.reason)
-        return 2, f"操作被策略拒绝: {perm_result.reason}"
-    elif perm_result.permission == Permission.REQUIRE_CONFIRM:
-        get_audit_logger().log_permission_confirm(
-            "kylin_actions", directive,
-        )
-        logger.info("DSL action %r requires confirmation (L1), executing with audit", directive)
 
     # ===== Layer 1: Toolkit (with closed-loop verification) =====
     toolkit_result = await _try_toolkit(directive)

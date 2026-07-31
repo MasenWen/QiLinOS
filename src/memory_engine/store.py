@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from .models import Episode, Evidence, MemoryRecord, Observation
+
+logger = logging.getLogger(__name__)
 
 
 SCHEMA_VERSION = "memory_engine.sqlite.v1"
@@ -35,7 +38,15 @@ class MemoryEngineStore:
         self.path = Path(configured or os.path.expanduser("~/.nex-agent/memory_engine.db"))
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._guard = None  # lazy-loaded MemoryGuard
         self.initialize()
+
+    @property
+    def _memory_guard(self):
+        if self._guard is None:
+            from security import get_memory_guard
+            self._guard = get_memory_guard()
+        return self._guard
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
@@ -224,6 +235,13 @@ class MemoryEngineStore:
             )
 
     def put_observation(self, observation: Observation) -> bool:
+        # Defense-in-depth: content review before persist
+        review = self._memory_guard.review(
+            observation.content, category="observation", source="store.put_observation"
+        )
+        if not review.allowed:
+            logger.warning("put_observation blocked: %s", review.reason)
+            return False
         data = observation.to_dict()
         with self._lock, self.connection() as connection:
             cursor = connection.execute(
@@ -370,6 +388,13 @@ class MemoryEngineStore:
         return None
 
     def put_evidence(self, evidence: Evidence) -> bool:
+        # Defense-in-depth: content review before persist
+        review = self._memory_guard.review(
+            evidence.claim_value, category="evidence", source="store.put_evidence"
+        )
+        if not review.allowed:
+            logger.warning("put_evidence blocked: %s", review.reason)
+            return False
         data = evidence.to_dict()
         with self._lock, self.connection() as connection:
             cursor = connection.execute(
@@ -524,6 +549,13 @@ class MemoryEngineStore:
             return cursor.rowcount
 
     def put_memory(self, memory: MemoryRecord) -> None:
+        # Defense-in-depth: content review before persist
+        review = self._memory_guard.review(
+            memory.semantic_value, category="memory", source="store.put_memory"
+        )
+        if not review.allowed:
+            logger.warning("put_memory blocked: %s", review.reason)
+            return
         data = memory.to_dict()
         with self._lock, self.connection() as connection:
             connection.execute(

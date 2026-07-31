@@ -12,6 +12,7 @@ from .llm_deepseek import DeepSeekClient
 from .models import AgentAskRequest
 from .runtime import get_audit, get_client, get_registry, get_request_id, get_db
 from src.memory_engine.observability import record_runtime_event
+from security import get_threat_scanner, get_permission_engine, get_audit_logger, Permission
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -162,6 +163,7 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
     registry = get_registry(app)
     client = get_client(app)
     db = get_db(app)
+    security_audit = get_audit_logger()
 
     sid = _normalize_session_id(getattr(body, "session_id", None))
 
@@ -172,6 +174,17 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
     if not query:
         _maybe_log_call(db, sid, "处理失败", "query 为空", server_name="mcp-host", correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=400, detail="query 不能为空")
+
+    # ===== Security checkpoint 1: Threat scan on user input =====
+    threat_result = get_threat_scanner().scan(query)
+    if not threat_result.safe:
+        security_audit.log_threat_block(
+            query, threat_result.threat_ids, threat_result.severity,
+            request_id=rid,
+        )
+        _maybe_log_call(db, sid, "处理失败", f"内容不安全: {', '.join(threat_result.threat_ids)}",
+                        server_name="mcp-host", correlation_id=correlation_id, level="error")
+        raise HTTPException(status_code=403, detail=f"内容不安全: {threat_result.description}")
 
     runtime_session_id = str(sid or rid)
     record_runtime_event(
@@ -213,7 +226,7 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
             tools_by_server[name] = brief
         except Exception as e:
             audit.log("agent_catalog_skip", {"server": name, "error": str(e)}, request_id=rid)
-            # 目录加载失败不影响主流程；按“简要日志”策略这里不写入 call_logs
+            # 目录加载失败不影响主流程；按"简要日志"策略这里不写入 call_logs
 
     if not catalog:
         _maybe_log_call(db, sid, "处理失败", "所有 server 都无法加载 tools", server_name="mcp-host", correlation_id=correlation_id, level="error")
@@ -287,6 +300,27 @@ async def ask(request: Request, body: AgentAskRequest) -> Dict[str, Any]:
     if allow is not None and server not in allow:
         _maybe_log_call(db, sid, "处理失败", "计划 server 不在 allow_servers", server_name=str(server), correlation_id=correlation_id, level="error")
         raise HTTPException(status_code=400, detail=f"计划选择的 server '{server}' 不在 allow_servers 中")
+
+    # ===== Security checkpoint 2: Permission check on server + tool =====
+    perm_result = get_permission_engine().check(server, tool)
+    if perm_result.permission == Permission.DENY:
+        security_audit.log_permission_deny(server, tool, perm_result.reason, request_id=rid)
+        _maybe_log_call(db, sid, "处理失败", f"权限拒绝: {perm_result.reason}",
+                        server_name=f"{server}-{tool}", correlation_id=correlation_id, level="error")
+        raise HTTPException(status_code=403, detail=f"操作被策略拒绝: {perm_result.reason}")
+    elif perm_result.permission == Permission.REQUIRE_CONFIRM and not body.confirmed:
+        return {
+            "executed": False,
+            "plan": {"server": server, "tool": tool, "args": args},
+            "answer": None,
+            "clarification_needed": True,
+            "clarification": {
+                "question": f"操作 '{tool}' (server={server}) 需要你的确认才能执行。原因: {perm_result.reason}",
+                "requires_confirmation": True,
+                "server": server,
+                "tool": tool,
+            },
+        }
 
     _maybe_log_call(
         db, sid,

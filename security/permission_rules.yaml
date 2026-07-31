@@ -1,0 +1,75 @@
+# SDK Security Permission Rules
+# ================================
+# Permission levels:
+#   L0 (DIRECT)       — read-only / reversible operations, auto-allow
+#   L1 (SUDO_REQUIRED) — requires user confirmation for system-modifying ops
+#   L2 (DISALLOWED)    — sensitive / dangerous operations, directly denied
+#
+# Matching order: exact match → wildcard match → default L0
+
+servers:
+  # ---- Read-only / reversible tools (L0: auto-allow) ----
+  kylin_sdk_server:
+    "*": L0
+  kylin_server:
+    "*": L0
+  bdmap_server:
+    "*": L0
+  gdmap_server:
+    "*": L0
+  api_server:
+    "*": L0
+  local_server:
+    "*": L0
+  filesystem_server:
+    "*": L0
+
+  # ---- Desktop control (L2: completely disallowed) ----
+  kylin_desktop_control_server:
+    "*": L2
+
+dsl_actions:
+  # ---- L0: Read-only / info queries ----
+  "show versioninfo": L0
+  "show kernelinfo": L0
+  "show cpuinfo": L0
+  "do showmemoryusagepercentageoverall": L0
+  "do getfreediskspace": L0
+  "do getsystemloadaverage": L0
+  "show ifconfiginfo": L0
+  "do getbatterychargelevel": L0
+  "do getbatterycyclecount": L0
+  "do showgpuinformation": L0
+  "do getfanspeedsummary": L0
+  "do gethostname": L0
+  "do getsystemarchitecture": L0
+  "do showsystemuptime": L0
+  "do showsystemboottime": L0
+  "do getsystemlocale": L0
+  "screenshot": L0
+  "areascreenshot": L0
+  "windowscreenshot": L0
+
+  # ---- L1: Reversible / confirmable actions ----
+  "open volume": L1
+  "close volume": L1
+  "open maxvolume": L1
+  "open minvolume": L1
+  "open bluetooth": L1
+  "close bluetooth": L1
+  "open network": L1
+  "close network": L1
+  "open touchpad": L1
+  "close touchpad": L1
+  "play music": L1
+  "pause": L1
+  "open browser": L1
+  "open filemanager": L1
+  "open terminal": L1
+  "open calculator": L1
+  "set background": L1
+
+  # ---- L2: Disallowed ----
+  "reboot": L2
+  "shutdown": L2
+  "*": L0

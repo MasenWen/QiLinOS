@@ -36,3 +36,4 @@ class AgentAskRequest(BaseModel):
     allow_servers: Optional[List[str]] = None
     dry_run: bool = False
     timeout_ms: int = Field(default=60_000, ge=1_000, le=600_000)
+    confirmed: bool = Field(default=False, description="用户是否已确认 L1 级别操作")

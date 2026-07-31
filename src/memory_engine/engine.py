@@ -13,7 +13,6 @@ from .forgetting import LineageForgetter
 from .models import RetrievalContext, RetrievalResponse
 from .normalizers import dialogue_to_observation, observation_from_event
 from .retrieval import SearchBackend, StructuredHybridRetriever
-from .security import is_engine_safe
 from .store import MemoryEngineStore
 from .updater import apply_evidence
 
@@ -42,11 +41,26 @@ class MemoryEngine:
         segment: bool = True,
     ) -> dict[str, Any]:
         """Normalize and persist one source event without triggering extraction."""
+        from security import get_memory_guard, get_audit_logger
+
         store = self.store or MemoryEngineStore()
         try:
             observation = observation_from_event(event)
         except ValueError as exc:
             return {"status": "skipped", "reason": str(exc)}
+
+        # Security guard: review observation content before persisting
+        guard = get_memory_guard()
+        review = guard.review(observation.content, category="observation", source="ingest_event")
+        if not review.allowed:
+            get_audit_logger().log_memory_review(
+                "observation", "ingest_event", False, review.threat_ids, review.reason,
+            )
+            return {"status": "skipped", "reason": f"unsafe_content: {review.reason}"}
+        if review.threat_ids or review.pii_redactions > 0:
+            get_audit_logger().log_memory_review(
+                "observation", "ingest_event", True, review.threat_ids, review.reason,
+            )
 
         created = store.put_observation(observation)
         episode = store.find_episode_for_observation(observation.observation_id)
@@ -181,10 +195,25 @@ class MemoryEngine:
         index: bool = True,
     ) -> dict[str, Any]:
         """Persist one reviewed fact through Observation/Evidence/Impact/Memory."""
+        from security import get_memory_guard, get_audit_logger
+
         if not fact or not fact.strip():
             return {"status": "skipped", "reason": "empty_fact"}
-        if not is_engine_safe(fact):
-            return {"status": "skipped", "reason": "unsafe_content"}
+
+        # Security guard: replace is_engine_safe with full memory guard review
+        guard = get_memory_guard()
+        review = guard.review(fact, category="fact", source="remember_fact")
+        if not review.allowed:
+            get_audit_logger().log_memory_review(
+                "fact", "remember_fact", False, review.threat_ids, review.reason,
+            )
+            return {"status": "skipped", "reason": f"unsafe_content: {review.reason}"}
+        if review.threat_ids or review.pii_redactions > 0:
+            get_audit_logger().log_memory_review(
+                "fact", "remember_fact", True, review.threat_ids, review.reason,
+            )
+        fact = review.sanitized_text
+
         store = self.store or MemoryEngineStore()
         current = dict(context or {})
         user_id = str(current.get("user_id") or "nex_user")
