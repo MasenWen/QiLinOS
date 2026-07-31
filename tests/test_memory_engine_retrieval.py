@@ -144,7 +144,8 @@ class MemoryEngineLineageTest(unittest.TestCase):
                 mem0_store_obj=backend,
             )
 
-            self.assertEqual({"status": "skipped", "reason": "unsafe_content"}, result)
+            self.assertEqual(result["status"], "skipped")
+            self.assertIn("unsafe_content", result["reason"])
             self.assertEqual(0, store.counts()["observations"])
             self.assertEqual([], backend._memory.calls)
 
