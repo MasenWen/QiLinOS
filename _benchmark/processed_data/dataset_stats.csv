@@ -1,0 +1,45 @@
+﻿category,metric,value,notes
+规模,query_count,30000,完整 v5.3 Query；每个答案组五种问法
+规模,answer_group_count,6000,独立答案组
+规模,dialogue_episode_count,6000,两份 v4 中的全部对话 episode
+规模,dialogue_event_count,18945,全部项目合成用户消息
+规模,selected_operation_episode_count,6000,"从 409,768 个操作 episode 中筛选"
+规模,representative_operation_event_count,38502,保留用于证据复核的代表性日志事件
+人工查验,review_query_count,1000,从主集分层抽取，不是额外生成
+人工查验,review_answer_group_count,1000,每个答案组只抽一种问法
+字段,status_column_count,0,v5.3 不包含人工 status 字段
+字段,rank_column_count,0,v5.3 不包含人工 rank 字段
+评测模式,evaluation_mode,offline,Query 只用于离线评测，不写回记忆库
+Query 质量,unique_query_text_count,8050,不同的完整 Query 文本数量
+Query 质量,max_exact_query_duplicate_count,25,任一完整 Query 文本的最大重复次数
+Query 质量,answer_leakage_phrase_hit_count,0,裁判术语或答案提示短语命中数
+Query 质量,duplicate_full_input_rewrite_count,0,不为表面去重强行加入精确时间；完整输入按 Query、当前上下文和记忆证据共同判定
+Query 质量,repeated_entity_query_count,0,v5.3 直接组合与用户示例回归检查
+Query 质量,blocked_composition_phrase_hit_count,0,v5.3 直接组合与用户示例回归检查
+Query 质量,user_regression_example_hit_count,0,v5.3 直接组合与用户示例回归检查
+Query 质量,exact_full_input_duplicate_count,0,v5.3 直接组合与用户示例回归检查
+答案质量,minimum_expected_operation_text_length,376,最短具体操作文本字符数
+答案质量,minimum_reference_agent_response_length,684,最短参考回答字符数
+评分质量,minimum_scoring_rubric_length,3709,最短详细评分细则字符数
+评测轨道,clarification_required,1875,Query 数
+评测轨道,conflict_resolution,6750,Query 数
+评测轨道,dialogue_context_only,1125,Query 数
+评测轨道,dialogue_log_complementary,10500,Query 数
+评测轨道,multi_task_cross_app,9000,Query 数
+评测轨道,operation_resume_only,750,Query 数
+Query 类型,contextual_ellipsis,6000,完整主集 Query 数
+Query 类型,human_constraint_emphasis,6000,完整主集 Query 数
+Query 类型,human_context_explicit,6000,完整主集 Query 数
+Query 类型,human_goal_oriented,6000,完整主集 Query 数
+Query 类型,low_overlap_paraphrase,6000,完整主集 Query 数
+人工查验 Query 类型,contextual_ellipsis,200,1000 条样本中严格均衡
+人工查验 Query 类型,human_constraint_emphasis,200,1000 条样本中严格均衡
+人工查验 Query 类型,human_context_explicit,200,1000 条样本中严格均衡
+人工查验 Query 类型,human_goal_oriented,200,1000 条样本中严格均衡
+人工查验 Query 类型,low_overlap_paraphrase,200,1000 条样本中严格均衡
+数据分区,dev,3000,同一答案组不跨分区
+数据分区,test,2960,同一答案组不跨分区
+数据分区,train,24040,同一答案组不跨分区
+操作来源,BPI2020,2500,筛选后的独立操作 episode 数
+操作来源,CERT_R1,2492,筛选后的独立操作 episode 数
+操作来源,WEBLINX_1_0,1008,筛选后的独立操作 episode 数

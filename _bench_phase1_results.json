@@ -1,0 +1,65 @@
+{
+  "operation_ingestion": {
+    "total": 5000,
+    "success": 5000,
+    "failed": 0,
+    "success_rate": 1.0,
+    "total_time_s": 464.28,
+    "rate_evt_per_s": 10.8,
+    "P50_ms": 76.3,
+    "P95_ms": 130.45,
+    "P99_ms": 177.65,
+    "mean_ms": 83.88
+  },
+  "dialogue_ingestion": {
+    "total": 5000,
+    "success": 5000,
+    "failed": 0,
+    "success_rate": 1.0,
+    "total_time_s": 407.47,
+    "rate_evt_per_s": 12.3,
+    "P50_ms": 66.84,
+    "P95_ms": 113.99,
+    "P99_ms": 151.81,
+    "mean_ms": 72.23
+  },
+  "store_counts": {
+    "strict_observations": 10000,
+    "strict_fragments": 10000,
+    "strict_repaired_executions": 10000,
+    "strict_evidence": 7840,
+    "strict_candidates": 0,
+    "strict_impacts": 0,
+    "strict_memories": 0,
+    "strict_conflict_groups": 0,
+    "strict_lifecycle_events": 0,
+    "strict_forget_requests": 0,
+    "strict_suppressions": 0,
+    "strict_reflections": 0,
+    "strict_stage_outputs": 40000,
+    "strict_engine_runs": 10000
+  },
+  "query_execution": {
+    "total": 3000,
+    "total_time_s": 1107.04,
+    "rate_q_per_s": 2.7,
+    "P50_ms": 340.19,
+    "P95_ms": 572.26,
+    "P99_ms": 797.22,
+    "mean_ms": 367.95,
+    "hits_nonzero": 0,
+    "hits_zero": 3000,
+    "hit_rate": 0.0
+  },
+  "test_metadata": {
+    "pipeline": "Phase1_SDK_Memory_v5.3_Benchmark",
+    "date": "2026-08-09T15:44:29.855798+00:00",
+    "server": "Kylin V11 (阿里云 ECS)",
+    "python": "3.12.3",
+    "test_db": "/home/kylin/.nex-agent/_bench_phase1.db",
+    "benchmark_dir": "/home/kylin/work/projects/project_dev1/_benchmark",
+    "sample_events": 5000,
+    "sample_queries": 0,
+    "predictions_csv": "/home/kylin/work/projects/project_dev1/_bench_phase1_predictions.csv"
+  }
+}

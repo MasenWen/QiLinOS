@@ -1,0 +1,70 @@
+{
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "title":  "OS Agent memory Query v5.3 answer-key record",
+    "type":  "object",
+    "required":  [
+                     "answer_group_id",
+                     "canonical_user_intent",
+                     "dialogue_memory_texts",
+                     "operation_log_texts",
+                     "required_memory_texts",
+                     "candidate_memory_texts",
+                     "forbidden_memory_texts",
+                     "operation_state_reasoning",
+                     "memory_dependency_reason",
+                     "expected_conclusion",
+                     "expected_operation_text",
+                     "reference_agent_response",
+                     "answer_reasoning_core",
+                     "scoring_points_json",
+                     "scoring_rubric_text"
+                 ],
+    "additionalProperties":  false,
+    "properties":  {
+                       "answer_group_id":  {
+                                               "type":  "string"
+                                           },
+                       "canonical_user_intent":  {
+                                                     "type":  "string"
+                                                 },
+                       "dialogue_memory_texts":  {
+                                                     "type":  "string"
+                                                 },
+                       "operation_log_texts":  {
+                                                   "type":  "string"
+                                               },
+                       "required_memory_texts":  {
+                                                     "type":  "string"
+                                                 },
+                       "candidate_memory_texts":  {
+                                                      "type":  "string"
+                                                  },
+                       "forbidden_memory_texts":  {
+                                                      "type":  "string"
+                                                  },
+                       "operation_state_reasoning":  {
+                                                         "type":  "string"
+                                                     },
+                       "memory_dependency_reason":  {
+                                                        "type":  "string"
+                                                    },
+                       "expected_conclusion":  {
+                                                   "type":  "string"
+                                               },
+                       "expected_operation_text":  {
+                                                       "type":  "string"
+                                                   },
+                       "reference_agent_response":  {
+                                                        "type":  "string"
+                                                    },
+                       "answer_reasoning_core":  {
+                                                     "type":  "string"
+                                                 },
+                       "scoring_points_json":  {
+                                                   "type":  "string"
+                                               },
+                       "scoring_rubric_text":  {
+                                                   "type":  "string"
+                                               }
+                   }
+}

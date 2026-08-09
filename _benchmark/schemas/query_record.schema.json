@@ -1,0 +1,182 @@
+{
+    "$schema":  "https://json-schema.org/draft/2020-12/schema",
+    "title":  "OS Agent memory Query v5.3 record",
+    "type":  "object",
+    "required":  [
+                     "query_id",
+                     "answer_group_id",
+                     "composite_case_id",
+                     "scenario_id",
+                     "scenario_label",
+                     "ability_id",
+                     "ability_label",
+                     "competition_requirement_group",
+                     "memory_capability_under_test",
+                     "failure_mode_under_test",
+                     "evaluation_track",
+                     "evidence_mode",
+                     "cross_source_relation",
+                     "query_type",
+                     "dataset_partition",
+                     "difficulty_level",
+                     "alignment_method",
+                     "alignment_claim",
+                     "source_dataset_ids",
+                     "dialogue_episode_ids",
+                     "operation_episode_ids",
+                     "required_dialogue_event_ids",
+                     "required_operation_event_ids",
+                     "candidate_dialogue_event_ids",
+                     "candidate_operation_event_ids",
+                     "forbidden_dialogue_event_ids",
+                     "forbidden_operation_event_ids",
+                     "required_evidence_ids",
+                     "candidate_evidence_ids",
+                     "forbidden_evidence_ids",
+                     "target_content_types",
+                     "target_memory_types",
+                     "apps_involved",
+                     "workflow_steps_json",
+                     "handoff_artifacts_json",
+                     "expected_action_keys",
+                     "forbidden_action_keys",
+                     "target_objects",
+                     "operation_state_labels",
+                     "decision_class",
+                     "max_score",
+                     "query_text",
+                     "current_context_text"
+                 ],
+    "additionalProperties":  false,
+    "properties":  {
+                       "query_id":  {
+                                        "type":  "string"
+                                    },
+                       "answer_group_id":  {
+                                               "type":  "string"
+                                           },
+                       "composite_case_id":  {
+                                                 "type":  "string"
+                                             },
+                       "scenario_id":  {
+                                           "type":  "string"
+                                       },
+                       "scenario_label":  {
+                                              "type":  "string"
+                                          },
+                       "ability_id":  {
+                                          "type":  "string"
+                                      },
+                       "ability_label":  {
+                                             "type":  "string"
+                                         },
+                       "competition_requirement_group":  {
+                                                             "type":  "string"
+                                                         },
+                       "memory_capability_under_test":  {
+                                                            "type":  "string"
+                                                        },
+                       "failure_mode_under_test":  {
+                                                       "type":  "string"
+                                                   },
+                       "evaluation_track":  {
+                                                "type":  "string"
+                                            },
+                       "evidence_mode":  {
+                                             "type":  "string"
+                                         },
+                       "cross_source_relation":  {
+                                                     "type":  "string"
+                                                 },
+                       "query_type":  {
+                                          "type":  "string"
+                                      },
+                       "dataset_partition":  {
+                                                 "type":  "string"
+                                             },
+                       "difficulty_level":  {
+                                                "type":  "string"
+                                            },
+                       "alignment_method":  {
+                                                "type":  "string"
+                                            },
+                       "alignment_claim":  {
+                                               "type":  "string"
+                                           },
+                       "source_dataset_ids":  {
+                                                  "type":  "string"
+                                              },
+                       "dialogue_episode_ids":  {
+                                                    "type":  "string"
+                                                },
+                       "operation_episode_ids":  {
+                                                     "type":  "string"
+                                                 },
+                       "required_dialogue_event_ids":  {
+                                                           "type":  "string"
+                                                       },
+                       "required_operation_event_ids":  {
+                                                            "type":  "string"
+                                                        },
+                       "candidate_dialogue_event_ids":  {
+                                                            "type":  "string"
+                                                        },
+                       "candidate_operation_event_ids":  {
+                                                             "type":  "string"
+                                                         },
+                       "forbidden_dialogue_event_ids":  {
+                                                            "type":  "string"
+                                                        },
+                       "forbidden_operation_event_ids":  {
+                                                             "type":  "string"
+                                                         },
+                       "required_evidence_ids":  {
+                                                     "type":  "string"
+                                                 },
+                       "candidate_evidence_ids":  {
+                                                      "type":  "string"
+                                                  },
+                       "forbidden_evidence_ids":  {
+                                                      "type":  "string"
+                                                  },
+                       "target_content_types":  {
+                                                    "type":  "string"
+                                                },
+                       "target_memory_types":  {
+                                                   "type":  "string"
+                                               },
+                       "apps_involved":  {
+                                             "type":  "string"
+                                         },
+                       "workflow_steps_json":  {
+                                                   "type":  "string"
+                                               },
+                       "handoff_artifacts_json":  {
+                                                      "type":  "string"
+                                                  },
+                       "expected_action_keys":  {
+                                                    "type":  "string"
+                                                },
+                       "forbidden_action_keys":  {
+                                                     "type":  "string"
+                                                 },
+                       "target_objects":  {
+                                              "type":  "string"
+                                          },
+                       "operation_state_labels":  {
+                                                      "type":  "string"
+                                                  },
+                       "decision_class":  {
+                                              "type":  "string"
+                                          },
+                       "max_score":  {
+                                         "type":  "string"
+                                     },
+                       "query_text":  {
+                                          "type":  "string"
+                                      },
+                       "current_context_text":  {
+                                                    "type":  "string"
+                                                }
+                   }
+}

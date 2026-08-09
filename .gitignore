@@ -16,3 +16,4 @@ venv/
 .vscode/
 .DS_Store
 ~$*
+_benchmark/processed_data/query_set.csv
