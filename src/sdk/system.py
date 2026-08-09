@@ -18,7 +18,7 @@ API reference: ``03-系统能力SDK.md``
 import ctypes
 from typing import Optional, Dict, Any
 
-from .base import load_library, _decode_cstring, declare, IS_LINUX, IS_KYLIN
+from .base import load_library, _decode_cstring, _safe_cstring_call, declare, IS_LINUX, IS_KYLIN
 
 # ---------------------------------------------------------------------------
 # Load libraries (all optional — mock on macOS)
@@ -47,7 +47,7 @@ if _lib_sysinfo is not None:
     declare(_lib_sysinfo, "kdk_system_get_buildTime",       restype=ctypes.c_char_p)
     declare(_lib_sysinfo, "kdk_system_get_custom_version",  restype=ctypes.c_char_p)
     declare(_lib_sysinfo, "kdk_system_get_appScene",        restype=ctypes.c_char_p)
-    declare(_lib_sysinfo, "kdk_system_get_activationStatus", restype=ctypes.c_char_p)
+    declare(_lib_sysinfo, "kdk_system_get_activationStatus", restype=ctypes.c_void_p)
     declare(_lib_sysinfo, "kdk_system_get_env",             restype=ctypes.c_char_p)
     # PCI
     declare(_lib_sysinfo, "kdk_hw_get_pci_info",     restype=ctypes.c_char_p)
@@ -136,6 +136,9 @@ def get_display_info() -> Dict[str, str]:
     """
     if _lib_edid is None:
         return {}
+    import os
+    if not os.environ.get("DISPLAY"):
+        return {"error": "无显示服务（headless 环境）"}
 
     return {
         "manufacturer":    _decode_cstring(_lib_edid.kdk_edid_get_manufacturer()),
@@ -187,20 +190,74 @@ def get_gpu_summary() -> str:
 # ---- System / Host info (replaces ``uname``, ``hostnamectl`` etc.) ----
 
 def get_system_info() -> Dict[str, str]:
-    """Get basic system information. Returns empty dict on unsupported platforms."""
-    if _lib_sysinfo is None:
-        return {}
+    """Get basic system information.
 
-    return {
-        "architecture":   _decode_cstring(_lib_sysinfo.kdk_system_get_architecture()),
-        "host_vendor":    _decode_cstring(_lib_sysinfo.kdk_get_host_vendor()),
-        "host_product":   _decode_cstring(_lib_sysinfo.kdk_get_host_product()),
-        "host_serial":    _decode_cstring(_lib_sysinfo.kdk_get_host_serial()),
-        "build_time":     _decode_cstring(_lib_sysinfo.kdk_system_get_buildTime()),
-        "custom_version": _decode_cstring(_lib_sysinfo.kdk_system_get_custom_version()),
-        "activation":     _decode_cstring(_lib_sysinfo.kdk_system_get_activationStatus()),
-    }
+    Uses shell commands (hostnamectl, /proc, uname) which are more reliable
+    than ctypes on Kylin V11 where direct ctypes calls to libkysysinfo can
+    cause segfaults after multiple sequential calls.
+    """
+    import subprocess, os
 
+    def _sh(cmd, default=""):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=5, shell=True)
+            return r.stdout.strip() if r.returncode == 0 else default
+        except Exception:
+            return default
+
+    def _read_file(path, default=""):
+        try:
+            with open(path) as f:
+                return f.read().strip()
+        except Exception:
+            return default
+
+    info = {}
+
+    # Architecture
+    arch = _sh("uname -m")
+    if arch:
+        info["architecture"] = arch
+
+    # Host vendor / product / serial
+    vendor = _sh("hostnamectl 2>/dev/null | grep -i 'Hardware Vendor' | cut -d: -f2- | xargs")
+    if not vendor:
+        vendor = _read_file("/sys/class/dmi/id/sys_vendor", "")
+    info["host_vendor"] = vendor
+
+    product = _sh("hostnamectl 2>/dev/null | grep -i 'Hardware Model' | cut -d: -f2- | xargs")
+    if not product:
+        product = _read_file("/sys/class/dmi/id/product_name", "")
+    info["host_product"] = product
+
+    serial = _sh("hostnamectl 2>/dev/null | grep -i 'Serial' | cut -d: -f2- | xargs")
+    if not serial:
+        serial = _read_file("/sys/class/dmi/id/product_serial", "")
+    info["host_serial"] = serial
+
+    # Build time
+    proc_ver = _read_file("/proc/version", "")
+    build = ""
+    if "SMP" in proc_ver:
+        build = proc_ver.split("SMP")[1].split()[0] if proc_ver else ""
+    if not build:
+        build = _sh("ls -l /var/log/installer 2>/dev/null | tail -1 | awk '{print $6,$7,$8}'")
+    info["build_time"] = build
+
+    # Custom version
+    cv = _read_file("/etc/kylin-release", "")
+    if not cv:
+        raw = _sh("cat /etc/os-release 2>/dev/null | grep VERSION= | head -1 | cut -d= -f2")
+        cv = raw.replace('"', "") if raw else ""
+    info["custom_version"] = cv
+
+    # Activation status
+    act = _sh("cat /etc/kylin-release 2>/dev/null | head -1")
+    if not act:
+        act = _sh("lsb_release -ds 2>/dev/null")
+    info["activation"] = act
+
+    return info
 
 def get_hardware_info() -> str:
     """Get comprehensive hardware information as a raw string."""
