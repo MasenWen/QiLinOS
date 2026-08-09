@@ -1,0 +1,89 @@
+schema_version = "memory_engine.strict.config.v1"
+implementation_id = "memory_engine.strict.v1"
+pipeline_status = "strict_v1_complete"
+strict_full_activation = true
+database_path = "~/.nex-agent/_bench_phase1.db"
+
+[modules]
+observation = "observation.typed_rule_normalization.v1"
+stm = "stm.time_task_artifact_rule.v1"
+episode_repair = "episode_repair.split_merge_rule.v1"
+evidence = "evidence.typed_rule_extractor.v1"
+tool_preference = "candidate.tool_preference_rule.v1"
+output_style = "candidate.output_style_rule.v1"
+safety = "candidate.safety_rule.v1"
+fact = "candidate.fact_rule.v1"
+workflow = "candidate.workflow_rule.v1"
+case = "candidate.case_rule.v1"
+template = "candidate.template_rule.v1"
+memory_update = "memory_update.slot_impact_rule.v1"
+conflict_classifier = "conflict.hierarchical_rule.v1"
+static_resolver = "conflict.static.source_version_count.v1"
+dynamic_resolver = "conflict.dynamic.explicit_time_recent_window.v1"
+conditional_resolver = "conflict.conditional.condition_partition.v1"
+confidence = "scoring.confidence.evidence_share.v1"
+stability = "scoring.stability.opportunity_window_index.v1"
+lifecycle = "lifecycle.stability_thresholds.v1"
+activation = "scoring.activation.structured_similarity.v1"
+retrieval = "retrieval.structured_bm25.v1"
+forgetting = "forgetting.lineage_retraction.v1"
+reflection = "reflection.grounded_rule_consolidation.v1"
+
+[episode]
+idle_gap_seconds = 900
+split_threshold = 0.60
+merge_threshold = 0.70
+merge_gap_seconds = 300
+
+[episode.split_weights]
+goal_change = 0.30
+artifact_disjoint = 0.20
+entity_disjoint = 0.15
+task_complete_then_new_start = 0.25
+state_discontinuity = 0.10
+
+[episode.merge_weights]
+same_task_goal = 0.25
+artifact_overlap = 0.25
+entity_overlap = 0.15
+time_close = 0.10
+state_continuity = 0.20
+unfinished_then_continue = 0.05
+
+[confidence]
+epsilon = 0.50
+absolute_threshold = 0.70
+margin_threshold = 0.20
+minimum_support = 3
+
+[stability]
+target_independent_units = 5
+target_span_days = 14
+support_consistency_weight = 0.50
+window_consistency_weight = 0.30
+change_rate_weight = 0.20
+
+[lifecycle]
+promote_threshold = 0.75
+demote_threshold = 0.55
+archive_threshold = 0.30
+recover_threshold = 0.60
+
+[conflict]
+behavior_dynamic_min_support = 3
+
+[activation]
+condition_weight = 0.25
+slot_weight = 0.20
+task_goal_weight = 0.20
+semantic_weight = 0.25
+recency_weight = 0.10
+recency_half_life_days = 30
+
+[retrieval]
+bm25_k1 = 1.50
+bm25_b = 0.75
+lexical_weight = 0.60
+kylin_semantic_weight = 0.40
+candidate_limit = 50
+require_kylin_semantic = false
