@@ -13,6 +13,7 @@ Mapping to shell commands being replaced:
 from __future__ import annotations
 
 import asyncio
+import os
 import subprocess
 import logging
 from typing import Optional
@@ -20,6 +21,23 @@ from typing import Optional
 from .base import BaseTool, ToolResult, ToolStatus, RiskLevel
 
 logger = logging.getLogger("toolkit.system")
+
+
+def _to_minutes(delay_seconds) -> int:
+    """
+    Normalize a delay (seconds) to a minutes value for the C SDK.
+
+    - ``delay < 0``  → -1 (immediate)
+    - ``0 <= delay < 60`` → 1 (round up, avoid accidental immediate "+0")
+    - otherwise → ``delay // 60``
+    """
+    try:
+        delay = int(delay_seconds)
+    except (TypeError, ValueError):
+        delay = 60
+    if delay < 0:
+        return -1
+    return max(1, delay // 60)
 
 
 # ---------------------------------------------------------------------------
@@ -181,13 +199,21 @@ class SleepTool(BaseTool):
         if inhibitors:
             self.logger.warning("[sleep] 检测到睡眠抑制器: %s", inhibitors)
 
+        # SDK first — libkypowermanagement (kdk_power_set_suspend)
+        from src.sdk import power
+        ok, msg = power.suspend()
+        if ok:
+            return self._ok(msg, inhibitors=inhibitors)
+
+        # Fallback: systemctl suspend
+        self.logger.warning("[sleep] SDK 挂起失败, 回退 systemctl: %s", msg)
         try:
             result = subprocess.run(
                 ["systemctl", "suspend"],
                 capture_output=True, text=True, timeout=30,
             )
             if result.returncode == 0:
-                return self._ok("系统已进入睡眠状态", inhibitors=inhibitors)
+                return self._fallback("系统已进入睡眠状态 (shell fallback)", inhibitors=inhibitors)
             else:
                 return self._fail(
                     f"systemctl suspend 失败: {result.stderr.strip()}",
@@ -256,40 +282,95 @@ class PowerTool(BaseTool):
             return self._fail(f"未知操作: '{action}'。可用: reboot, shutdown, cancel")
 
     def _do_reboot(self, delay: int = 60) -> ToolResult:
+        minutes = _to_minutes(delay)
+        # SDK first — libkyrestart (kdk_restart_reboot)
+        from src.sdk import power
+        ok, msg = power.reboot(minutes)
+        if ok:
+            return self._ok(msg)
+        self.logger.warning("[power] SDK 重启调度失败, 回退 shutdown: %s", msg)
+
         try:
             result = subprocess.run(
-                ["shutdown", "-r", f"+{int(delay/60)}", "NexAgent 请求重启"],
+                ["shutdown", "-r", f"+{minutes}", "NexAgent 请求重启"],
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
-                return self._ok(f"系统将在 {delay} 秒后重启。取消: power action=cancel")
+                return self._fallback(f"系统将在 {minutes} 分钟后重启 (shell fallback)。取消: power action=cancel")
             return self._fail(f"重启命令失败: {result.stderr.strip()}")
         except Exception as e:
             return self._fail(f"执行异常: {e}")
 
     def _do_shutdown(self, delay: int = 60) -> ToolResult:
+        minutes = _to_minutes(delay)
+        # SDK first — libkyshutdown (kdk_shutdown_power_off)
+        from src.sdk import power
+        ok, msg = power.power_off(minutes)
+        if ok:
+            return self._ok(msg)
+        self.logger.warning("[power] SDK 关机调度失败, 回退 shutdown: %s", msg)
+
         try:
             result = subprocess.run(
-                ["shutdown", "-h", f"+{int(delay/60)}", "NexAgent 请求关机"],
+                ["shutdown", "-h", f"+{minutes}", "NexAgent 请求关机"],
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
-                return self._ok(f"系统将在 {delay} 秒后关机。取消: power action=cancel")
+                return self._fallback(f"系统将在 {minutes} 分钟后关机 (shell fallback)。取消: power action=cancel")
             return self._fail(f"关机命令失败: {result.stderr.strip()}")
         except Exception as e:
             return self._fail(f"执行异常: {e}")
 
     def _cancel_shutdown(self) -> ToolResult:
+        # SDK first — cancel both shutdown and reboot schedules
+        from src.sdk import power
+        ok1, _ = power.cancel_power_off()
+        ok2, _ = power.cancel_reboot()
+        if ok1 or ok2:
+            return self._ok("已取消计划的关机/重启 (SDK)")
+
         try:
             result = subprocess.run(
                 ["shutdown", "-c"],
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
-                return self._ok("已取消计划的关机/重启")
+                return self._fallback("已取消计划的关机/重启 (shell fallback)")
             return self._fail(f"取消失败: {result.stderr.strip()}")
         except Exception as e:
             return self._fail(f"执行异常: {e}")
+
+    # ------------------------------------------------------------------
+    def verify(self, **kwargs) -> bool:
+        """For scheduled actions, confirm a power schedule exists (SDK or shutdown)."""
+        action = kwargs.get("action", "").strip().lower()
+        delay = _to_minutes(kwargs.get("delay_seconds", 60))
+
+        if action == "reboot":
+            if delay < 1:
+                return True  # immediate — can't verify post-schedule
+            from src.sdk import power
+            return power.is_schedule_reboot() or self._scheduled_via_shutdown()
+        elif action in ("shutdown", "poweroff"):
+            if delay < 1:
+                return True
+            from src.sdk import power
+            return power.is_schedule_power_off() or self._scheduled_via_shutdown()
+        elif action == "cancel":
+            from src.sdk import power
+            return (not power.is_schedule_reboot()
+                    and not power.is_schedule_power_off()
+                    and not self._scheduled_via_shutdown())
+        return True
+
+    @staticmethod
+    def _scheduled_via_shutdown() -> bool:
+        """systemd 在调度了 shutdown/reboot 时会在该路径留下标记文件."""
+        try:
+            import os
+            return os.path.exists("/run/systemd/shutdown/scheduled")
+        except Exception:
+            return False
 
 
 # ---------------------------------------------------------------------------

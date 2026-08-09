@@ -59,6 +59,16 @@ async def lifespan(app: FastAPI):
     app.state.audit = audit
     app.state.db = db
 
+    # 初始化 ToolKit（幂等）—— SDK-first 工具注册到全局 registry
+    try:
+        from src.toolkit.init_tools import init_all_tools
+        toolkit_registry = init_all_tools()
+        app.state.tool_registry = toolkit_registry
+        log.info("ToolKit registered: %s", toolkit_registry.list_all())
+    except Exception as e:
+        log.error("ToolKit 初始化失败: %s", e)
+        app.state.tool_registry = None
+
     asyncio.create_task(_autostart_servers(client, registry, audit))
 
     try:

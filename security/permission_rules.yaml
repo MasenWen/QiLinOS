@@ -28,6 +28,38 @@ servers:
   kylin_desktop_control_server:
     "*": L2
 
+  # ---- Toolkit (SDK-first closed-loop tools) ----
+  # L0: read-only / reversible
+  # L1: system-modifying — requires user confirmation (approval gate)
+  # L2: never auto-allow (control_panel reserved for desktop_control SDK)
+  toolkit:
+    volume: L0
+    screenshot: L0
+    notify: L0
+    directory: L0
+    wallpaper: L1
+    bluetooth: L1
+    wifi: L1
+    touchpad: L1
+    music: L1
+    app: L1
+    timezone: L1
+    datetime: L1
+    sleep: L1
+    power: L1
+    screensaver: L1
+    power_idle: L1
+    control_panel: L2
+    # New SDK tools
+    netstatus: L0
+    diskinfo: L0
+    process_list: L0
+    battery_info: L0
+    proxy: L1
+    dns: L1
+    process_kill: L1
+    power_plan: L1
+
 dsl_actions:
   # ---- L0: Read-only / info queries ----
   "show versioninfo": L0
@@ -68,8 +100,26 @@ dsl_actions:
   "open terminal": L1
   "open calculator": L1
   "set background": L1
+  "set timezone": L1
+  "suspend": L1
+  "show wifilist": L0
+  "show proxy": L0
+  "show dns": L0
+  "show processlist": L0
+  "show batteryinfo": L0
+  "show diskinfo": L0
+  "connect wifi": L1
+  "disconnect wifi": L1
+  "set proxy": L1
+  "set dns": L1
+  "kill process": L1
+  "set powerplan": L1
 
   # ---- L2: Disallowed ----
+  # reboot/shutdown 保持 L2（actuator/shell 兜底路径禁止；SDK power 工具走 toolkit=L1）
   "reboot": L2
   "shutdown": L2
+  "rm_root": L2
+  "mkfs": L2
+  "dd_write": L2
   "*": L0

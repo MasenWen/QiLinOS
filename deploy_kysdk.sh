@@ -96,6 +96,15 @@ sudo apt install -y libkysdk-notification-dev || echo "  ⚠️  跳过"
 sudo apt install -y libkysdk-appmanager-dev || echo "  ⚠️  跳过"
 sudo apt install -y libkysdk-thememanager-dev || echo "  ⚠️  跳过"
 
+echo "  → 系统能力子模块 (时钟/日期、蓝牙、进程)"
+sudo apt install -y libkysdk-systime-dev || echo "  ⚠️  libkysdk-systime-dev 跳过"
+sudo apt install -y libkysdk-bluetooth-dev || echo "  ⚠️  libkysdk-bluetooth-dev 跳过"
+sudo apt install -y libkysdk-process-dev || echo "  ⚠️  libkysdk-process-dev 跳过"
+sudo apt install -y libkysdk-power-dev || echo "  ⚠️  libkysdk-power-dev 跳过"
+
+echo "  → 外设中间层依赖"
+sudo apt install -y libkysdk-peripheral-dev || echo "  ⚠️  libkysdk-peripheral-dev 跳过"
+
 echo ""
 echo "========================================"
 echo "  ✅ 部署完成！"

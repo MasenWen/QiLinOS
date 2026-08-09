@@ -191,10 +191,20 @@ class WallpaperTool(BaseTool):
         if not os.path.isfile(path):
             return self._fail(f"图片文件不存在: {path}")
 
+        # SDK first — libkydesktopctrl (kdk_wallpaper_set_file)
+        from src.sdk import desktop_ctrl
+        ok, msg = desktop_ctrl.wallpaper_set_file(path)
+        if ok:
+            return self._ok(msg)
+        self.logger.warning("[wallpaper] C-SDK 设置壁纸失败, 回退 DBus: %s", msg)
+
+        # Fallback: desktop_dbus (Qt/DBus 壁纸接口)
         from src.sdk.desktop_dbus import set_wallpaper
-        msg = set_wallpaper(path)
-        ok = "失败" not in msg and "出错" not in msg
-        return self._ok(msg) if ok else self._fail(msg)
+        dbus_msg = set_wallpaper(path)
+        dbus_ok = "失败" not in dbus_msg and "出错" not in dbus_msg
+        if dbus_ok:
+            return self._fallback(dbus_msg + " (DBus fallback)")
+        return self._fail(dbus_msg)
 
     def verify(self, **kwargs) -> bool:
         return True  # Hard to verify without reading gsettings back
@@ -446,6 +456,131 @@ class DirectoryTool(BaseTool):
 
 
 # ============================================================================
+# ScreensaverTool — libkydesktopctrl (kdk_screensaver_*)
+# ============================================================================
+
+class ScreensaverTool(BaseTool):
+    """Control screensaver: on/off/autolock/set_file/times."""
+
+    name = "screensaver"
+    description = (
+        "控制屏保。action: on=启用, off=禁用, autolock_on=启用自动锁屏, "
+        "autolock_off=禁用自动锁屏, set_file=设置屏保图片(path 参数), "
+        "idlelock_time=设置自动锁屏时间(seconds 参数), "
+        "autolock_time=设置自动屏保时间(seconds 参数)"
+    )
+    risk = RiskLevel.MEDIUM
+    requires_approval = True
+    timeout_s = 10.0
+
+    _ACTIONS = {
+        "on": "screensaver_enable",
+        "off": "screensaver_disable",
+        "autolock_on": "screensaver_autolock_enable",
+        "autolock_off": "screensaver_autolock_disable",
+        "set_file": "screensaver_set_file",
+        "idlelock_time": "screensaver_set_idlelock_time",
+        "autolock_time": "screensaver_set_autolock_time",
+    }
+
+    def execute(self, **kwargs) -> ToolResult:
+        action = kwargs.get("action", "").strip().lower()
+        from src.sdk import desktop_ctrl as dc
+        if not dc.is_available():
+            return self._fail("libkydesktopctrl 不可用")
+
+        fn_name = self._ACTIONS.get(action)
+        if fn_name is None:
+            return self._fail(
+                f"未知操作: '{action}'。可用: {', '.join(self._ACTIONS)}"
+            )
+        fn = getattr(dc, fn_name)
+
+        if action == "set_file":
+            path = kwargs.get("path", "")
+            if not path:
+                return self._fail("缺少参数: path (屏保图片路径)")
+            ok, msg = fn(os.path.expanduser(path))
+        elif action in ("idlelock_time", "autolock_time"):
+            try:
+                sec = int(kwargs.get("seconds", 0))
+            except (TypeError, ValueError):
+                return self._fail(f"无效秒数: {kwargs.get('seconds')}")
+            ok, msg = fn(sec)
+        else:
+            ok, msg = fn()
+
+        return self._ok(msg) if ok else self._fail(msg)
+
+    def verify(self, **kwargs) -> bool:
+        return True  # 屏保设置无便捷读回接口，乐观确认
+
+
+# ============================================================================
+# PowerIdleTool — libkydesktopctrl (kdk_powersetting_*)
+# ============================================================================
+
+class PowerIdleTool(BaseTool):
+    """Set/get desktop idle hungup & close-display times."""
+
+    name = "power_idle"
+    description = (
+        "设置/查询电源空闲策略。action: set_hungup=设置空闲挂起时间(seconds), "
+        "set_closedisplay=设置空闲关闭显示器时间(seconds), "
+        "get_hungup=查询挂起空闲时间, get_closedisplay=查询关闭显示器空闲时间"
+    )
+    risk = RiskLevel.MEDIUM
+    requires_approval = True
+    timeout_s = 10.0
+
+    def execute(self, **kwargs) -> ToolResult:
+        action = kwargs.get("action", "").strip().lower()
+        from src.sdk import desktop_ctrl as dc
+        if not dc.is_available():
+            return self._fail("libkydesktopctrl 不可用")
+
+        if action in ("set_hungup", "set_closedisplay"):
+            try:
+                sec = int(kwargs.get("seconds", 0))
+            except (TypeError, ValueError):
+                return self._fail(f"无效秒数: {kwargs.get('seconds')}")
+            fn = (dc.set_desktop_idle_hungup if action == "set_hungup"
+                  else dc.set_desktop_idle_closedisplay)
+            ok, msg = fn(sec)
+            return self._ok(msg) if ok else self._fail(msg)
+
+        if action in ("get_hungup", "get_closedisplay"):
+            fn = (dc.get_desktop_idle_hungup if action == "get_hungup"
+                  else dc.get_desktop_idle_closedisplay)
+            ok, val = fn()
+            label = "挂起" if action == "get_hungup" else "关闭显示器"
+            if ok:
+                return self._ok(f"当前空闲{label}时间: {val} 秒 (SDK)")
+            return self._fail(f"查询失败: {val}")
+
+        return self._fail(
+            f"未知操作: '{action}'。可用: set_hungup, set_closedisplay, get_hungup, get_closedisplay"
+        )
+
+    def verify(self, **kwargs) -> bool:
+        action = kwargs.get("action", "")
+        if action in ("get_hungup", "get_closedisplay"):
+            return True
+        if action not in ("set_hungup", "set_closedisplay"):
+            return False
+        try:
+            sec = int(kwargs.get("seconds", 0))
+        except (TypeError, ValueError):
+            return False
+        from src.sdk import desktop_ctrl as dc
+        fn = (dc.get_desktop_idle_hungup if action == "set_hungup"
+              else dc.get_desktop_idle_closedisplay)
+        ok, val = fn()
+        # 读回可能被系统按整数分钟取整，容差 60s
+        return ok and abs(int(val) - sec) < 60
+
+
+# ============================================================================
 # Registry helper
 # ============================================================================
 
@@ -466,5 +601,7 @@ def register_desktop_tools(registry=None):
         MusicTool(),
         AppLauncherTool(),
         DirectoryTool(),
+        ScreensaverTool(),
+        PowerIdleTool(),
     ])
     return registry

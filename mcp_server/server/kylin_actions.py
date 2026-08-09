@@ -459,15 +459,44 @@ _TOOLKIT_BRIDGE: dict[str, tuple[str, dict]] = {
     # Music
     "{play music}":        ("music", {"action": "play"}),
     "{pause}":             ("music", {"action": "pause"}),
+    # Network
+    "{show wifilist}":     ("netstatus", {"action": "wifi_list"}),
+    "{show proxy}":        ("netstatus", {"action": "proxy_get"}),
+    "{show dns}":          ("netstatus", {"action": "dns_get"}),
+    "{connect wifi}":      ("wifi", {"action": "connect"}),
+    "{disconnect wifi}":   ("wifi", {"action": "disconnect"}),
+    "{set proxy}":         ("proxy", {"action": "set"}),
+    "{set dns}":           ("dns", {"action": "set"}),
+    # Disk
+    "{show diskinfo}":     ("diskinfo", {"action": "list"}),
+    # Process
+    "{show processlist}":  ("process_list", {"action": "list"}),
+    "{kill process}":      ("process_kill", {"action": "kill"}),
+    # Battery
+    "{show batteryinfo}":  ("battery_info", {"action": "info"}),
+    "{set powerplan}":     ("power_plan", {"action": "set"}),
+    # Bluetooth (additional)
+    "{scan bluetooth}":    ("bluetooth", {"action": "scan"}),
 }
 
 
-async def _try_toolkit(directive: str) -> Tuple[int, str] | None:
+def _ensure_toolkit() -> None:
+    """确保 toolkit 已初始化（幂等），覆盖不走 FastAPI lifespan 的入口."""
+    try:
+        from src.toolkit.init_tools import init_all_tools
+        init_all_tools()
+    except Exception as e:
+        logger.warning("toolkit 初始化失败: %s", e)
+
+
+async def _try_toolkit(directive: str, confirmed: bool = False) -> Tuple[int, str] | None:
     """
     Try to execute a DSL directive via the toolkit (with closed-loop verification).
 
     Returns (rc, output) if handled, None if no matching toolkit tool.
     """
+    _ensure_toolkit()
+
     bridge = _TOOLKIT_BRIDGE.get(directive)
     if bridge is None:
         return None
@@ -484,7 +513,7 @@ async def _try_toolkit(directive: str) -> Tuple[int, str] | None:
             return None
 
         executor = ClosedLoopExecutor(registry=registry, max_retries=1)
-        result = await executor.run(tool_name, **kwargs)
+        result = await executor.run(tool_name, confirmed=confirmed, **kwargs)
         if result.ok:
             logger.info("Toolkit handled %r → %s (verified=%s)", directive, tool_name, result.is_verified)
             return 0, result.output
@@ -523,6 +552,9 @@ async def execute_action(dsl: str, timeout: float = 20.0) -> Tuple[int, str]:
     # ===== Layer 0: DSL-level permission check =====
     from security import get_permission_engine, get_audit_logger, Permission
     perm_result = get_permission_engine().check_action(directive)
+    # DSL 层已做 L1 决策：REQUIRE_CONFIRM 时记审计并放行（用户选定的「L1 记审计+放行」），
+    # 向下游 executor 传 confirmed=True，避免被审批门二次拦截。
+    dsl_confirmed = perm_result.permission == Permission.REQUIRE_CONFIRM
     if perm_result.permission == Permission.DENY:
         get_audit_logger().log_permission_deny(
             "kylin_actions", directive, perm_result.reason,
@@ -535,8 +567,25 @@ async def execute_action(dsl: str, timeout: float = 20.0) -> Tuple[int, str]:
         )
         logger.info("DSL action %r requires confirmation (L1), executing with audit", directive)
 
+    # ===== Layer 0.5: dynamic timezone routing (toolkit closed-loop) =====
+    m_tz = re.match(r"^\{set timezone\s+(.+)\}$", directive)
+    if m_tz:
+        zone = m_tz.group(1).strip().strip("\"'")
+        _ensure_toolkit()
+        try:
+            from src.toolkit.base import get_registry
+            from src.toolkit.executor import ClosedLoopExecutor
+            executor = ClosedLoopExecutor(registry=get_registry(), max_retries=1)
+            result = await executor.run("timezone", timezone=zone, confirmed=dsl_confirmed)
+            if result.ok:
+                return 0, result.output
+            return 1, result.error or result.output
+        except Exception as exc:
+            logger.warning("timezone 动态路由失败: %s", exc)
+            return 1, f"设置时区失败: {exc}"
+
     # ===== Layer 1: Toolkit (with closed-loop verification) =====
-    toolkit_result = await _try_toolkit(directive)
+    toolkit_result = await _try_toolkit(directive, confirmed=dsl_confirmed)
     if toolkit_result is not None:
         return toolkit_result
 

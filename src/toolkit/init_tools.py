@@ -8,19 +8,28 @@ Usage::
 """
 
 import logging
-from .base import ToolRegistry, get_registry
+from .base import RiskLevel, ToolRegistry, get_registry
 
 logger = logging.getLogger("toolkit.init")
+
+# 幂等护栏: bash_tool / kylin_actions / runtime 三处都可能触发初始化
+_initialized = False
 
 
 def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     """
     Register all tools (system + desktop) into the global registry.
 
-    Call once at application startup.
+    Idempotent — safe to call from multiple entry points (FastAPI lifespan,
+    bash_tool, kylin_actions).  Subsequent calls just return the registry.
     """
+    global _initialized
+
     if registry is None:
         registry = get_registry()
+
+    if _initialized:
+        return registry
 
     # System tools (timezone, sleep, power, datetime)
     from .system_tools import register_system_tools
@@ -30,18 +39,32 @@ def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     from .desktop_tools import register_desktop_tools
     register_desktop_tools(registry)
 
+    # Network tools (wifi, proxy, dns, network status)
+    from .network_tools import register_network_tools
+    register_network_tools(registry)
+
+    # Disk tools (disk info, usage, mounts)
+    from .disk_tools import register_disk_tools
+    register_disk_tools(registry)
+
+    # Process tools (list, kill, find)
+    from .process_tools import register_process_tools
+    register_process_tools(registry)
+
+    # Battery tools (battery info, power plans)
+    from .battery_tools import register_battery_tools
+    register_battery_tools(registry)
+
+    _initialized = True
+
     logger.info(
         "ToolKit initialized: %d tools (%d low, %d medium, %d consequential)",
         len(registry.list_all()),
-        len(registry.list_by_risk(RiskLevel.LOW) if 'RiskLevel' in dir() else []),
-        len(registry.list_by_risk(RiskLevel.MEDIUM) if 'RiskLevel' in dir() else []),
-        len(registry.list_by_risk(RiskLevel.CONSEQUENTIAL) if 'RiskLevel' in dir() else []),
+        len(registry.list_by_risk(RiskLevel.LOW)),
+        len(registry.list_by_risk(RiskLevel.MEDIUM)),
+        len(registry.list_by_risk(RiskLevel.CONSEQUENTIAL)),
     )
     return registry
-
-
-# Fix: import RiskLevel properly
-from .base import RiskLevel
 
 
 def get_agent_tool_list(registry: ToolRegistry = None) -> str:

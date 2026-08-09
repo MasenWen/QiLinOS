@@ -38,7 +38,73 @@ _TOOLKIT_ROUTES: dict[str, tuple[str, dict]] = {
     "systemctl suspend": ("sleep", {}),
     # 目录（部分）
     "xdg-open": ("directory", {"dir": "{arg}"}),
+    # 电源 / 重启 / 关机（正则锚定开头处理，见 _try_resolve_toolkit）
+    "systemctl poweroff": ("power", {"action": "shutdown"}),
+    "systemctl reboot": ("power", {"action": "reboot"}),
 }
+
+
+# 危险命令前缀 → DSL 权限 key（shell fallback 前的最后一道防线）
+# 锚定命令开头，避免子串误匹配（如 `echo reboot`）
+_DANGEROUS_CMDS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"^\s*systemctl\s+poweroff\b"), "shutdown"),
+    (re.compile(r"^\s*systemctl\s+reboot\b"), "reboot"),
+    (re.compile(r"^\s*poweroff\b"), "shutdown"),
+    (re.compile(r"^\s*reboot\b"), "reboot"),
+    (re.compile(r"^\s*shutdown\b"), "shutdown"),
+    (re.compile(r"^\s*rm\s+-rf\s+/\s*($|[;&|])"), "rm_root"),
+    (re.compile(r"^\s*mkfs\b"), "mkfs"),
+    (re.compile(r"^\s*dd\s+if="), "dd_write"),
+]
+
+
+def _check_shell_permission(cmd: str) -> Optional[str]:
+    """
+    Shell fallback 前的权限检查（确定性防线）。
+
+    Returns an error string if blocked, else None.
+    - L2 (deny) → 直接拦截 + 审计 permission_deny
+    - L1 (require_confirm) → shell 路径无法交互确认，拦截并提示走 toolkit
+    """
+    from security.permission import get_permission_engine, Permission
+
+    for pattern, dsl_key in _DANGEROUS_CMDS:
+        if pattern.match(cmd):
+            result = get_permission_engine().check_action(dsl_key)
+            if result.permission == Permission.DENY:
+                try:
+                    from security.audit import SecurityAuditLogger
+                    SecurityAuditLogger().log_permission_deny(
+                        "bash_tool", dsl_key, result.reason
+                    )
+                except Exception:
+                    pass
+                return (
+                    f"命令被安全策略拦截 (L2: {dsl_key}): {cmd.strip()[:120]}。"
+                    "如需执行，请改用 toolkit 工具或联系管理员。"
+                )
+            if result.permission == Permission.REQUIRE_CONFIRM:
+                try:
+                    from security.audit import SecurityAuditLogger
+                    SecurityAuditLogger().log_permission_deny(
+                        "bash_tool", dsl_key,
+                        "shell 路径无法交互确认，请走 toolkit 闭环",
+                    )
+                except Exception:
+                    pass
+                return (
+                    f"命令需要用户确认 (L1: {dsl_key}): 请通过 toolkit 工具执行。"
+                )
+    return None
+
+
+def _ensure_toolkit() -> None:
+    """确保 toolkit 已初始化（幂等），覆盖不走 FastAPI lifespan 的入口."""
+    try:
+        from src.toolkit import init_tools
+        init_tools.init_all_tools()
+    except Exception as e:
+        logger.warning("toolkit 初始化失败: %s", e)
 
 
 def _try_resolve_toolkit(cmd: str) -> Optional[tuple[str, dict]]:
@@ -75,6 +141,22 @@ def _try_resolve_toolkit(cmd: str) -> Optional[tuple[str, dict]]:
     if m:
         return "volume", {"action": "set", "value": int(m.group(1))}
 
+    # 电源/关机/重启: 锚定开头，避免子串误匹配
+    m = re.match(r"\s*(?:systemctl\s+)?poweroff\b", cmd_lower)
+    if m:
+        return "power", {"action": "shutdown"}
+    m = re.match(r"\s*(?:systemctl\s+)?reboot\b", cmd_lower)
+    if m:
+        return "power", {"action": "reboot"}
+    m = re.match(r"\s*shutdown\s+(-[a-z]*[hrc][a-z]*)\b", cmd_lower)
+    if m:
+        flag = m.group(1)
+        action = ("shutdown" if "h" in flag else
+                  "reboot" if "r" in flag else
+                  "cancel" if "c" in flag else None)
+        if action:
+            return "power", {"action": action}
+
     return None
 
 
@@ -95,6 +177,29 @@ def bash_tool(
     - 睡眠: systemctl suspend
     """
     logger.info(f"{node_state}-=-程序员===执行命令: {cmd}")
+
+    # 0a. 确保 toolkit 已初始化（幂等）
+    _ensure_toolkit()
+
+    # 0b. 威胁扫描（prompt/命令注入/凭据外泄）
+    from security.threat import get_threat_scanner
+    threat = get_threat_scanner().scan(cmd)
+    if not threat.safe:
+        try:
+            from security.audit import SecurityAuditLogger
+            SecurityAuditLogger().log_threat_block(
+                cmd, threat.threat_ids, threat.severity
+            )
+        except Exception:
+            pass
+        logger.warning(
+            "%s-=-程序员===威胁拦截: ids=%s severity=%s cmd=%s",
+            node_state, threat.threat_ids, threat.severity, cmd[:200],
+        )
+        return (
+            f"命令被安全策略拦截（命中威胁模式: {', '.join(threat.threat_ids)}，"
+            f"severity={threat.severity}）。{threat.description}"
+        )
 
     # 1. 尝试 Toolkit 路由
     toolkit = _try_resolve_toolkit(cmd)
@@ -120,7 +225,13 @@ def bash_tool(
         except Exception as e:
             logger.warning(f"{node_state}-=-程序员===Toolkit 路由失败: {e}，fallback 到 shell")
 
-    # 2. Shell fallback
+    # 2. Shell fallback 前的权限检查（危险命令确定性拦截）
+    blocked = _check_shell_permission(cmd)
+    if blocked is not None:
+        logger.warning("%s-=-程序员===权限拦截: %s", node_state, blocked)
+        return blocked
+
+    # 3. Shell fallback
     logger.info(f"{node_state}-=-程序员===Shell fallback: {cmd}")
     try:
         result = subprocess.run(

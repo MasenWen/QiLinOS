@@ -53,6 +53,44 @@ class Severity(Enum):
 
 
 # ---------------------------------------------------------------------------
+# ApprovalDecision — result of the permission gate
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ApprovalDecision:
+    """Decision of the approval gate for a risky tool call."""
+    allowed: bool                        # False → L2 deny, block execution
+    requires_confirmation: bool = False  # True → L1, caller must ask the user
+    reason: str = ""
+    level: str = "L0"
+
+
+# Default approval callback — wired to security.permission.PermissionEngine
+def _default_approval_callback(server_name: str, tool_name: str) -> ApprovalDecision:
+    """
+    Default gate: PermissionEngine.check(server_name, tool_name).
+
+    - L0 → allowed (no confirmation)
+    - L1 → allowed but requires user confirmation (audit logged on confirm)
+    - L2 → denied (audit logged here)
+    """
+    from security.permission import get_permission_engine, Permission
+
+    result = get_permission_engine().check(server_name, tool_name)
+    if result.permission == Permission.ALLOW:
+        return ApprovalDecision(True, False, result.reason, result.level)
+    if result.permission == Permission.REQUIRE_CONFIRM:
+        return ApprovalDecision(True, True, result.reason, result.level)
+    # DENY (L2)
+    try:
+        from security.audit import SecurityAuditLogger
+        SecurityAuditLogger().log_permission_deny(server_name, tool_name, result.reason)
+    except Exception:
+        pass
+    return ApprovalDecision(False, False, result.reason, result.level)
+
+
+# ---------------------------------------------------------------------------
 # ExecutionTrace — full audit trail for a single tool run
 # ---------------------------------------------------------------------------
 
@@ -118,11 +156,14 @@ class ClosedLoopExecutor:
         registry: Optional[ToolRegistry] = None,
         max_retries: int = 2,
         default_timeout: float = 60.0,
+        approval_callback: Optional[Callable[[str, str], ApprovalDecision]] = None,
     ):
         self.registry = registry
         self.max_retries = max_retries
         self.default_timeout = default_timeout
+        self.approval_callback = approval_callback or _default_approval_callback
         self._traces: List[ExecutionTrace] = []
+        self._audit_confirmations: List[str] = []
 
     # ------------------------------------------------------------------
     # Public API
@@ -150,6 +191,11 @@ class ClosedLoopExecutor:
                 status=ToolStatus.FAILED,
                 error=f"Tool '{tool_name}' not found in registry",
             )
+
+        # --- Approval gate (only for tools that opt in) ---
+        blocked = self._check_approval(tool, **kwargs)
+        if blocked is not None:
+            return blocked
 
         trace = ExecutionTrace(tool_name=tool_name)
 
@@ -280,6 +326,45 @@ class ClosedLoopExecutor:
             if tool is not None:
                 return tool
         # Last resort: try importing common tool modules
+        return None
+
+    def _check_approval(self, tool: BaseTool, **kwargs) -> Optional[ToolResult]:
+        """
+        Run the approval gate for risky tools.
+
+        Returns a ToolResult to short-circuit, or None to proceed.
+
+        - ``requires_approval`` OR ``risk == CONSEQUENTIAL`` → gate applies
+        - L0 → proceed silently
+        - L1 → proceed only if ``confirmed=True``; otherwise return a
+          REJECTED result flagged ``requires_confirmation`` for the caller.
+          Logs ``permission_confirm`` audit once confirmed.
+        - L2 → block with ``_rejected()`` (denial already audited in callback).
+        """
+        if not (tool.requires_approval or tool.risk == RiskLevel.CONSEQUENTIAL):
+            return None
+
+        decision = self.approval_callback("toolkit", tool.name)
+        if not decision.allowed:
+            return tool._rejected(f"权限拒绝(L2): {decision.reason}")
+
+        if decision.requires_confirmation:
+            if not kwargs.get("confirmed"):
+                result = tool._rejected(f"需要用户确认: {tool.name}")
+                result.output = "requires_confirmation"
+                result.metadata["permission_level"] = decision.level
+                result.metadata["reason"] = decision.reason
+                return result
+            # confirmed=True — record the human confirmation
+            try:
+                from security.audit import SecurityAuditLogger
+                SecurityAuditLogger().log_permission_confirm("toolkit", tool.name)
+            except Exception:
+                pass
+            self._audit_confirmations.append(
+                f"{tool.name}:{decision.level}:{decision.reason}"
+            )
+
         return None
 
     @property
