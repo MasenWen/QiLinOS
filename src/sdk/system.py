@@ -192,15 +192,16 @@ def get_gpu_summary() -> str:
 def get_system_info() -> Dict[str, str]:
     """Get basic system information.
 
-    Uses shell commands (hostnamectl, /proc, uname) which are more reliable
-    than ctypes on Kylin V11 where direct ctypes calls to libkysysinfo can
-    cause segfaults after multiple sequential calls.
+    Uses hostnamectl, /proc, /sys, and uname via list-form subprocess
+    (no shell=True). Avoids ctypes calls to libkysysinfo which can cause
+    segfaults on Kylin V11 after multiple sequential calls.
     """
     import subprocess, os
 
-    def _sh(cmd, default=""):
+    def _run(cmd, default=""):
+        """Run command safely (list form, no shell)."""
         try:
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=5, shell=True)
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
             return r.stdout.strip() if r.returncode == 0 else default
         except Exception:
             return default
@@ -214,47 +215,63 @@ def get_system_info() -> Dict[str, str]:
 
     info = {}
 
-    # Architecture
-    arch = _sh("uname -m")
-    if arch:
-        info["architecture"] = arch
+    # Architecture via os.uname (pure Python, no subprocess)
+    info["architecture"] = os.uname().machine
 
-    # Host vendor / product / serial
-    vendor = _sh("hostnamectl 2>/dev/null | grep -i 'Hardware Vendor' | cut -d: -f2- | xargs")
+    # Host vendor / product / serial -- run hostnamectl once, parse in Python
+    hostnamectl_out = _run(["hostnamectl"])
+
+    def _parse_hostnamectl(keyword):
+        for line in hostnamectl_out.split("\n"):
+            if keyword.lower() in line.lower() and ":" in line:
+                val = line.split(":", 1)[1].strip()
+                if val:
+                    return val
+        return ""
+
+    vendor = _parse_hostnamectl("Hardware Vendor")
     if not vendor:
         vendor = _read_file("/sys/class/dmi/id/sys_vendor", "")
     info["host_vendor"] = vendor
 
-    product = _sh("hostnamectl 2>/dev/null | grep -i 'Hardware Model' | cut -d: -f2- | xargs")
+    product = _parse_hostnamectl("Hardware Model")
     if not product:
         product = _read_file("/sys/class/dmi/id/product_name", "")
     info["host_product"] = product
 
-    serial = _sh("hostnamectl 2>/dev/null | grep -i 'Serial' | cut -d: -f2- | xargs")
+    serial = _parse_hostnamectl("Serial")
     if not serial:
         serial = _read_file("/sys/class/dmi/id/product_serial", "")
     info["host_serial"] = serial
 
-    # Build time
+    # Build time from /proc/version
     proc_ver = _read_file("/proc/version", "")
     build = ""
     if "SMP" in proc_ver:
-        build = proc_ver.split("SMP")[1].split()[0] if proc_ver else ""
-    if not build:
-        build = _sh("ls -l /var/log/installer 2>/dev/null | tail -1 | awk '{print $6,$7,$8}'")
+        parts = proc_ver.split("SMP")
+        if len(parts) > 1:
+            build = parts[1].split()[0] if parts[1] else ""
     info["build_time"] = build
 
-    # Custom version
+    # Custom version from /etc/kylin-release or /etc/os-release
     cv = _read_file("/etc/kylin-release", "")
     if not cv:
-        raw = _sh("cat /etc/os-release 2>/dev/null | grep VERSION= | head -1 | cut -d= -f2")
-        cv = raw.replace('"', "") if raw else ""
+        os_release = _read_file("/etc/os-release", "")
+        for line in os_release.split("\n"):
+            if line.startswith("VERSION="):
+                cv = line.split("=", 1)[1].strip().replace('"', "")
+                break
+        if not cv:
+            for line in os_release.split("\n"):
+                if line.startswith("PRETTY_NAME="):
+                    cv = line.split("=", 1)[1].strip().replace('"', "")
+                    break
     info["custom_version"] = cv
 
     # Activation status
-    act = _sh("cat /etc/kylin-release 2>/dev/null | head -1")
+    act = _read_file("/etc/kylin-release", "")
     if not act:
-        act = _sh("lsb_release -ds 2>/dev/null")
+        act = _run(["lsb_release", "-ds"])
     info["activation"] = act
 
     return info
