@@ -335,6 +335,9 @@ class ClosedLoopExecutor:
     def _record_to_memory(self, tool_name: str, result: ToolResult) -> None:
         """Fire-and-forget: record a tool result as a memory observation.
 
+        Phase 2: Results pass through MemorySecurityFilter before ingestion.
+        S0=full, S1=PII redaction, S2=summarized, S3=blocked.
+
         Failures here are silently swallowed — memory recording must never
         block or break the tool execution path.
         """
@@ -343,6 +346,27 @@ class ClosedLoopExecutor:
             if engine is None:
                 return
             event = result.to_observation()
+
+            # --- Phase 2: 安全过滤 （新增） ---
+            from src.memory_engine.security import get_memory_security_filter
+            guard = get_memory_security_filter()
+            tool = self._resolve_tool(tool_name)
+            sdk_level = getattr(result, "sdk_level", "L0")
+            if isinstance(sdk_level, int):
+                sdk_level = f"L{sdk_level}"
+            risk = getattr(tool, "risk", None)
+            risk_value = risk.value if hasattr(risk, "value") else str(risk or "low")
+            filtered = guard.filter(
+                event,
+                tool=tool,
+                sdk_level=sdk_level,
+                risk_level=risk_value,
+            )
+            if filtered is None:
+                return  # S3: blocked by security filter
+            event = filtered
+            # -----------------------------------
+
             engine.ingest_event(event, segment=True)
             logger.debug("[%s] tool result recorded to memory engine", tool_name)
         except Exception:

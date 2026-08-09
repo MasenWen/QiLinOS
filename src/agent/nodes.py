@@ -678,15 +678,34 @@ class SupervisorAgentRunner:
                 valid_next_nodes = ["研究员", "程序员", "操作员", "网页浏览员", "汇报员", "PPT专员", "UI专员","图片制作员", "MCP服务", "结束", "__end__"]
                 max_retries = 3
                 
+                # --- Phase 3: Inject memory context ---
+                enriched_state = state.copy()
+                try:
+                    from src.agent.memory_aware import MemoryContextBuilder, MemoryAwareToolSelector
+                    from src.memory_engine.engine import MemoryEngine
+                    from src.toolkit.base import get_registry
+                    selector = MemoryAwareToolSelector(
+                        memory_engine=MemoryEngine(),
+                        tool_registry=get_registry(),
+                    )
+                    msgs = state.get("messages", [])
+                    q = str(msgs[-1].content) if msgs else ""
+                    enriched_state = MemoryContextBuilder.inject(
+                        enriched_state, selector=selector, query=q,
+                    )
+                except Exception:
+                    pass  # Memory not available, proceed without context
+                # --- End Phase 3 ---
+
                 for retry_count in range(max_retries):
                     # 在重试时提供更明确的指示
                     if retry_count > 0:
                         # 在state中添加明确的指令
-                        enhanced_state = state.copy()
+                        enhanced_state = enriched_state.copy()
                         enhanced_state["explicit_instruction"] = f"请从以下选项中选择: {', '.join(valid_next_nodes)}。不要返回其他值。"
                         messages = apply_prompt_template("supervisor", enhanced_state)
                     else:
-                        messages = apply_prompt_template("supervisor", state)
+                        messages = apply_prompt_template("supervisor", enriched_state)
                     # print('='*50)
                     # for content in messages:
                     #     print(content)

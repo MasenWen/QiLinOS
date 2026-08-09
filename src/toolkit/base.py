@@ -41,6 +41,35 @@ class ToolStatus(Enum):
 # ---------------------------------------------------------------------------
 
 @dataclass
+
+# ---------------------------------------------------------------------------
+# MemoryHint — Phase 3 retrieval enhancement
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MemoryHint:
+    """Hints for the memory-aware tool selector.
+
+    Each tool can declare how it relates to the memory system,
+    enabling automatic preference→parameter mapping and conflict detection.
+    """
+    keywords: List[str] = field(default_factory=list)
+    # Natural language keywords for search matching
+
+    preference_keys: List[str] = field(default_factory=list)
+    # Preference memory keys this tool responds to (e.g. ["default_timezone"])
+
+    param_mapping: Dict[str, str] = field(default_factory=dict)
+    # Memory key → tool parameter mapping (e.g. {"default_timezone": "timezone"})
+
+    conflict_sensitive: bool = False
+    # If True, conflicting memories trigger user confirmation instead of auto-apply
+
+    max_memory_age_days: Optional[int] = None
+    # Optional: ignore memories older than this
+
+
+@dataclass
 class ToolResult:
     """
     Every tool call returns this typed, self-documenting result.
@@ -56,6 +85,7 @@ class ToolResult:
     duration_ms: float = 0.0
     retry_count: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
+    sdk_level: str = "L0"  # Phase 2: SDK binding level (L0/L1/L2) for security filter
 
     @property
     def ok(self) -> bool:
@@ -168,6 +198,7 @@ class BaseTool(ABC):
     risk: RiskLevel = RiskLevel.MEDIUM
     requires_approval: bool = False
     timeout_s: float = 30.0
+    memory_hints: MemoryHint = field(default_factory=MemoryHint)  # Phase 3
 
     def __init__(self):
         self.logger = logging.getLogger(f"toolkit.{self.name}")
