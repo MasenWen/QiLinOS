@@ -164,6 +164,7 @@ class ClosedLoopExecutor:
         self.approval_callback = approval_callback or _default_approval_callback
         self._traces: List[ExecutionTrace] = []
         self._audit_confirmations: List[str] = []
+        self._memory_engine = None  # lazily initialized
 
     # ------------------------------------------------------------------
     # Public API
@@ -212,6 +213,7 @@ class ClosedLoopExecutor:
                 trace.finished_at = time.time()
                 trace.severity = Severity.INFO
                 self._traces.append(trace)
+                self._record_to_memory(tool_name, result)
                 logger.info(
                     "✓ [%s] 执行成功 (attempt %d/%d, %.0fms, verified)",
                     tool_name, attempt + 1, self.max_retries + 1,
@@ -222,6 +224,7 @@ class ClosedLoopExecutor:
             # --- SUCCESS (not verified) ---
             if result.ok:
                 if result.status == ToolStatus.DEGRADED:
+                    self._record_to_memory(tool_name, result)
                     logger.warning(
                         "⚠ [%s] 降级模式 (attempt %d/%d): %s",
                         tool_name, attempt + 1, self.max_retries + 1,
@@ -318,6 +321,32 @@ class ClosedLoopExecutor:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _get_memory_engine(self):
+        """Lazily initialize the memory engine for recording tool results."""
+        if self._memory_engine is None:
+            try:
+                from src.memory_engine.engine import MemoryEngine
+                self._memory_engine = MemoryEngine()
+            except Exception:
+                self._memory_engine = False  # sentinel: unavailable
+        return self._memory_engine if self._memory_engine is not False else None
+
+    def _record_to_memory(self, tool_name: str, result: ToolResult) -> None:
+        """Fire-and-forget: record a tool result as a memory observation.
+
+        Failures here are silently swallowed — memory recording must never
+        block or break the tool execution path.
+        """
+        try:
+            engine = self._get_memory_engine()
+            if engine is None:
+                return
+            event = result.to_observation()
+            engine.ingest_event(event, segment=True)
+            logger.debug("[%s] tool result recorded to memory engine", tool_name)
+        except Exception:
+            logger.debug("[%s] memory recording skipped", tool_name, exc_info=True)
 
     def _resolve_tool(self, tool_name: str) -> Optional[BaseTool]:
         """Find a tool by name from registry or imports."""

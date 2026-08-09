@@ -103,6 +103,34 @@ class ToolResult:
             return f"✓ {self.tool_name}: {self.output[:200]}"
         return f"✗ {self.tool_name} 失败: {self.error or '未知错误'}"
 
+    def to_observation(self) -> dict:
+        """Convert this tool result to a memory observation event dict.
+
+        The returned dict is compatible with
+        memory_engine.normalizers.tool_result_adapter()
+        and can be fed directly to MemoryEngine.ingest_event().
+        """
+        return {
+            "source_type": "tool_result",
+            "tool": self.tool_name,
+            "tool_name": self.tool_name,
+            "success": self.ok,
+            "error_signature": self.error or "",
+            "output": self.output[:1000] if self.output else "",
+            "latency_ms": self.duration_ms,
+            "state_changed": self.status not in (
+                ToolStatus.REJECTED, ToolStatus.FAILED,
+            ),
+            "content": (
+                f"{self.tool_name}: {self.output[:200]}"
+                if self.ok
+                else f"{self.tool_name} failed: {self.error}"
+            ),
+            "action": self.status.value,
+            "user_id": "nex_user",
+            "session_id": "auto",
+        }
+
 
 # ---------------------------------------------------------------------------
 # BaseTool
