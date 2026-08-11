@@ -1,0 +1,21 @@
+﻿category,metric,value,notes
+规模,source_task_count,47,独立来源操作任务数未增加
+规模,memory_record_count,47,基础记忆记录数
+规模,query_count,530,压缩后的人工复审候选 Query
+规模,answer_group_count,106,每个答案组固定 5 条 Query
+质量,max_queries_per_answer,5,按答案组及规范化完整结论双重检查
+人工复审,default_status_not_pass,530,默认值，不代表系统判断
+人工复审,default_rank_0,530,默认值，等待人工填写
+评测轨道,single_memory,235,Query 数
+评测轨道,complementary_multi_memory,150,Query 数
+评测轨道,conflict_resolution,75,Query 数
+评测轨道,clarification_required,70,Query 数
+数据分区,train,150,按答案组保持一致
+数据分区,dev,45,按答案组保持一致
+数据分区,test,40,按答案组保持一致
+数据分区,challenge,295,按答案组保持一致
+Query 类型,human_context_explicit,106,五类表达均衡分布
+Query 类型,human_goal_oriented,106,五类表达均衡分布
+Query 类型,contextual_ellipsis,106,五类表达均衡分布
+Query 类型,low_overlap_paraphrase,106,五类表达均衡分布
+Query 类型,human_constraint_emphasis,106,五类表达均衡分布

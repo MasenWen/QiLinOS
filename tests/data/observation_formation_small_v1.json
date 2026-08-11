@@ -1,0 +1,596 @@
+{
+  "schema_version": "observation.formation.small.v1",
+  "purpose": "Small fixed development and validation benchmark for Observation formation. All texts predate the root-dataset generalization audit.",
+  "formation_policy": {
+    "should_form": "The utterance contains a committed or scoped attitude toward an identifiable office-work object.",
+    "should_not_form": "System facts, explicit do-not-remember instructions, or standalone references whose attitude subject cannot be resolved.",
+    "frame_correct": "Condition, object, attitude direction and temporal scope must all fit one expected frame.",
+    "development_rule": "Only the development split may be used while adjusting the algorithm. Validation remains sealed until parameters are frozen."
+  },
+  "options": {
+    "condition_tag_ids": [
+      "app:chatgpt_codex",
+      "app:web_browser",
+      "app:spreadsheet",
+      "app:word_processor",
+      "app:presentation",
+      "app:terminal",
+      "task:financial_summary",
+      "task:budget_comparison",
+      "task:sales_trend",
+      "task:code_explanation",
+      "task:ordinary_chat",
+      "task:quote_email",
+      "task:report",
+      "condition:external_email",
+      "condition:network_unstable"
+    ],
+    "object_tag_ids": [
+      "app:chatgpt_codex",
+      "chart:bar",
+      "chart:line",
+      "document:template",
+      "setting:preference",
+      "artifact:budget_sheet",
+      "action:confirm_before_send",
+      "tool:company_api",
+      "action:manual_quote_check"
+    ],
+    "temporal_labels": [
+      "temporal_short",
+      "temporal_medium",
+      "temporal_long"
+    ]
+  },
+  "custom_tags": [
+    {
+      "tag_id": "condition:external_email",
+      "name": "External Email Workflow",
+      "groups": ["condition"],
+      "aliases": ["External Email Workflow", "对外邮件流程"],
+      "prototypes": [
+        "给外部客户发送带附件的邮件",
+        "邮件向组织外部正式发出之前"
+      ]
+    },
+    {
+      "tag_id": "condition:network_unstable",
+      "name": "Unstable Network Condition",
+      "groups": ["condition"],
+      "aliases": ["Unstable Network Condition", "网络异常条件"],
+      "prototypes": [
+        "网络连接不稳定或者公司接口不可用时",
+        "在线服务暂时无法可靠使用的场景"
+      ]
+    },
+    {
+      "tag_id": "action:confirm_before_send",
+      "name": "Confirm Before Sending",
+      "groups": ["object"],
+      "aliases": ["Confirmation Gate", "发送确认机制"],
+      "prototypes": [
+        "邮件真正发出之前先询问用户确认",
+        "对外发送内容前必须获得用户批准"
+      ]
+    },
+    {
+      "tag_id": "tool:company_api",
+      "name": "Company Quotation API",
+      "groups": ["object"],
+      "aliases": ["Enterprise Quotation API", "企业报价接口"],
+      "prototypes": [
+        "使用公司的在线接口自动处理报价",
+        "通过企业 API 获取或核验报价数据"
+      ]
+    },
+    {
+      "tag_id": "action:manual_quote_check",
+      "name": "Manual Quote Verification",
+      "groups": ["object"],
+      "aliases": ["Manual Quote Verification", "人工报价核验"],
+      "prototypes": [
+        "不用在线接口而是手工检查报价表",
+        "人工核对报价数据是否正确"
+      ]
+    }
+  ],
+  "splits": {
+    "development": [
+      {
+        "id": "POC-001",
+        "text": "当前会话在 Excel 整理预算时，暂时用折线图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["app:spreadsheet"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short"]
+          }
+        ]
+      },
+      {
+        "id": "POC-002",
+        "text": "下个月开始在 PowerPoint 做汇报时，优先使用旧模板。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["app:presentation"],
+            "object_tag_id": "document:template",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_medium"]
+          }
+        ]
+      },
+      {
+        "id": "POC-003",
+        "text": "今后在终端做代码解释时，默认用 ChatGPT Codex。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [
+              "app:terminal",
+              "task:code_explanation"
+            ],
+            "object_tag_id": "app:chatgpt_codex",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_long"]
+          }
+        ]
+      },
+      {
+        "id": "POC-004",
+        "text": "今天在 Word 写报告时，别用旧模板。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["app:word_processor"],
+            "object_tag_id": "document:template",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_short"]
+          }
+        ]
+      },
+      {
+        "id": "POC-005",
+        "text": "这周在浏览器做预算比较时，避免柱状图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [
+              "app:web_browser",
+              "task:budget_comparison"
+            ],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_medium"]
+          }
+        ]
+      },
+      {
+        "id": "POC-006",
+        "text": "本轮在 ChatGPT Codex 中解释代码时，优先用柱状图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["app:chatgpt_codex"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short"]
+          }
+        ]
+      },
+      {
+        "id": "POC-007",
+        "text": "后续在 Excel 做财务汇总时，默认用折线图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [
+              "app:spreadsheet",
+              "task:financial_summary"
+            ],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_medium"]
+          }
+        ]
+      },
+      {
+        "id": "POC-008",
+        "text": "每次用 PowerPoint 做报告时，都不要使用柱状图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["app:presentation"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_long"]
+          }
+        ]
+      },
+      {
+        "id": "SV2-001",
+        "text": "以后做财务汇总时默认用柱状图，尽快把图表更新一下。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:financial_summary"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_long"]
+          }
+        ]
+      },
+      {
+        "id": "SV2-002",
+        "text": "请在销售趋势分析里不要用柱状图，改用折线图，颜色先不用管。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-003",
+        "text": "本轮报告暂时用柱状图就行，后续再考虑是不是换掉。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:report"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short"]
+          }
+        ]
+      },
+      {
+        "id": "SV2-004",
+        "text": "和之前一样，报价邮件里默认用 ChatGPT-codex 起草，但发出前让我确认。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:quote_email"],
+            "object_tag_id": "app:chatgpt_codex",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_medium", null]
+          },
+          {
+            "condition_tag_ids": ["task:quote_email"],
+            "object_tag_id": "action:confirm_before_send",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-006",
+        "text": "预算比较时柱形图不太适合，或许应该换成折线图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive", "uncertain"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-009",
+        "text": "柱状图差强人意，先保留，后面再说。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [null],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short", null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-013",
+        "text": "当前会话先按这个模板走，别改长期设置。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [null],
+            "object_tag_id": "document:template",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short"]
+          },
+          {
+            "condition_tag_ids": [null],
+            "object_tag_id": "setting:preference",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_short", null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-015",
+        "text": "做销售趋势时优先用柱状图；做预算比较时避免柱状图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-018",
+        "text": "请考虑以后统一用 ChatGPT Codex 处理代码解释，普通聊天不需要。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:code_explanation"],
+            "object_tag_id": "app:chatgpt_codex",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_long"]
+          },
+          {
+            "condition_tag_ids": ["task:ordinary_chat"],
+            "object_tag_id": "app:chatgpt_codex",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_long", null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-019",
+        "text": "报价时不要再默认走报价表，改用公司API，除非API不可用。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:quote_email"],
+            "object_tag_id": "artifact:budget_sheet",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:quote_email"],
+            "object_tag_id": "tool:company_api",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-024",
+        "text": "销售趋势继续用柱状图预算比较还是改成折线图代码解释照旧交给Codex",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive", "uncertain"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:code_explanation"],
+            "object_tag_id": "app:chatgpt_codex",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-008",
+        "text": "系统刚刚生成了柱状图预览，数据来自六月预算表。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-011",
+        "text": "请尽快打开 sales_report.xlsx，这个只是查看，不要写成偏好。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-016",
+        "text": "这个文件里包含柱状图和折线图，暂时没有新的偏好。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-020",
+        "text": "这个方案看着怪怪的，但先别动，等用户确认。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-028",
+        "text": "以后大概还是那个吧，具体哪个等我确认。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-035",
+        "text": "系统日志显示没有调用公司API，这不是我的偏好，只是服务不可用。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-039",
+        "text": "请打开 Q3-sales_report.final.xlsx 看一下，别修改，也不用记住这个操作。",
+        "expected_frames": []
+      },
+      {
+        "id": "LOG-003",
+        "text": "已经为程序包 OpenAI.Codex_26.721.4979.0_x64__2p2nqsd0c76g0\n中的应用程序 OpenAI.Codex_2p2nqsd0c76g0!App 创建进程 18732。",
+        "expected_frames": []
+      }
+    ],
+    "validation": [
+      {
+        "id": "SV2-025",
+        "text": "顺便说一下办公室今天很冷，报价邮件发出前仍然让我确认。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:quote_email"],
+            "object_tag_id": "action:confirm_before_send",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-027",
+        "text": "柱状图也不能说完全不好，但预算比较时我不太想继续用。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-029",
+        "text": "不对，刚才说的柱状图先撤回，销售趋势改成折线图。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": ["temporal_short", null]
+          },
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short", null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-030",
+        "text": "通常使用公司API，除非网络不稳定，那时手工核对报价表。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [null, "task:quote_email"],
+            "object_tag_id": "tool:company_api",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_long", null]
+          },
+          {
+            "condition_tag_ids": ["condition:network_unstable"],
+            "object_tag_id": "action:manual_quote_check",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-031",
+        "text": "这个漂亮但很大的季度报告，外发前请先让我确认。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:report", "condition:external_email"],
+            "object_tag_id": "action:confirm_before_send",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-034",
+        "text": "柱状图差强人意，放在销售趋势里勉强能用，预算比较就算了。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive", "uncertain"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["negative"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-036",
+        "text": "如果是外部客户而且附件含报价表，发送邮件之前必须让我确认。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["condition:external_email"],
+            "object_tag_id": "action:confirm_before_send",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-037",
+        "text": "这周先按旧模板，下个月开始统一换新模板，历史文件不要动。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": [null],
+            "object_tag_id": "document:template",
+            "attitude_directions": ["positive"],
+            "temporal_labels": ["temporal_short", "temporal_medium"]
+          }
+        ]
+      },
+      {
+        "id": "SV2-040",
+        "text": "请尽快处理季度汇总，销售趋势部分继续用柱状图，预算比较部分改成折线图，附录里的旧图不要动，完成后通知我。",
+        "expected_frames": [
+          {
+            "condition_tag_ids": ["task:sales_trend"],
+            "object_tag_id": "chart:bar",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          },
+          {
+            "condition_tag_ids": ["task:budget_comparison"],
+            "object_tag_id": "chart:line",
+            "attitude_directions": ["positive"],
+            "temporal_labels": [null]
+          }
+        ]
+      },
+      {
+        "id": "SV2-010",
+        "text": "对于研发周报，后续别再这么处理，还是按老样子。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-014",
+        "text": "以后默认不要这个，改成那个，备注部分可以忽略。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-022",
+        "text": "这个展示方式好像也不是不行，先别改，等下次评审再说。",
+        "expected_frames": []
+      },
+      {
+        "id": "SV2-038",
+        "text": "前一个保留，后一个换掉，至于默认设置以后再谈。",
+        "expected_frames": []
+      },
+      {
+        "id": "LOG-001",
+        "text": "W32time Service received notification to rediscover its time sources and/or resynchronize time.\nReason Code:0\nReason code description:\n0 : An explicit time resynchronization request from an administrator\n\nThe time service is now synchronizing the system time with the reference time source time.windows.com,0x9.\n\nW32time service has set the system time to 2026-07-26T06:48:32.986Z(UTC).\nPrevious system time was 2026-07-26T06:48:30.680Z(UTC).",
+        "expected_frames": []
+      },
+      {
+        "id": "LOG-002",
+        "text": "已经为程序包 DellInc.DellPowerManager_3.14.40.0_x64__htrsf667h5kn2\n中的应用程序 DellInc.DellPowerManager_htrsf667h5kn2!App 创建进程 19328。",
+        "expected_frames": []
+      }
+    ]
+  }
+}

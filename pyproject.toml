@@ -90,6 +90,12 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
 ]
+span-segmentation = [
+    "jieba==0.42.1",
+    "ltp==4.2.14",
+    "ruptures==1.1.9",
+    "sentsplit==1.0.8",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

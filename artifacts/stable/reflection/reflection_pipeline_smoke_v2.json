@@ -1,0 +1,172 @@
+{
+  "purpose": "Actual merge-first Reflection pipeline smoke using three fixed duplicate groups from the lifecycle dataset.",
+  "target_group_count": 3,
+  "merge_decisions": [
+    {
+      "canonical_memory_id": "epmem_75783558876488be79ff0804",
+      "duplicate_memory_ids": [
+        "epmem_1742521b12a20a2ba3cebdfd",
+        "epmem_2def1d08f1098c1e019f3bb6",
+        "epmem_65237a743e182609af3cfcc1"
+      ],
+      "decision": "merge",
+      "rationale": "All four memories share identical condition, object, attitude, and temporal scope. Sources consistently describe exporting the current sheet of Export_Calc_to_CSV.xlsx to CSV with default options and same filename. No difference in context, rule, or attitude.",
+      "source_refs": [
+        "query:V3_CF11_Q01",
+        "query:V3_CM09_Q01",
+        "query:V3_CM30_Q01",
+        "event:3aaa4e37-dc91-482e-99af-132a612d40f3"
+      ],
+      "review_id": "reflection_merge_e326596f6cf43102cf9ac310"
+    },
+    {
+      "canonical_memory_id": "epmem_6d559f35725a56711956237f",
+      "duplicate_memory_ids": [
+        "epmem_16c0bbdec2663f0b294faa54",
+        "epmem_a83ab8dcbf01037bde24bc6d"
+      ],
+      "decision": "merge",
+      "rationale": "All three memories have identical condition, object, attitude, and temporal scope. Sources consistently request formatting the 'spent' column in Keep_Two_decimal_points.xlsx to two decimal places. No meaningful difference in context or rule.",
+      "source_refs": [
+        "query:V3_CF07_Q01",
+        "query:V3_CM16_Q01",
+        "event:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5"
+      ],
+      "review_id": "reflection_merge_f10969ed1eeb7a3eb2078df6"
+    },
+    {
+      "canonical_memory_id": "epmem_55f4f42d6c51d8ace0a8d85a",
+      "duplicate_memory_ids": [
+        "epmem_28dfd7f5a1a1d5f9a65b12ea",
+        "epmem_34aaf72b709ccdc64714b148",
+        "epmem_65a40464cc3e27b1b2a9a03f"
+      ],
+      "decision": "merge",
+      "rationale": "All four memories share identical condition, object, attitude, and temporal scope. Sources consistently describe creating two pivot tables in SummerSales.xlsx for product and channel revenue. No difference in context, rule, or attitude.",
+      "source_refs": [
+        "query:V3_CF06_Q01",
+        "query:V3_CM25_Q01",
+        "query:V3_CM13_Q01",
+        "query:535364ea-05bd-46ea-9937-9f55c68507e8_HQ1"
+      ],
+      "review_id": "reflection_merge_07b677c89c3961bf50b27dca"
+    }
+  ],
+  "merged_memory_count": 8,
+  "reviewed_after_merge_count": 3,
+  "canonical_corrections": [
+    {
+      "memory_id": "epmem_55f4f42d6c51d8ace0a8d85a",
+      "verdict": "supported",
+      "penalty_factor": 1.0,
+      "rationale": "All sources consistently request creating product and channel revenue pivots in SummerSales.xlsx, matching the memory's condition and object. The memory is specific to the file and has been repeatedly activated across independent tasks, indicating a reusable rule.",
+      "source_refs": [
+        "query:535364ea-05bd-46ea-9937-9f55c68507e8_HQ1"
+      ],
+      "review_id": "reflection_review_0a322986dfe0aec522221612"
+    },
+    {
+      "memory_id": "epmem_6d559f35725a56711956237f",
+      "verdict": "supported",
+      "penalty_factor": 1.0,
+      "rationale": "All sources consistently request formatting the 'spent' column to two decimal places in Keep_Two_decimal_points.xlsx, matching the memory's condition and object. The memory is specific to the file and has been repeatedly activated, indicating a reusable rule.",
+      "source_refs": [
+        "event:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5"
+      ],
+      "review_id": "reflection_review_7c8a9a078ab159c9e08f6342"
+    },
+    {
+      "memory_id": "epmem_75783558876488be79ff0804",
+      "verdict": "supported",
+      "penalty_factor": 1.0,
+      "rationale": "All sources consistently request exporting the current sheet of Export_Calc_to_CSV.xlsx to CSV with default options, matching the memory's condition and object. The memory is specific to the file and has been repeatedly activated, indicating a reusable rule.",
+      "source_refs": [
+        "event:3aaa4e37-dc91-482e-99af-132a612d40f3"
+      ],
+      "review_id": "reflection_review_f41e7b3c6f2488f584f4a460"
+    }
+  ],
+  "canonical_states": [
+    {
+      "memory_id": "epmem_55f4f42d6c51d8ace0a8d85a",
+      "status": "active",
+      "activation_count": 19,
+      "last_activated_at": "2026-09-12T10:19:44.810127+00:00",
+      "source_event_count": 17,
+      "evidence_count": 17,
+      "reflection_penalty": 1.0
+    },
+    {
+      "memory_id": "epmem_6d559f35725a56711956237f",
+      "status": "active",
+      "activation_count": 14,
+      "last_activated_at": "2026-09-14T07:53:55.443038+00:00",
+      "source_event_count": 12,
+      "evidence_count": 12,
+      "reflection_penalty": 1.0
+    },
+    {
+      "memory_id": "epmem_75783558876488be79ff0804",
+      "status": "active",
+      "activation_count": 20,
+      "last_activated_at": "2026-09-21T22:10:37.974684+00:00",
+      "source_event_count": 17,
+      "evidence_count": 17,
+      "reflection_penalty": 1.0
+    }
+  ],
+  "api_calls": [
+    {
+      "task_name": "merge:primary:pipeline_smoke_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 5207.637,
+      "status": "ok",
+      "prompt_tokens": 8597,
+      "completion_tokens": 685,
+      "total_tokens": 9282
+    },
+    {
+      "task_name": "merge:critic:pipeline_smoke_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 5543.436,
+      "status": "ok",
+      "prompt_tokens": 8599,
+      "completion_tokens": 663,
+      "total_tokens": 9262
+    },
+    {
+      "task_name": "merge:adjudicator:pipeline_smoke_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 1976.376,
+      "status": "ok",
+      "prompt_tokens": 4258,
+      "completion_tokens": 255,
+      "total_tokens": 4513
+    },
+    {
+      "task_name": "correction:primary:pipeline_smoke_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 3986.266,
+      "status": "ok",
+      "prompt_tokens": 7097,
+      "completion_tokens": 530,
+      "total_tokens": 7627
+    },
+    {
+      "task_name": "correction:critic:pipeline_smoke_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 3811.708,
+      "status": "ok",
+      "prompt_tokens": 7105,
+      "completion_tokens": 471,
+      "total_tokens": 7576
+    }
+  ],
+  "temporary_markdown_deleted": 5,
+  "temporary_files_remaining": []
+}

@@ -1,0 +1,344 @@
+[
+  {
+    "id": "SV2-001",
+    "challenge": "clear_multi_span",
+    "text": "以后做财务汇总时默认用柱状图，尽快把图表更新一下。",
+    "acceptable_segmentations": [
+      ["以后", "做财务汇总时", "默认用柱状图，", "尽快把图表更新一下。"],
+      ["以后做财务汇总时", "默认用柱状图，", "尽快把图表更新一下。"]
+    ]
+  },
+  {
+    "id": "SV2-002",
+    "challenge": "clear_multi_span",
+    "text": "请在销售趋势分析里不要用柱状图，改用折线图，颜色先不用管。",
+    "acceptable_segmentations": [
+      ["请", "在销售趋势分析里", "不要用柱状图，", "改用折线图，", "颜色先不用管。"],
+      ["请在销售趋势分析里", "不要用柱状图，", "改用折线图，", "颜色先不用管。"]
+    ]
+  },
+  {
+    "id": "SV2-003",
+    "challenge": "temporal_hedge",
+    "text": "本轮报告暂时用柱状图就行，后续再考虑是不是换掉。",
+    "acceptable_segmentations": [
+      ["本轮报告", "暂时用柱状图就行，", "后续", "再考虑是不是换掉。"],
+      ["本轮报告", "暂时用柱状图就行，", "后续再考虑是不是换掉。"]
+    ]
+  },
+  {
+    "id": "SV2-004",
+    "challenge": "reference_and_tool",
+    "text": "和之前一样，报价邮件里默认用 ChatGPT-codex 起草，但发出前让我确认。",
+    "acceptable_segmentations": [
+      ["和之前一样，", "报价邮件里", "默认用 ChatGPT-codex 起草，", "但发出前", "让我确认。"],
+      ["和之前一样，", "报价邮件里默认用 ChatGPT-codex 起草，", "但发出前让我确认。"]
+    ]
+  },
+  {
+    "id": "SV2-005",
+    "challenge": "reference_and_file",
+    "text": "仿照上次的样式处理 monthly_report.pdf，具体数值等我再给。",
+    "acceptable_segmentations": [
+      ["仿照上次的样式", "处理 monthly_report.pdf，", "具体数值等我再给。"],
+      ["仿照上次的样式处理 monthly_report.pdf，", "具体数值等我再给。"]
+    ]
+  },
+  {
+    "id": "SV2-006",
+    "challenge": "ambiguous_attitude",
+    "text": "预算比较时柱形图不太适合，或许应该换成折线图。",
+    "acceptable_segmentations": [
+      ["预算比较时", "柱形图不太适合，", "或许应该换成折线图。"]
+    ]
+  },
+  {
+    "id": "SV2-007",
+    "challenge": "irrelevant_urgency",
+    "text": "今天先不要用公司API，报价表手工核一下，客户催得比较急。",
+    "acceptable_segmentations": [
+      ["今天", "先不要用公司API，", "报价表手工核一下，", "客户催得比较急。"],
+      ["今天先不要用公司API，", "报价表手工核一下，", "客户催得比较急。"]
+    ]
+  },
+  {
+    "id": "SV2-008",
+    "challenge": "neutral_fact",
+    "text": "系统刚刚生成了柱状图预览，数据来自六月预算表。",
+    "acceptable_segmentations": [
+      ["系统刚刚生成了柱状图预览，", "数据来自六月预算表。"]
+    ]
+  },
+  {
+    "id": "SV2-009",
+    "challenge": "idiom_and_hedge",
+    "text": "柱状图差强人意，先保留，后面再说。",
+    "acceptable_segmentations": [
+      ["柱状图差强人意，", "先保留，", "后面再说。"]
+    ]
+  },
+  {
+    "id": "SV2-010",
+    "challenge": "reference",
+    "text": "对于研发周报，后续别再这么处理，还是按老样子。",
+    "acceptable_segmentations": [
+      ["对于研发周报，", "后续别再这么处理，", "还是按老样子。"]
+    ]
+  },
+  {
+    "id": "SV2-011",
+    "challenge": "meta_instruction",
+    "text": "请尽快打开 sales_report.xlsx，这个只是查看，不要写成偏好。",
+    "acceptable_segmentations": [
+      ["请尽快", "打开 sales_report.xlsx，", "这个只是查看，", "不要写成偏好。"],
+      ["请尽快打开 sales_report.xlsx，", "这个只是查看，", "不要写成偏好。"]
+    ]
+  },
+  {
+    "id": "SV2-012",
+    "challenge": "nested_condition",
+    "text": "在外发邮件场景中，每次都先让我确认，有必要的话再用代码助手润色。",
+    "acceptable_segmentations": [
+      ["在外发邮件场景中，", "每次都先让我确认，", "有必要的话", "再用代码助手润色。"],
+      ["在外发邮件场景中，", "每次都先让我确认，", "有必要的话再用代码助手润色。"]
+    ]
+  },
+  {
+    "id": "SV2-013",
+    "challenge": "scope_and_meta",
+    "text": "当前会话先按这个模板走，别改长期设置。",
+    "acceptable_segmentations": [
+      ["当前会话", "先按这个模板走，", "别改长期设置。"],
+      ["当前会话先按这个模板走，", "别改长期设置。"]
+    ]
+  },
+  {
+    "id": "SV2-014",
+    "challenge": "vague_reference",
+    "text": "以后默认不要这个，改成那个，备注部分可以忽略。",
+    "acceptable_segmentations": [
+      ["以后", "默认不要这个，", "改成那个，", "备注部分可以忽略。"],
+      ["以后默认不要这个，", "改成那个，", "备注部分可以忽略。"]
+    ]
+  },
+  {
+    "id": "SV2-015",
+    "challenge": "two_conditions",
+    "text": "做销售趋势时优先用柱状图；做预算比较时避免柱状图。",
+    "acceptable_segmentations": [
+      ["做销售趋势时", "优先用柱状图；", "做预算比较时", "避免柱状图。"]
+    ]
+  },
+  {
+    "id": "SV2-016",
+    "challenge": "neutral_fact",
+    "text": "这个文件里包含柱状图和折线图，暂时没有新的偏好。",
+    "acceptable_segmentations": [
+      ["这个文件里", "包含柱状图和折线图，", "暂时没有新的偏好。"],
+      ["这个文件里包含柱状图和折线图，", "暂时没有新的偏好。"]
+    ]
+  },
+  {
+    "id": "SV2-017",
+    "challenge": "reference_and_exception",
+    "text": "跟上次保持一致，不过这次先把异常值标红。",
+    "acceptable_segmentations": [
+      ["跟上次保持一致，", "不过这次", "先把异常值标红。"],
+      ["跟上次保持一致，", "不过这次先把异常值标红。"]
+    ]
+  },
+  {
+    "id": "SV2-018",
+    "challenge": "polite_hedge",
+    "text": "请考虑以后统一用 ChatGPT Codex 处理代码解释，普通聊天不需要。",
+    "acceptable_segmentations": [
+      ["请考虑", "以后", "统一用 ChatGPT Codex 处理代码解释，", "普通聊天不需要。"],
+      ["请考虑", "以后统一用 ChatGPT Codex 处理代码解释，", "普通聊天不需要。"]
+    ]
+  },
+  {
+    "id": "SV2-019",
+    "challenge": "exception",
+    "text": "报价时不要再默认走报价表，改用公司API，除非API不可用。",
+    "acceptable_segmentations": [
+      ["报价时", "不要再默认走报价表，", "改用公司API，", "除非API不可用。"]
+    ]
+  },
+  {
+    "id": "SV2-020",
+    "challenge": "unclear_feedback",
+    "text": "这个方案看着怪怪的，但先别动，等用户确认。",
+    "acceptable_segmentations": [
+      ["这个方案看着怪怪的，", "但先别动，", "等用户确认。"]
+    ]
+  },
+  {
+    "id": "SV2-021",
+    "challenge": "irrelevant_politeness",
+    "text": "麻烦尽快处理一下，关于预算图表，今天先按之前的样式来，数据源还是六月预算表。",
+    "acceptable_segmentations": [
+      ["麻烦尽快处理一下，", "关于预算图表，", "今天", "先按之前的样式来，", "数据源还是六月预算表。"],
+      ["麻烦尽快处理一下，", "关于预算图表，", "今天先按之前的样式来，", "数据源还是六月预算表。"]
+    ]
+  },
+  {
+    "id": "SV2-022",
+    "challenge": "double_negative",
+    "text": "这个展示方式好像也不是不行，先别改，等下次评审再说。",
+    "acceptable_segmentations": [
+      ["这个展示方式好像也不是不行，", "先别改，", "等下次评审再说。"]
+    ]
+  },
+  {
+    "id": "SV2-023",
+    "challenge": "vague_reference",
+    "text": "这个先照旧，那个暂时不用管，另外把报价表发我看看。",
+    "acceptable_segmentations": [
+      ["这个先照旧，", "那个暂时不用管，", "另外", "把报价表发我看看。"],
+      ["这个先照旧，", "那个暂时不用管，", "另外把报价表发我看看。"]
+    ]
+  },
+  {
+    "id": "SV2-024",
+    "challenge": "no_punctuation",
+    "text": "销售趋势继续用柱状图预算比较还是改成折线图代码解释照旧交给Codex",
+    "acceptable_segmentations": [
+      ["销售趋势继续用柱状图", "预算比较还是改成折线图", "代码解释照旧交给Codex"]
+    ]
+  },
+  {
+    "id": "SV2-025",
+    "challenge": "irrelevant_fact",
+    "text": "顺便说一下办公室今天很冷，报价邮件发出前仍然让我确认。",
+    "acceptable_segmentations": [
+      ["顺便说一下办公室今天很冷，", "报价邮件发出前", "仍然让我确认。"],
+      ["顺便说一下办公室今天很冷，", "报价邮件发出前仍然让我确认。"]
+    ]
+  },
+  {
+    "id": "SV2-026",
+    "challenge": "meta_instruction",
+    "text": "请尽快打开文件，这只是临时查看，不代表以后都要这么做。",
+    "acceptable_segmentations": [
+      ["请尽快打开文件，", "这只是临时查看，", "不代表以后都要这么做。"]
+    ]
+  },
+  {
+    "id": "SV2-027",
+    "challenge": "double_negative",
+    "text": "柱状图也不能说完全不好，但预算比较时我不太想继续用。",
+    "acceptable_segmentations": [
+      ["柱状图也不能说完全不好，", "但预算比较时", "我不太想继续用。"],
+      ["柱状图也不能说完全不好，", "但预算比较时我不太想继续用。"]
+    ]
+  },
+  {
+    "id": "SV2-028",
+    "challenge": "unclear_reference",
+    "text": "以后大概还是那个吧，具体哪个等我确认。",
+    "acceptable_segmentations": [
+      ["以后大概还是那个吧，", "具体哪个", "等我确认。"],
+      ["以后大概还是那个吧，", "具体哪个等我确认。"]
+    ]
+  },
+  {
+    "id": "SV2-029",
+    "challenge": "correction",
+    "text": "不对，刚才说的柱状图先撤回，销售趋势改成折线图。",
+    "acceptable_segmentations": [
+      ["不对，", "刚才说的柱状图先撤回，", "销售趋势改成折线图。"]
+    ]
+  },
+  {
+    "id": "SV2-030",
+    "challenge": "exception",
+    "text": "通常使用公司API，除非网络不稳定，那时手工核对报价表。",
+    "acceptable_segmentations": [
+      ["通常使用公司API，", "除非网络不稳定，", "那时手工核对报价表。"]
+    ]
+  },
+  {
+    "id": "SV2-031",
+    "challenge": "irrelevant_adjectives",
+    "text": "这个漂亮但很大的季度报告，外发前请先让我确认。",
+    "acceptable_segmentations": [
+      ["这个漂亮但很大的季度报告，", "外发前", "请先让我确认。"],
+      ["这个漂亮但很大的季度报告，", "外发前请先让我确认。"]
+    ]
+  },
+  {
+    "id": "SV2-032",
+    "challenge": "multi_scope",
+    "text": "请考虑一下，以后代码解释尽量用ChatGPT Codex，普通聊天随意，今晚先不用改设置。",
+    "acceptable_segmentations": [
+      ["请考虑一下，", "以后", "代码解释尽量用ChatGPT Codex，", "普通聊天随意，", "今晚先不用改设置。"],
+      ["请考虑一下，", "以后代码解释尽量用ChatGPT Codex，", "普通聊天随意，", "今晚先不用改设置。"]
+    ]
+  },
+  {
+    "id": "SV2-033",
+    "challenge": "reference_with_irrelevance",
+    "text": "和前两次一样处理即可，颜色不用完全一致，先把异常值标出来。",
+    "acceptable_segmentations": [
+      ["和前两次一样处理即可，", "颜色不用完全一致，", "先把异常值标出来。"]
+    ]
+  },
+  {
+    "id": "SV2-034",
+    "challenge": "idiom_and_context",
+    "text": "柱状图差强人意，放在销售趋势里勉强能用，预算比较就算了。",
+    "acceptable_segmentations": [
+      ["柱状图差强人意，", "放在销售趋势里勉强能用，", "预算比较就算了。"]
+    ]
+  },
+  {
+    "id": "SV2-035",
+    "challenge": "fact_vs_preference",
+    "text": "系统日志显示没有调用公司API，这不是我的偏好，只是服务不可用。",
+    "acceptable_segmentations": [
+      ["系统日志显示没有调用公司API，", "这不是我的偏好，", "只是服务不可用。"]
+    ]
+  },
+  {
+    "id": "SV2-036",
+    "challenge": "nested_condition",
+    "text": "如果是外部客户而且附件含报价表，发送邮件之前必须让我确认。",
+    "acceptable_segmentations": [
+      ["如果是外部客户而且附件含报价表，", "发送邮件之前", "必须让我确认。"],
+      ["如果是外部客户而且附件含报价表，", "发送邮件之前必须让我确认。"]
+    ]
+  },
+  {
+    "id": "SV2-037",
+    "challenge": "temporal_transition",
+    "text": "这周先按旧模板，下个月开始统一换新模板，历史文件不要动。",
+    "acceptable_segmentations": [
+      ["这周先按旧模板，", "下个月开始统一换新模板，", "历史文件不要动。"]
+    ]
+  },
+  {
+    "id": "SV2-038",
+    "challenge": "vague_reference",
+    "text": "前一个保留，后一个换掉，至于默认设置以后再谈。",
+    "acceptable_segmentations": [
+      ["前一个保留，", "后一个换掉，", "至于默认设置", "以后再谈。"],
+      ["前一个保留，", "后一个换掉，", "至于默认设置以后再谈。"]
+    ]
+  },
+  {
+    "id": "SV2-039",
+    "challenge": "file_and_meta",
+    "text": "请打开 Q3-sales_report.final.xlsx 看一下，别修改，也不用记住这个操作。",
+    "acceptable_segmentations": [
+      ["请打开 Q3-sales_report.final.xlsx 看一下，", "别修改，", "也不用记住这个操作。"]
+    ]
+  },
+  {
+    "id": "SV2-040",
+    "challenge": "long_multi_span",
+    "text": "请尽快处理季度汇总，销售趋势部分继续用柱状图，预算比较部分改成折线图，附录里的旧图不要动，完成后通知我。",
+    "acceptable_segmentations": [
+      ["请尽快处理季度汇总，", "销售趋势部分继续用柱状图，", "预算比较部分改成折线图，", "附录里的旧图不要动，", "完成后通知我。"]
+    ]
+  }
+]

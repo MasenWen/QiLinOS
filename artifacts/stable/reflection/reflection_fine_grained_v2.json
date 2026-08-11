@@ -1,0 +1,1482 @@
+{
+  "purpose": "Fine-grained Reflection regression and stratified holdout using only the fixed lifecycle dataset.",
+  "selection": {
+    "known_failure_count": 25,
+    "stratified_holdout_count": 33,
+    "holdout_per_category": 5
+  },
+  "correction": {
+    "summary": {
+      "known_failure_regression": {
+        "count": 25,
+        "strict_correct": 22,
+        "strict_accuracy": 0.88,
+        "scope_error_count": 19,
+        "unverifiable_count": 0
+      },
+      "stratified_holdout": {
+        "count": 33,
+        "strict_correct": 30,
+        "strict_accuracy": 0.909091,
+        "scope_error_count": 9,
+        "unverifiable_count": 5
+      }
+    },
+    "rows": [
+      {
+        "memory_id": "epmem_0ea28630f379864067d4ebd5",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to create sparklines for a specific chart; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:2bd59342-0664-4ccb-ba87-79379096cc08_HQ5"
+        ],
+        "review_id": "reflection_review_15fdd7dbc1db794c5bd6192c",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_13aacd824c99820c70084987",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to fill officers from a lookup table; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:7e429b8d-a3f0-4ed0-9b58-08957d00b127_HQ2"
+        ],
+        "review_id": "reflection_review_e76c155b290178857282e26e",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_1f63c628c8e5fafe949fad80",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to create a clustered column chart for weekly revenue and cost; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:12382c62-0cd1-4bf2-bdc8-1d20bf9b2371_HQ4"
+        ],
+        "review_id": "reflection_review_31c5fc2b6ae1ff2b30c648f8",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_235338183f56e8f9e210c6db",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to extract unique names preserving order with specific boundaries; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:MULTI_MM05_HQ5"
+        ],
+        "review_id": "reflection_review_0f92b40bf5dd91c1c5995f72",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_28dfd7f5a1a1d5f9a65b12ea",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Source is a one-off request to create revenue pivots for SummerSales.xlsx; memory has condition file:summersales_xlsx but was never activated and inactivity exceeds obsolete_after_days, making it an obsolete task state.",
+        "source_refs": [
+          "query:535364ea-05bd-46ea-9937-9f55c68507e8_HQ1",
+          "query:535364ea-05bd-46ea-9937-9f55c68507e8_HQ3"
+        ],
+        "review_id": "reflection_review_16af2cbbc27fa87fdfe039e5",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_2def1d08f1098c1e019f3bb6",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory has condition file:export_calc_to_csv_xlsx, attitude support, and is supported by multiple sources. It has been activated 20 times over 208 days, indicating a reusable rule. Not obsolete.",
+        "source_refs": [
+          "query:V3_CM09_Q01",
+          "query:V3_CM09_Q02",
+          "query:V3_CM09_Q03",
+          "query:V3_CM09_Q04",
+          "query:V3_CM09_Q05"
+        ],
+        "review_id": "reflection_review_4f1af06775d4fefcadb1b927",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_49ad417fa08753f05f66d9f7",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to format embedded numbers to two decimals in a specific file; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:4f07fbe9-70de-4927-a4d5-bb28bc12c52c_HQ5"
+        ],
+        "review_id": "reflection_review_1b1afc2de1e1413c31985170",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4de306217cd7d23fa2b81a67",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to hide N/A display temporarily; memory has no condition and inactivity exceeds obsolete_after_days, making it an obsolete task state.",
+        "source_refs": [
+          "query:6054afcb-5bab-4702-90a0-b259b5d3217c_HQ2"
+        ],
+        "review_id": "reflection_review_3bac5f8aeb03c7a27607a77e",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4f3f8dcba6cefd773c3e270c",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to zoom out spreadsheet view; memory has no condition and inactivity exceeds obsolete_after_days, making it an obsolete task state.",
+        "source_refs": [
+          "query:1334ca3e-f9e3-4db8-9ca7-b4c653be7d17_HQ5"
+        ],
+        "review_id": "reflection_review_83e18e3b669fa773a1d20def",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4f6392a5ff2f598f623fac79",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source requests adding sequential numbering, but memory stores oppose attitude, contradicting the source.",
+        "source_refs": [
+          "query:7efeb4b1-3d19-4762-b163-63328d66303b_HQ4"
+        ],
+        "review_id": "reflection_review_5c65327e7f2b10601ce1c101",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4fe1dc4d1bcfd30d1e0bd8c0",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to fill branch officers from a lookup table; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "event:7e429b8d-a3f0-4ed0-9b58-08957d00b127"
+        ],
+        "review_id": "reflection_review_965e74b25e1f6d6231fdfd5a",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_712a1f74beea915a33691f3c",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source requests highlighting weekends red, but memory stores oppose attitude, contradicting the source.",
+        "source_refs": [
+          "event:8b1ce5f2-59d2-4dcc-b0b0-666a714b9a14"
+        ],
+        "review_id": "reflection_review_016cd41d8c88d564e54def6e",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_84dd34737d78ec0521fa7d5a",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to sort amounts ascending; memory has no condition and was never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:51b11269-2ca8-4b2a-9163-f21758420e78_HQ5"
+        ],
+        "review_id": "reflection_review_f2b698162b8ff3d88f4aa809",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_9d3bd572ffb5f29f8411f8a8",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source requests adding Pass/Fail/Held validation, but memory stores oppose attitude, contradicting the source.",
+        "source_refs": [
+          "query:ecb0df7a-4e8d-4a03-b162-053391d3afaf_HQ5"
+        ],
+        "review_id": "reflection_review_7b2083f569ab95429b2c4cd8",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_9db27284d35bc3e412993af8",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory has condition file:student_grades_and_remarks_xlsx, attitude support, and is supported by multiple sources. It has been activated 17 times over 170 days, indicating a reusable rule. Not obsolete.",
+        "source_refs": [
+          "query:V3_CM19_Q01",
+          "query:V3_CM19_Q02",
+          "query:V3_CM19_Q03",
+          "query:V3_CM19_Q04",
+          "query:V3_CM19_Q05"
+        ],
+        "review_id": "reflection_review_a70b76afb078a68c5f57ac35",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_a83ab8dcbf01037bde24bc6d",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Source is a one-off request to format spent column to two decimals in Keep_Two_decimal_points.xlsx; memory has condition file:keep_two_decimal_points_xlsx but was never activated and inactivity exceeds obsolete_after_days, making it an obsolete task state.",
+        "source_refs": [
+          "event:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5",
+          "query:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5_HQ1"
+        ],
+        "review_id": "reflection_review_95340e3334f0b99ac9798875",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_a85ca74c1269b197172125f7",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off instruction to fill Seq No. column with continuous numbers; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:7efeb4b1-3d19-4762-b163-63328d66303b_HQ5"
+        ],
+        "review_id": "reflection_review_ef24a6de3da67ae79d579a4c",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_ae122d70891732a28003a1e0",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to copy a revenue column to another sheet; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:1273e544-688f-496b-8d89-3e0f40aa0606_HQ4"
+        ],
+        "review_id": "reflection_review_ba2c59def69f5e8e93a9b648",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_af067b1f077f16da09a7d1b4",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to export current sheet to CSV; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:3aaa4e37-dc91-482e-99af-132a612d40f3_HQ2"
+        ],
+        "review_id": "reflection_review_50aa143f58b753a9b1fbeac7",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_c091810a2cd5254575bd368e",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source says 'N/A 只隐藏显示，不能 delete' which supports hiding N/A display without deleting, but memory attitude is 'oppose', contradicting the source.",
+        "source_refs": [
+          "query:6054afcb-5bab-4702-90a0-b259b5d3217c_HQ5"
+        ],
+        "review_id": "reflection_review_45335d751189cea6d6dabbe8",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_c79339a964e8f4cc5818caa7",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to split employee identity fields; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:37608790-6147-45d0-9f20-1137bb35703d_HQ4"
+        ],
+        "review_id": "reflection_review_0112cec0725e4b6ad13dc3f9",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_d2ed271202922daf3b718a6e",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to create pivots in Sheet2; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:535364ea-05bd-46ea-9937-9f55c68507e8_HQ5"
+        ],
+        "review_id": "reflection_review_7d440359f45a1eae18b91ab4",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_ed1dbfb05f90e0d1b6bd60d9",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "query:V3_CF12_Q01",
+          "query:V3_CF12_Q02",
+          "query:V3_CF12_Q03",
+          "query:V3_CF12_Q04",
+          "query:V3_CF12_Q05"
+        ],
+        "review_id": "reflection_review_bc487d28bbcc3f19cd2a02d0",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_f5f65ce8b3c8e02026562e9f",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to format spent column to two decimals; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5_HQ5"
+        ],
+        "review_id": "reflection_review_e064f982be5ef96d43a50c45",
+        "track": "known_failure_regression",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_fa09184ea5527872d89a0065",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "query:V3_CM14_Q01",
+          "query:V3_CM14_Q02",
+          "query:V3_CM14_Q03",
+          "query:V3_CM14_Q04",
+          "query:V3_CM14_Q05"
+        ],
+        "review_id": "reflection_review_c7c7614ccb94931ce5ffdc83",
+        "track": "known_failure_regression",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "keep",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_948db14bb05c6543cf6e14ac",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "query:V3_CM22_Q01",
+          "query:V3_CM22_Q02",
+          "query:V3_CM22_Q03",
+          "query:V3_CM22_Q04",
+          "query:V3_CM22_Q05"
+        ],
+        "review_id": "reflection_review_e793a2aa839f7c10b8adf0aa",
+        "track": "stratified_holdout",
+        "category": "completed_task_without_late_recurrence",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_839d133b3e0186a0d8910086",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "query:V3_CM16_Q01",
+          "query:V3_CM16_Q02",
+          "query:V3_CM16_Q03",
+          "query:V3_CM16_Q04",
+          "query:V3_CM16_Q05"
+        ],
+        "review_id": "reflection_review_8d0c48a37be43e4215e22d08",
+        "track": "stratified_holdout",
+        "category": "completed_task_without_late_recurrence",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_e52c9c158ced47a2ae2ae553",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "event:035f41ba-6653-43ab-aa63-c86d449d62e5",
+          "query:035f41ba-6653-43ab-aa63-c86d449d62e5_HQ1",
+          "query:035f41ba-6653-43ab-aa63-c86d449d62e5_HQ2",
+          "query:035f41ba-6653-43ab-aa63-c86d449d62e5_HQ3"
+        ],
+        "review_id": "reflection_review_490927eca822a99f10c2f86f",
+        "track": "stratified_holdout",
+        "category": "completed_task_without_late_recurrence",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_81254fe8a4bbee00a17412aa",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with sources, scope is specific and aligned, repeated activation across tasks indicates reusable rule.",
+        "source_refs": [
+          "query:V3_CM13_Q01",
+          "query:V3_CM13_Q02",
+          "query:V3_CM13_Q03",
+          "query:V3_CM13_Q04",
+          "query:V3_CM13_Q05"
+        ],
+        "review_id": "reflection_review_84ab561742a50eaa3cc6eed2",
+        "track": "stratified_holdout",
+        "category": "completed_task_without_late_recurrence",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_1aa4460e75b325ffedde4d9e",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Memory condition matches file, attitude aligned with source, scope is specific and aligned, repeated activation indicates reusable rule.",
+        "source_refs": [
+          "query:04d9aeaf-7bed-4024-bedb-e10e6f00eb7f_HQ3"
+        ],
+        "review_id": "reflection_review_cc993cec6295e57196ebecc4",
+        "track": "stratified_holdout",
+        "category": "completed_task_without_late_recurrence",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_7736f38f5f5b665234eb1af7",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request for SmallBalanceSheet.xlsx; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:V3_CM07_Q03"
+        ],
+        "review_id": "reflection_review_174762f0f67a36010491a3f7",
+        "track": "stratified_holdout",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_c89ea46a41fae339912409cc",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request for SmallBalanceSheet.xlsx; memory has no condition and is never activated, making it an obsolete task state.",
+        "source_refs": [
+          "query:V3_CM07_Q04"
+        ],
+        "review_id": "reflection_review_0bdd6ea750af15d756452275",
+        "track": "stratified_holdout",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_9104926f5d198c42bd778645",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to calculate revenue and create a product pivot for a specific task. Memory has no condition, overgeneralizing the scope, and has never been activated, making it an obsolete one-off task.",
+        "source_refs": [
+          "query:51719eea-10bc-4246-a428-ac7c433dd4b3_HQ4"
+        ],
+        "review_id": "reflection_review_09c77bd04630c5f41fe719db",
+        "track": "stratified_holdout",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_24d787d9396ef591caf194ab",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a specific instruction for filling and building combined data in a particular file. Memory has no condition, overgeneralizing, and has never been activated with inactivity far exceeding obsolete_after_days.",
+        "source_refs": [
+          "query:4de54231-e4b5-49e3-b2ba-61a0bec721c0_HQ5"
+        ],
+        "review_id": "reflection_review_e25f7cca92ac5ab2d34ff3e4",
+        "track": "stratified_holdout",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4a102a57f5e61fdd4a15d79e",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off task for a specific file (Customers_New_7digit_Id.xlsx). Memory has no condition, overgeneralizing, and has never been activated with inactivity far exceeding obsolete_after_days.",
+        "source_refs": [
+          "event:0bf05a7d-b28b-44d2-955a-50b41e24012a"
+        ],
+        "review_id": "reflection_review_71f9c3f4f1b691f372c23f9a",
+        "track": "stratified_holdout",
+        "category": "context_loss_from_one_off_task",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_a69f2708e3bb587c0b2337cc",
+        "verdict": "contradicted",
+        "penalty_factor": 0.35,
+        "rationale": "All five sources explicitly request cleaning movie titles in Movie_title_garbage_clean.xlsx, indicating support for the action. Memory stores oppose attitude, contradicting the evidence.",
+        "source_refs": [
+          "query:V3_CM28_Q01",
+          "query:V3_CM28_Q02",
+          "query:V3_CM28_Q03",
+          "query:V3_CM28_Q04",
+          "query:V3_CM28_Q05"
+        ],
+        "review_id": "reflection_review_01b85dbe2a7088587dd12548",
+        "track": "stratified_holdout",
+        "category": "contradicted_or_inverted_attitude",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "contradicted"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_d2deb76a22a9a21bc2ce25a4",
+        "verdict": "contradicted",
+        "penalty_factor": 0.35,
+        "rationale": "Source explicitly requests cleaning movie titles in Movie_title_garbage_clean.xlsx, indicating support. Memory stores oppose attitude, contradicting the evidence.",
+        "source_refs": [
+          "event:a9f325aa-8c05-4e4f-8341-9e4358565f4f"
+        ],
+        "review_id": "reflection_review_287f56e264ff6dc9829321be",
+        "track": "stratified_holdout",
+        "category": "contradicted_or_inverted_attitude",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "contradicted"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_9a08bf199790b17cdc6ccfb2",
+        "verdict": "contradicted",
+        "penalty_factor": 0.35,
+        "rationale": "All four sources explicitly request freezing A1:B1 in Freeze_row_column.xlsx, indicating support. Memory stores oppose attitude, contradicting the evidence.",
+        "source_refs": [
+          "query:V3_CM10_Q02",
+          "query:V3_CM10_Q03",
+          "query:V3_CM10_Q04",
+          "query:V3_CM10_Q05"
+        ],
+        "review_id": "reflection_review_fa01b5470f0f8ae8ada5d8da",
+        "track": "stratified_holdout",
+        "category": "contradicted_or_inverted_attitude",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "contradicted"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_a74b224f03f7864b34576080",
+        "verdict": "contradicted",
+        "penalty_factor": 0.35,
+        "rationale": "All five sources explicitly request renaming, copying, and reordering sheets in copy_sheet_insert.xlsx, indicating support. Memory stores oppose attitude, contradicting the evidence.",
+        "source_refs": [
+          "query:V3_CM10_Q01",
+          "query:V3_CM10_Q02",
+          "query:V3_CM10_Q03",
+          "query:V3_CM10_Q04",
+          "query:V3_CM10_Q05"
+        ],
+        "review_id": "reflection_review_4486ba9c7387dfd79569ad52",
+        "track": "stratified_holdout",
+        "category": "contradicted_or_inverted_attitude",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "contradicted"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_90fa3e2ac91a36f15254d2c5",
+        "verdict": "contradicted",
+        "penalty_factor": 0.35,
+        "rationale": "All five sources explicitly request cleaning movie titles in Movie_title_garbage_clean.xlsx, indicating support. Memory stores oppose attitude, contradicting the evidence.",
+        "source_refs": [
+          "query:V3_CF09_Q01",
+          "query:V3_CF09_Q02",
+          "query:V3_CF09_Q03",
+          "query:V3_CF09_Q04",
+          "query:V3_CF09_Q05"
+        ],
+        "review_id": "reflection_review_eb27ff4c7b68f4f66e7071b6",
+        "track": "stratified_holdout",
+        "category": "contradicted_or_inverted_attitude",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "contradicted"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_75d8a12b580f8c9e5d07acd3",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to set decimal separator for a specific file. Memory has no condition, overgeneralizing, and has never been activated with inactivity far exceeding obsolete_after_days.",
+        "source_refs": [
+          "query:a01fbce3-2793-461f-ab86-43680ccbae25_HQ2"
+        ],
+        "review_id": "reflection_review_53dd195772ba61341dc330f8",
+        "track": "stratified_holdout",
+        "category": "possible_durable_display_preference",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "scope_error",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_62567197f64d4f6e483d3080",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a continuation of a specific task to adjust decimal separator in the current file. Memory has no condition, overgeneralizing, and has never been activated with inactivity far exceeding obsolete_after_days.",
+        "source_refs": [
+          "query:a01fbce3-2793-461f-ab86-43680ccbae25_HQ3"
+        ],
+        "review_id": "reflection_review_de63eb44a7d8caf3936dcbb3",
+        "track": "stratified_holdout",
+        "category": "possible_durable_display_preference",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "scope_error",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_8cc7e31024742b8a61fd2d86",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a one-off request to format values in millions and billions for a specific table. Memory has no condition, overgeneralizing, and has never been activated with inactivity far exceeding obsolete_after_days.",
+        "source_refs": [
+          "query:21df9241-f8d7-4509-b7f1-37e501a823f7_HQ3"
+        ],
+        "review_id": "reflection_review_7cf5093dd16af54bf8ec894b",
+        "track": "stratified_holdout",
+        "category": "possible_durable_display_preference",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "scope_error",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_55b1abd416df0bce03e98612",
+        "verdict": "scope_error",
+        "penalty_factor": 0.55,
+        "rationale": "Source is a clarification about not recalculating data, not a request to oppose setting decimal separator. Memory stores oppose attitude without supporting evidence; also no condition and never activated, making it an obsolete one-off.",
+        "source_refs": [
+          "query:a01fbce3-2793-461f-ab86-43680ccbae25_HQ4"
+        ],
+        "review_id": "reflection_review_d89de0ddbb13622ba3a67893",
+        "track": "stratified_holdout",
+        "category": "possible_durable_display_preference",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "scope_error",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_fafbe2a5d64c02d0b178764b",
+        "verdict": "unverifiable",
+        "penalty_factor": 1.0,
+        "rationale": "Source is vague ('按旧规则算出来'), lacking specific details to verify the memory's object 'ambiguous_prior_workflow'. Essential evidence is incomplete.",
+        "source_refs": [
+          "query:V3_AQ09_Q03"
+        ],
+        "review_id": "reflection_review_2df607c6ce46c514579df91a",
+        "track": "stratified_holdout",
+        "category": "recent_but_unsafe_global_ambiguity",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_4a34a6d462d257465c58254d",
+        "verdict": "unverifiable",
+        "penalty_factor": 1.0,
+        "rationale": "Source is vague ('按上次的口径再做一遍'), lacking specific details to verify the memory's object 'ambiguous_prior_workflow'. Essential evidence is incomplete.",
+        "source_refs": [
+          "query:V3_AQ05_Q02"
+        ],
+        "review_id": "reflection_review_367562bd73f355526797f259",
+        "track": "stratified_holdout",
+        "category": "recent_but_unsafe_global_ambiguity",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_a8c6a781e8a3934769de0e50",
+        "verdict": "unverifiable",
+        "penalty_factor": 1.0,
+        "rationale": "Source is vague ('用我们上次的图表版式展示一下'), lacking specific details to verify the memory's object 'ambiguous_prior_workflow'. Essential evidence is incomplete.",
+        "source_refs": [
+          "query:V3_AQ06_Q02"
+        ],
+        "review_id": "reflection_review_c5fef582e05e6a31377e7b08",
+        "track": "stratified_holdout",
+        "category": "recent_but_unsafe_global_ambiguity",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_4674a19a97f90db2e777cca9",
+        "verdict": "unverifiable",
+        "penalty_factor": 1.0,
+        "rationale": "Source is vague ('沿用旧版的输出方法'), lacking specific details to verify the memory's object 'ambiguous_prior_workflow'. Essential evidence is incomplete.",
+        "source_refs": [
+          "query:V3_AQ13_Q04"
+        ],
+        "review_id": "reflection_review_5c3e3c60e52f674cb5c86eeb",
+        "track": "stratified_holdout",
+        "category": "recent_but_unsafe_global_ambiguity",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_c33b31b1fec74b59c33fe1ca",
+        "verdict": "unverifiable",
+        "penalty_factor": 1.0,
+        "rationale": "Source mentions '第二张表照旧汇总' but does not specify which file or workflow; condition is empty, making evidence incomplete and scope overgeneralized.",
+        "source_refs": [
+          "query:V3_AQ05_Q03"
+        ],
+        "review_id": "reflection_review_291e5994c37a4976efdc7ca6",
+        "track": "stratified_holdout",
+        "category": "recent_but_unsafe_global_ambiguity",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "scope_error",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_a98a884eed61f1698628f1f7",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "All five sources explicitly request summarizing revenue and expenses in NetIncome.xlsx, matching condition and object. Attitude is aligned. Scope is specific to the file. Memory role is reusable rule due to repeated activation across independent tasks.",
+        "source_refs": [
+          "query:V3_CM06_Q01",
+          "query:V3_CM06_Q02",
+          "query:V3_CM06_Q03",
+          "query:V3_CM06_Q04",
+          "query:V3_CM06_Q05"
+        ],
+        "review_id": "reflection_review_c009c73c6e64b2e1d146e454",
+        "track": "stratified_holdout",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "keep",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_d8d71838833e6066ac3b8520",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "Source explicitly asks to add Total Revenue and Total Expenses in NetIncome.xlsx, matching condition and object. Attitude is aligned. Scope is specific to the file. Memory role is reusable rule due to repeated activation across independent tasks.",
+        "source_refs": [
+          "query:MULTI_MM03_HQ3"
+        ],
+        "review_id": "reflection_review_6d1f86a8748b6358e25bf9c9",
+        "track": "stratified_holdout",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      },
+      {
+        "memory_id": "epmem_1742521b12a20a2ba3cebdfd",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources describe a one-off export task for Export_Calc_to_CSV.xlsx. Inactivity (302 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "event:3aaa4e37-dc91-482e-99af-132a612d40f3",
+          "query:3aaa4e37-dc91-482e-99af-132a612d40f3_HQ1"
+        ],
+        "review_id": "reflection_review_3ab6762fc9d487655b0388ef",
+        "track": "stratified_holdout",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_8e9212e2555fa33271856ce2",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources describe a one-off task to fill order sequence labels in Order_Sales_Serial#.xlsx. Inactivity (290 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "query:V3_CF13_Q01",
+          "query:V3_CF13_Q02",
+          "query:V3_CF13_Q03",
+          "query:V3_CF13_Q04",
+          "query:V3_CF13_Q05"
+        ],
+        "review_id": "reflection_review_0041293011e9378116f1ab67",
+        "track": "stratified_holdout",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "forget",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_65237a743e182609af3cfcc1",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources describe a one-off export task for Export_Calc_to_CSV.xlsx. Inactivity (282 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "query:V3_CM30_Q01",
+          "query:V3_CM30_Q02",
+          "query:V3_CM30_Q03",
+          "query:V3_CM30_Q04",
+          "query:V3_CM30_Q05"
+        ],
+        "review_id": "reflection_review_ba043356d29b37304a2fe722",
+        "track": "stratified_holdout",
+        "category": "recent_clear_task_with_redundant_memories",
+        "gold_label": "keep",
+        "expected_verdicts": [
+          "supported"
+        ],
+        "strict_correct": false,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_248bc46b0278e195bf0c4471",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources refer to a prior workflow for BoomerangSales.xlsx but are one-off references. Inactivity (204 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "query:V3_AQ04_Q02",
+          "query:V3_AQ04_Q04"
+        ],
+        "review_id": "reflection_review_199ad88a11f228c9f6234fa8",
+        "track": "stratified_holdout",
+        "category": "recent_conditioned_but_semantically_ambiguous",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_4b474f759510b61da321ae0d",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources refer to a prior workflow for WeeklySales.xlsx but are one-off references. Inactivity (204 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "query:V3_AQ03_Q02",
+          "query:V3_AQ03_Q03",
+          "query:V3_AQ03_Q05"
+        ],
+        "review_id": "reflection_review_73ccc39be41eaa6427bbe6b3",
+        "track": "stratified_holdout",
+        "category": "recent_conditioned_but_semantically_ambiguous",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_43f9351974517a2e192395d3",
+        "verdict": "obsolete_task_state",
+        "penalty_factor": 0.6,
+        "rationale": "Sources refer to a prior workflow for NetIncome.xlsx but are one-off references. Inactivity (205 days) exceeds obsolete_after_days (60). Never activated again. Memory role is obsolete_one_off.",
+        "source_refs": [
+          "query:V3_AQ02_Q01",
+          "query:V3_AQ02_Q03",
+          "query:V3_AQ02_Q04",
+          "query:V3_AQ02_Q05"
+        ],
+        "review_id": "reflection_review_cecbf82d3396404316d8081a",
+        "track": "stratified_holdout",
+        "category": "recent_conditioned_but_semantically_ambiguous",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": true
+      },
+      {
+        "memory_id": "epmem_607dd8dcc96c090978abca3b",
+        "verdict": "supported",
+        "penalty_factor": 1.0,
+        "rationale": "All five sources request repeating a prior workflow for SalesRep.xlsx, matching condition and object. Attitude is aligned. Scope is specific to the file. Memory role is reusable rule due to repeated activation across independent tasks (34 activations, span 26 days).",
+        "source_refs": [
+          "query:V3_AQ01_Q01",
+          "query:V3_AQ01_Q02",
+          "query:V3_AQ01_Q03",
+          "query:V3_AQ01_Q04",
+          "query:V3_AQ01_Q05"
+        ],
+        "review_id": "reflection_review_fbb8da7e28fc12ec45508e5a",
+        "track": "stratified_holdout",
+        "category": "recent_conditioned_but_semantically_ambiguous",
+        "gold_label": "uncertain",
+        "expected_verdicts": [
+          "obsolete_task_state",
+          "supported",
+          "unverifiable"
+        ],
+        "strict_correct": true,
+        "negative_action": false
+      }
+    ]
+  },
+  "merge": {
+    "count": 10,
+    "correct": 7,
+    "accuracy": 0.7,
+    "rows": [
+      {
+        "canonical_memory_id": "epmem_0ee4dc009e01e83f08aaa45b",
+        "duplicate_memory_ids": [
+          "epmem_9cfa540b47d73f7e453fe945",
+          "epmem_9fa5838f8153679e210555e0"
+        ],
+        "decision": "merge",
+        "rationale": "All three memories share identical condition, object, and attitude. Sources describe the same operation on the same file. Differences in surrounding tasks do not change the core meaning.",
+        "source_refs": [
+          "query:V3_CM19_Q01",
+          "query:V3_CM28_Q01",
+          "query:V3_CF15_Q01"
+        ],
+        "review_id": "reflection_merge_e3a437c4a89a711a1b94635d",
+        "expected": "merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_49ad417fa08753f05f66d9f7",
+        "duplicate_memory_ids": [
+          "epmem_ca6b48e70aa188059c893180"
+        ],
+        "decision": "merge",
+        "rationale": "Both memories refer to the same file and action of formatting embedded numbers to two decimals. Sources are from the same query session, indicating duplicate extraction.",
+        "source_refs": [
+          "query:4f07fbe9-70de-4927-a4d5-bb28bc12c52c_HQ5",
+          "query:4f07fbe9-70de-4927-a4d5-bb28bc12c52c_HQ1"
+        ],
+        "review_id": "reflection_merge_f8200e8d540d535e2b824f7c",
+        "expected": "merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_ed1dbfb05f90e0d1b6bd60d9",
+        "duplicate_memory_ids": [
+          "epmem_ecb9def7b1e4897e4ab920f9",
+          "epmem_f9fc367282d3a1d2474392dc"
+        ],
+        "decision": "merge",
+        "rationale": "All memories describe transposing B2:F5 to B8 in Students_Class_Subject_Marks.xlsx. The condition, object, and attitude are identical. Different source contexts do not alter the core operation.",
+        "source_refs": [
+          "query:V3_CF12_Q01",
+          "event:eb03d19a-b88d-4de4-8a64-ca0ac66f426b",
+          "query:V3_CM22_Q01"
+        ],
+        "review_id": "reflection_merge_4db711a2da0fe032d0a30d57",
+        "expected": "merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_a98a884eed61f1698628f1f7",
+        "duplicate_memory_ids": [
+          "epmem_d8d71838833e6066ac3b8520"
+        ],
+        "decision": "no_merge",
+        "rationale": "The first memory specifies creating a new Sheet2 with Total Revenue and Total Expenses columns, while the second memory mentions copying Revenue with headers and placing totals without blocking details. The exact output format differs, indicating different user intents.",
+        "source_refs": [
+          "query:V3_CM06_Q01",
+          "query:MULTI_MM03_HQ3"
+        ],
+        "review_id": "reflection_merge_eb095ab06805ad0e794214d0",
+        "expected": "merge",
+        "correct": false
+      },
+      {
+        "canonical_memory_id": "epmem_a99021c3e98edcfe0ce884c6",
+        "duplicate_memory_ids": [
+          "epmem_683880ce1a2c03e9882b387b",
+          "epmem_8e9212e2555fa33271856ce2",
+          "epmem_d6ca27ae8277fda50db80ee4"
+        ],
+        "decision": "merge",
+        "rationale": "All memories share the same condition, object, and attitude: filling 'No. #' sequence labels in Order_Sales_Serial#.xlsx. The operation is identical across sources; differences in surrounding tasks do not affect the core meaning.",
+        "source_refs": [
+          "query:V3_CM18_Q01",
+          "event:7efeb4b1-3d19-4762-b163-63328d66303b",
+          "query:V3_CF13_Q01",
+          "query:V3_CM12_Q01"
+        ],
+        "review_id": "reflection_merge_52a82996773f2f219bae1ff6",
+        "expected": "merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_831c62f6ab2966419b2851b5",
+        "duplicate_memory_ids": [
+          "epmem_86c932e63256752a3159a2de",
+          "epmem_9db27284d35bc3e412993af8",
+          "epmem_c4737b1cad1a82194a94ad80"
+        ],
+        "decision": "merge",
+        "rationale": "All memories describe assigning grades from a scale table in Student_Grades_and_Remarks.xlsx. Condition, object, and attitude are identical. The temporal difference (short vs medium) does not indicate a different intent.",
+        "source_refs": [
+          "query:V3_CM24_Q01",
+          "event:d681960f-7bc3-4286-9913-a8812ba3261a",
+          "query:V3_CM19_Q01",
+          "query:MULTI_MM04_HQ1"
+        ],
+        "review_id": "reflection_merge_91c3faea6f2282021e3e1308",
+        "expected": "merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_235338183f56e8f9e210c6db",
+        "duplicate_memory_ids": [
+          "epmem_5c6cc61f57a5be34ed19f5db"
+        ],
+        "decision": "merge",
+        "rationale": "Both memories describe the same action 'extract_unique_names_preserving_order' with support attitude and no condition. The sources both request deduplication of names while preserving original order, with no conflicting details.",
+        "source_refs": [
+          "query:MULTI_MM05_HQ5",
+          "query:abed40dc-063f-4598-8ba5-9fe749c0615d_HQ3"
+        ],
+        "review_id": "reflection_merge_ebd0c6e79714e7580aeeb1c9",
+        "expected": "no_merge",
+        "correct": false
+      },
+      {
+        "canonical_memory_id": "epmem_3642a3c9bc99a8cf40e79a80",
+        "duplicate_memory_ids": [
+          "epmem_84ca1c1498dbbae35dbbe171"
+        ],
+        "decision": "no_merge",
+        "rationale": "The first memory is a general request to multiply time and rate, while the second memory explicitly asks to convert time format to hours first. The second is a more specific rule that updates the first, so they are not duplicates.",
+        "source_refs": [
+          "event:357ef137-7eeb-4c80-a3bb-0951f26a8aff",
+          "query:357ef137-7eeb-4c80-a3bb-0951f26a8aff_HQ2"
+        ],
+        "review_id": "reflection_merge_b88bf4d0929922fb6b1e473d",
+        "expected": "no_merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_5a5cb625e9d94c808d3c7376",
+        "duplicate_memory_ids": [
+          "epmem_9104926f5d198c42bd778645"
+        ],
+        "decision": "no_merge",
+        "rationale": "The first memory calculates revenue using Retail Price only, while the second includes quantity and discount. These are different calculation methods, so they represent distinct intents.",
+        "source_refs": [
+          "query:51719eea-10bc-4246-a428-ac7c433dd4b3_HQ2",
+          "query:51719eea-10bc-4246-a428-ac7c433dd4b3_HQ4"
+        ],
+        "review_id": "reflection_merge_e61d7764bea3b0a0f55044fc",
+        "expected": "no_merge",
+        "correct": true
+      },
+      {
+        "canonical_memory_id": "epmem_235338183f56e8f9e210c6db",
+        "duplicate_memory_ids": [
+          "epmem_bc396ffebfb744c7619bb42c"
+        ],
+        "decision": "merge",
+        "rationale": "Both memories describe the same action 'extract_unique_names_preserving_order' with support attitude. The sources both request deduplication of names while preserving original order, with no conflicting details.",
+        "source_refs": [
+          "query:MULTI_MM05_HQ5",
+          "query:abed40dc-063f-4598-8ba5-9fe749c0615d_HQ4"
+        ],
+        "review_id": "reflection_merge_1d4df641338418e1bc733c46",
+        "expected": "no_merge",
+        "correct": false
+      }
+    ]
+  },
+  "api_calls": [
+    {
+      "task_name": "correction:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 15218.713,
+      "status": "ok",
+      "prompt_tokens": 8360,
+      "completion_tokens": 2743,
+      "total_tokens": 11103
+    },
+    {
+      "task_name": "correction:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 14565.432,
+      "status": "ok",
+      "prompt_tokens": 8368,
+      "completion_tokens": 2743,
+      "total_tokens": 11111
+    },
+    {
+      "task_name": "correction:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 14224.137,
+      "status": "ok",
+      "prompt_tokens": 9946,
+      "completion_tokens": 2682,
+      "total_tokens": 12628
+    },
+    {
+      "task_name": "correction:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 15473.695,
+      "status": "ok",
+      "prompt_tokens": 9954,
+      "completion_tokens": 2758,
+      "total_tokens": 12712
+    },
+    {
+      "task_name": "correction:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 15022.107,
+      "status": "ok",
+      "prompt_tokens": 8914,
+      "completion_tokens": 2700,
+      "total_tokens": 11614
+    },
+    {
+      "task_name": "correction:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 14267.55,
+      "status": "ok",
+      "prompt_tokens": 8922,
+      "completion_tokens": 2547,
+      "total_tokens": 11469
+    },
+    {
+      "task_name": "correction:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 10793.107,
+      "status": "ok",
+      "prompt_tokens": 6771,
+      "completion_tokens": 1849,
+      "total_tokens": 8620
+    },
+    {
+      "task_name": "correction:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 12481.748,
+      "status": "ok",
+      "prompt_tokens": 6779,
+      "completion_tokens": 1933,
+      "total_tokens": 8712
+    },
+    {
+      "task_name": "merge:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 8980.884,
+      "status": "ok",
+      "prompt_tokens": 13476,
+      "completion_tokens": 1190,
+      "total_tokens": 14666
+    },
+    {
+      "task_name": "merge:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 8915.388,
+      "status": "ok",
+      "prompt_tokens": 13478,
+      "completion_tokens": 1154,
+      "total_tokens": 14632
+    },
+    {
+      "task_name": "merge:adjudicator:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 1732.376,
+      "status": "ok",
+      "prompt_tokens": 2403,
+      "completion_tokens": 165,
+      "total_tokens": 2568
+    },
+    {
+      "task_name": "merge:primary:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 5252.278,
+      "status": "ok",
+      "prompt_tokens": 3369,
+      "completion_tokens": 667,
+      "total_tokens": 4036
+    },
+    {
+      "task_name": "merge:critic:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 5746.28,
+      "status": "ok",
+      "prompt_tokens": 3371,
+      "completion_tokens": 734,
+      "total_tokens": 4105
+    },
+    {
+      "task_name": "merge:adjudicator:fine_grained_v2",
+      "model": "deepseek-chat",
+      "attempt": 1,
+      "elapsed_ms": 1692.862,
+      "status": "ok",
+      "prompt_tokens": 1810,
+      "completion_tokens": 205,
+      "total_tokens": 2015
+    }
+  ],
+  "temporary_markdown_deleted": 14,
+  "temporary_files_remaining": []
+}

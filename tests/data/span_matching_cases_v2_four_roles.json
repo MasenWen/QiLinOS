@@ -1,0 +1,122 @@
+[
+  {
+    "id": "SV2-001",
+    "expected": [
+      {"text": "以后", "label": "temporal_long"},
+      {"text": "做财务汇总时", "label": "condition"},
+      {"text": "默认用", "label": "attitude_positive"},
+      {"text": "柱状图", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-003",
+    "expected": [
+      {"text": "本轮", "label": "temporal_short"},
+      {"text": "报告", "label": "condition"},
+      {"text": "暂时用", "label": "attitude_positive"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "后续", "label": "temporal_medium"},
+      {"text": "再考虑", "label": "attitude_uncertain"}
+    ]
+  },
+  {
+    "id": "SV2-004",
+    "expected": [
+      {"text": "之前", "label": "temporal_medium"},
+      {"text": "报价邮件里", "label": "condition"},
+      {"text": "默认用", "label": "attitude_positive"},
+      {"text": "ChatGPT-codex", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-006",
+    "expected": [
+      {"text": "预算比较时", "label": "condition"},
+      {"text": "柱形图", "label": "object"},
+      {"text": "不太适合", "label": "attitude_negative"},
+      {"text": "或许应该换成", "label": "attitude_uncertain"},
+      {"text": "折线图", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-008",
+    "expected": [
+      {"text": "刚刚", "label": "temporal_short"},
+      {"text": "柱状图预览", "label": "object"},
+      {"text": "六月预算表", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-013",
+    "expected": [
+      {"text": "当前会话", "label": "temporal_short"},
+      {"text": "先按", "label": "attitude_positive"},
+      {"text": "这个模板", "label": "object"},
+      {"text": "别改", "label": "attitude_negative"},
+      {"text": "长期设置", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-015",
+    "expected": [
+      {"text": "做销售趋势时", "label": "condition"},
+      {"text": "优先用", "label": "attitude_positive"},
+      {"text": "柱状图", "label": "object", "occurrence": 0},
+      {"text": "做预算比较时", "label": "condition"},
+      {"text": "避免", "label": "attitude_negative"},
+      {"text": "柱状图", "label": "object", "occurrence": 1}
+    ]
+  },
+  {
+    "id": "SV2-018",
+    "expected": [
+      {"text": "以后", "label": "temporal_long"},
+      {"text": "统一用", "label": "attitude_positive"},
+      {"text": "ChatGPT Codex", "label": "object"},
+      {"text": "代码解释", "label": "condition"},
+      {"text": "普通聊天", "label": "condition"},
+      {"text": "不需要", "label": "attitude_negative"}
+    ]
+  },
+  {
+    "id": "SV2-024",
+    "expected": [
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "继续用", "label": "attitude_positive"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "还是改成", "label": "attitude_uncertain"},
+      {"text": "折线图", "label": "object"},
+      {"text": "代码解释", "label": "condition"},
+      {"text": "照旧交给", "label": "attitude_positive"},
+      {"text": "Codex", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-032",
+    "expected": [
+      {"text": "以后", "label": "temporal_long"},
+      {"text": "代码解释", "label": "condition"},
+      {"text": "尽量用", "label": "attitude_positive"},
+      {"text": "ChatGPT Codex", "label": "object"},
+      {"text": "普通聊天", "label": "condition"},
+      {"text": "随意", "label": "attitude_uncertain"},
+      {"text": "今晚", "label": "temporal_short"},
+      {"text": "先不用改", "label": "attitude_negative"},
+      {"text": "设置", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-037",
+    "expected": [
+      {"text": "这周", "label": "temporal_medium"},
+      {"text": "先按", "label": "attitude_positive"},
+      {"text": "旧模板", "label": "object"},
+      {"text": "下个月开始", "label": "temporal_medium"},
+      {"text": "统一换", "label": "attitude_positive"},
+      {"text": "新模板", "label": "object"},
+      {"text": "历史文件", "label": "object"},
+      {"text": "不要动", "label": "attitude_negative"}
+    ]
+  }
+]

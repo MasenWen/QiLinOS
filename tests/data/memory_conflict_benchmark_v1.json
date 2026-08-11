@@ -1,0 +1,311 @@
+{
+  "schema_version": "memory_conflict.benchmark.v1",
+  "memory_defaults": {
+    "user_id": "user-1",
+    "confidence": 0.82,
+    "source_kind": "text",
+    "observed_at": "2026-01-01T09:00:00Z",
+    "cardinality": "single",
+    "conditions": {},
+    "condition_tag_ids": [],
+    "valid_from": "",
+    "valid_to": "",
+    "supersedes_memory_ids": [],
+    "evidence_strength": 0.9,
+    "metadata": {}
+  },
+  "slot_aliases": {
+    "report-format": "report_format",
+    "report_format": "report_format"
+  },
+  "cases": [
+    {
+      "id": "C001",
+      "split": "development",
+      "description": "Equivalent normalized values are not a conflict.",
+      "left": {"memory_id": "c001-a", "slot_key": "report_format", "value": "PDF"},
+      "right": {"memory_id": "c001-b", "slot_key": "report-format", "value": "pdf"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C002",
+      "split": "development",
+      "description": "Memories from different users cannot conflict.",
+      "left": {"memory_id": "c002-a", "slot_key": "chart", "value": "bar"},
+      "right": {"memory_id": "c002-b", "user_id": "user-2", "slot_key": "chart", "value": "line"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C003",
+      "split": "development",
+      "description": "Different slots remain unrelated even when values differ.",
+      "left": {"memory_id": "c003-a", "slot_key": "chart", "value": "bar"},
+      "right": {"memory_id": "c003-b", "slot_key": "report_format", "value": "PDF"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C004",
+      "split": "development",
+      "description": "Set-valued preferences may coexist.",
+      "left": {"memory_id": "c004-a", "slot_key": "favorite_tools", "value": ["Excel"], "cardinality": "set"},
+      "right": {"memory_id": "c004-b", "slot_key": "favorite_tools", "value": ["Codex"], "cardinality": "set"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C005",
+      "split": "development",
+      "description": "Ranked values with the same first choice are compatible.",
+      "left": {"memory_id": "c005-a", "slot_key": "tool_rank", "value": ["Codex", "ChatGPT"], "cardinality": "ranked"},
+      "right": {"memory_id": "c005-b", "slot_key": "tool_rank", "value": ["Codex", "Claude"], "cardinality": "ranked"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C006",
+      "split": "development",
+      "description": "Work and home conditions partition an apparent conflict.",
+      "left": {"memory_id": "c006-a", "slot_key": "default_chart", "value": "bar", "conditions": {"place": "work"}},
+      "right": {"memory_id": "c006-b", "slot_key": "default_chart", "value": "line", "conditions": {"place": "home"}},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "C007",
+      "split": "development",
+      "description": "Internal and external report formats are scoped alternatives.",
+      "left": {"memory_id": "c007-a", "slot_key": "report_format", "value": "DOCX", "conditions": {"audience": "internal"}},
+      "right": {"memory_id": "c007-b", "slot_key": "report_format", "value": "PDF", "conditions": {"audience": "external"}},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "C008",
+      "split": "development",
+      "description": "Explicit preference replacement is dynamic.",
+      "left": {"memory_id": "c008-old", "slot_key": "default_chart", "value": "bar", "conditions": {"task": "budget"}},
+      "right": {"memory_id": "c008-new", "slot_key": "default_chart", "value": "line", "conditions": {"task": "budget"}, "observed_at": "2026-02-01T09:00:00Z", "supersedes_memory_ids": ["c008-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c008-old", "successor_memory_id": "c008-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C009",
+      "split": "development",
+      "description": "A changed output directory preserves historical lineage.",
+      "left": {"memory_id": "c009-old", "slot_key": "diary_output_dir", "value": "/work/old"},
+      "right": {"memory_id": "c009-new", "slot_key": "diary_output_dir", "value": "/work/2026", "observed_at": "2026-03-01T09:00:00Z", "supersedes_memory_ids": ["c009-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c009-old", "successor_memory_id": "c009-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C010",
+      "split": "development",
+      "description": "Non-overlapping validity windows indicate change over time.",
+      "left": {"memory_id": "c010-old", "slot_key": "active_project", "value": "P100", "valid_from": "2025-01-01T00:00:00Z", "valid_to": "2025-12-31T00:00:00Z"},
+      "right": {"memory_id": "c010-new", "slot_key": "active_project", "value": "P200", "observed_at": "2026-01-02T09:00:00Z", "valid_from": "2026-01-01T00:00:00Z"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c010-old", "successor_memory_id": "c010-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C011",
+      "split": "development",
+      "description": "Overlapping validity and equal conditions form a static conflict.",
+      "left": {"memory_id": "c011-a", "slot_key": "default_chart", "value": "bar", "conditions": {"task": "sales"}, "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2026-06-01T00:00:00Z"},
+      "right": {"memory_id": "c011-b", "slot_key": "default_chart", "value": "line", "conditions": {"task": "sales"}, "valid_from": "2026-03-01T00:00:00Z", "valid_to": "2026-09-01T00:00:00Z"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C012",
+      "split": "development",
+      "description": "Two timeless defaults for one slot are a static conflict.",
+      "left": {"memory_id": "c012-a", "slot_key": "email_tone", "value": "formal"},
+      "right": {"memory_id": "c012-b", "slot_key": "email_tone", "value": "casual"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C013",
+      "split": "development",
+      "description": "Opposite safety booleans under one condition conflict statically.",
+      "left": {"memory_id": "c013-a", "slot_key": "confirm_before_send", "value": true, "conditions": {"action": "email_send"}},
+      "right": {"memory_id": "c013-b", "slot_key": "confirm_before_send", "value": false, "conditions": {"action": "email_send"}},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C014",
+      "split": "development",
+      "description": "A missing condition keeps the conflict unresolved.",
+      "left": {"memory_id": "c014-a", "slot_key": "default_chart", "value": "bar", "conditions": {"task": "budget"}},
+      "right": {"memory_id": "c014-b", "slot_key": "default_chart", "value": "line"},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "C015",
+      "split": "development",
+      "description": "A log-derived contradiction receives the larger static penalty.",
+      "left": {"memory_id": "c015-text", "slot_key": "download_dir", "value": "/Documents", "confidence": 0.9, "source_kind": "text", "evidence_strength": 0.95},
+      "right": {"memory_id": "c015-log", "slot_key": "download_dir", "value": "/Downloads", "confidence": 0.55, "source_kind": "log_event", "evidence_strength": 0.7},
+      "expected": {"conflict_type": "static", "penalty": "both", "weaker_memory_id": "c015-log", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C016",
+      "split": "development",
+      "description": "Explicit supersession works when the newer memory is the left input.",
+      "left": {"memory_id": "c016-new", "slot_key": "code_tool", "value": "Codex", "observed_at": "2026-04-01T09:00:00Z", "supersedes_memory_ids": ["c016-old"]},
+      "right": {"memory_id": "c016-old", "slot_key": "code_tool", "value": "terminal"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c016-old", "successor_memory_id": "c016-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C017",
+      "split": "development",
+      "description": "Different task conditions explain tool alternatives.",
+      "left": {"memory_id": "c017-a", "slot_key": "assistant", "value": "Codex", "conditions": {"task": "code"}},
+      "right": {"memory_id": "c017-b", "slot_key": "assistant", "value": "ChatGPT", "conditions": {"task": "chat"}},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "C018",
+      "split": "development",
+      "description": "Punctuation and case normalization avoid a false conflict.",
+      "left": {"memory_id": "c018-a", "slot_key": "model", "value": "ChatGPT-Codex"},
+      "right": {"memory_id": "c018-b", "slot_key": "model", "value": "chatgpt codex"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C019",
+      "split": "development",
+      "description": "Compatible overlapping condition dimensions still conflict.",
+      "left": {"memory_id": "c019-a", "slot_key": "chart", "value": "bar", "conditions": {"app": "spreadsheet"}},
+      "right": {"memory_id": "c019-b", "slot_key": "chart", "value": "line", "conditions": {"app": "spreadsheet", "task": "budget"}},
+      "expected": {"conflict_type": "static", "penalty": "none", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C020",
+      "split": "development",
+      "description": "An explicit successor remains preferred even when sourced from a log.",
+      "left": {"memory_id": "c020-old", "slot_key": "system_time_source", "value": "local", "source_kind": "text", "confidence": 0.9},
+      "right": {"memory_id": "c020-new", "slot_key": "system_time_source", "value": "time.windows.com", "source_kind": "log_event", "confidence": 0.62, "observed_at": "2026-05-01T09:00:00Z", "supersedes_memory_ids": ["c020-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c020-old", "successor_memory_id": "c020-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C021",
+      "split": "validation",
+      "description": "Two final report formats under one audience conflict.",
+      "left": {"memory_id": "c021-a", "slot_key": "report_format", "value": "PDF", "conditions": {"audience": "external"}},
+      "right": {"memory_id": "c021-b", "slot_key": "report_format", "value": "DOCX", "conditions": {"audience": "external"}},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C022",
+      "split": "validation",
+      "description": "A later explicit tool update supersedes the old tool.",
+      "left": {"memory_id": "c022-old", "slot_key": "quote_tool", "value": "sheet"},
+      "right": {"memory_id": "c022-new", "slot_key": "quote_tool", "value": "company_api", "observed_at": "2026-02-10T09:00:00Z", "supersedes_memory_ids": ["c022-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c022-old", "successor_memory_id": "c022-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C023",
+      "split": "validation",
+      "description": "Normal and unstable network conditions partition behavior.",
+      "left": {"memory_id": "c023-a", "slot_key": "quote_method", "value": "company_api", "conditions": {"network": "stable"}},
+      "right": {"memory_id": "c023-b", "slot_key": "quote_method", "value": "manual_check", "conditions": {"network": "unstable"}},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "C024",
+      "split": "validation",
+      "description": "One scoped and one unscoped preference remain unresolved.",
+      "left": {"memory_id": "c024-a", "slot_key": "chart", "value": "bar", "conditions": {"task": "sales"}},
+      "right": {"memory_id": "c024-b", "slot_key": "chart", "value": "line"},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "C025",
+      "split": "validation",
+      "description": "Set-valued archive exclusions accumulate.",
+      "left": {"memory_id": "c025-a", "slot_key": "archive_exclude", "value": ["keys"], "cardinality": "set"},
+      "right": {"memory_id": "c025-b", "slot_key": "archive_exclude", "value": ["cache"], "cardinality": "set"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C026",
+      "split": "validation",
+      "description": "User isolation remains a hard boundary.",
+      "left": {"memory_id": "c026-a", "slot_key": "download_dir", "value": "/A"},
+      "right": {"memory_id": "c026-b", "user_id": "user-9", "slot_key": "download_dir", "value": "/B"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C027",
+      "split": "validation",
+      "description": "Explicit replacement is detected despite reversed input order.",
+      "left": {"memory_id": "c027-new", "slot_key": "diary_format", "value": "three_columns", "observed_at": "2026-06-01T09:00:00Z", "supersedes_memory_ids": ["c027-old"]},
+      "right": {"memory_id": "c027-old", "slot_key": "diary_format", "value": "four_sections"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c027-old", "successor_memory_id": "c027-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C028",
+      "split": "validation",
+      "description": "A weak log contradiction is penalized more than text memory.",
+      "left": {"memory_id": "c028-log", "slot_key": "window_size", "value": "maximized", "source_kind": "log_event", "confidence": 0.5, "evidence_strength": 0.6},
+      "right": {"memory_id": "c028-text", "slot_key": "window_size", "value": "normal", "source_kind": "text", "confidence": 0.92, "evidence_strength": 0.95},
+      "expected": {"conflict_type": "static", "penalty": "both", "weaker_memory_id": "c028-log", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C029",
+      "split": "validation",
+      "description": "Different office tasks preserve chart alternatives.",
+      "left": {"memory_id": "c029-a", "slot_key": "chart", "value": "bar", "conditions": {"task": "sales"}},
+      "right": {"memory_id": "c029-b", "slot_key": "chart", "value": "line", "conditions": {"task": "budget"}},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "C030",
+      "split": "validation",
+      "description": "Ranked preferences with different first choices conflict.",
+      "left": {"memory_id": "c030-a", "slot_key": "assistant_rank", "value": ["Codex", "ChatGPT"], "cardinality": "ranked"},
+      "right": {"memory_id": "c030-b", "slot_key": "assistant_rank", "value": ["ChatGPT", "Codex"], "cardinality": "ranked"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C031",
+      "split": "validation",
+      "description": "Touching half-open validity intervals are dynamic.",
+      "left": {"memory_id": "c031-old", "slot_key": "active_project", "value": "P131", "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2026-03-01T00:00:00Z"},
+      "right": {"memory_id": "c031-new", "slot_key": "active_project", "value": "P132", "observed_at": "2026-03-01T09:00:00Z", "valid_from": "2026-03-01T00:00:00Z"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c031-old", "successor_memory_id": "c031-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C032",
+      "split": "validation",
+      "description": "Partially overlapping validity intervals are static.",
+      "left": {"memory_id": "c032-a", "slot_key": "email_tone", "value": "formal", "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2026-04-01T00:00:00Z"},
+      "right": {"memory_id": "c032-b", "slot_key": "email_tone", "value": "brief", "valid_from": "2026-03-01T00:00:00Z", "valid_to": "2026-06-01T00:00:00Z"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "C033",
+      "split": "validation",
+      "description": "Explicit temporal update overrides source-prior preference.",
+      "left": {"memory_id": "c033-old", "slot_key": "time_source", "value": "local", "source_kind": "text", "confidence": 0.95},
+      "right": {"memory_id": "c033-new", "slot_key": "time_source", "value": "ntp", "source_kind": "log_event", "confidence": 0.55, "observed_at": "2026-07-01T09:00:00Z", "supersedes_memory_ids": ["c033-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "c033-old", "successor_memory_id": "c033-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "C034",
+      "split": "validation",
+      "description": "Incomplete condition evidence should not become a confident static conflict.",
+      "left": {"memory_id": "c034-a", "slot_key": "template", "value": "A", "conditions": {"project": "P134"}},
+      "right": {"memory_id": "c034-b", "slot_key": "template", "value": "B", "condition_tag_ids": ["unknown_context"]},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "C035",
+      "split": "validation",
+      "description": "Unrelated slots do not gain conflict links.",
+      "left": {"memory_id": "c035-a", "slot_key": "title_font", "value": "SimHei"},
+      "right": {"memory_id": "c035-b", "slot_key": "anomaly_color", "value": "red"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "C036",
+      "split": "validation",
+      "description": "Identical booleans reinforce rather than conflict.",
+      "left": {"memory_id": "c036-a", "slot_key": "confirm_before_send", "value": true},
+      "right": {"memory_id": "c036-b", "slot_key": "confirm_before_send", "value": true},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    }
+  ]
+}

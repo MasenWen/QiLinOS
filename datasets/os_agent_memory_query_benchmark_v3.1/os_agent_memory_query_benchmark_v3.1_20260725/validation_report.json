@@ -1,0 +1,40 @@
+{
+  "status": "PASS",
+  "counts": {
+    "tasks": 47,
+    "memory_records": 47,
+    "queries": 530,
+    "answer_groups": 106,
+    "unique_normalized_conclusions": 106
+  },
+  "track_distribution": {
+    "single_memory": 235,
+    "complementary_multi_memory": 150,
+    "conflict_resolution": 75,
+    "clarification_required": 70
+  },
+  "partition_distribution": {
+    "train": 150,
+    "dev": 45,
+    "test": 40,
+    "challenge": 295
+  },
+  "query_type_distribution": {
+    "human_context_explicit": 106,
+    "human_goal_oriented": 106,
+    "contextual_ellipsis": 106,
+    "low_overlap_paraphrase": 106,
+    "human_constraint_emphasis": 106
+  },
+  "human_status_distribution": {
+    "not_pass": 530
+  },
+  "human_rank_distribution": {
+    "0": 530
+  },
+  "errors": [],
+  "warnings": [
+    "status and rank are human-owned fields; this validator checks only their allowed value ranges.",
+    "The benchmark still contains only 47 independent source operations."
+  ]
+}

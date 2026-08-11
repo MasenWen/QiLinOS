@@ -1,0 +1,17 @@
+[
+  {
+    "id": "LOG-001",
+    "challenge": "english_service_log",
+    "text": "W32time Service received notification to rediscover its time sources and/or resynchronize time.\nReason Code:0\nReason code description:\n0 : An explicit time resynchronization request from an administrator\n\nThe time service is now synchronizing the system time with the reference time source time.windows.com,0x9.\n\nW32time service has set the system time to 2026-07-26T06:48:32.986Z(UTC).\nPrevious system time was 2026-07-26T06:48:30.680Z(UTC)."
+  },
+  {
+    "id": "LOG-002",
+    "challenge": "chinese_package_log",
+    "text": "已经为程序包 DellInc.DellPowerManager_3.14.40.0_x64__htrsf667h5kn2\n中的应用程序 DellInc.DellPowerManager_htrsf667h5kn2!App 创建进程 19328。"
+  },
+  {
+    "id": "LOG-003",
+    "challenge": "chinese_package_log",
+    "text": "已经为程序包 OpenAI.Codex_26.721.4979.0_x64__2p2nqsd0c76g0\n中的应用程序 OpenAI.Codex_2p2nqsd0c76g0!App 创建进程 18732。"
+  }
+]

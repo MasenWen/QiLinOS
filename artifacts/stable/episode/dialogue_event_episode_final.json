@@ -1,0 +1,1160 @@
+{
+  "purpose": "Blind Event-to-Episode grouping audit. Gold episode_id is used only after grouping for scoring.",
+  "input": {
+    "events_matrix": "C:\\Users\\Masen\\Desktop\\项目\\麒麟OS\\.spreadsheet_inspect\\User_Messages.json",
+    "episodes_matrix": "C:\\Users\\Masen\\Desktop\\项目\\麒麟OS\\.spreadsheet_inspect\\Episodes.json",
+    "records": 318,
+    "gold_episodes": 150,
+    "users": 150
+  },
+  "gold_table_validation": {
+    "valid": true,
+    "event_episode_count": 150,
+    "gold_episode_count": 150,
+    "issue_count": 0,
+    "issues": []
+  },
+  "views": {
+    "original": {
+      "metrics": {
+        "event_count": 318,
+        "gold_episode_count": 150,
+        "predicted_episode_count": 150,
+        "merge_precision": 1.0,
+        "merge_recall": 1.0,
+        "exact_episode_rate": 1.0,
+        "intact_gold_episode_rate": 1.0,
+        "pure_predicted_episode_rate": 1.0,
+        "boundary_precision": 1.0,
+        "boundary_recall": 1.0,
+        "overmerged_predicted_episodes": 0,
+        "split_gold_episodes": 0
+      },
+      "performance": {
+        "total_ms": 7610.268699994776,
+        "mean_ms_per_event": 23.931662578599926
+      },
+      "examples": {
+        "overmerged": [],
+        "split": []
+      }
+    },
+    "compressed_single_session": {
+      "metrics": {
+        "event_count": 318,
+        "gold_episode_count": 150,
+        "predicted_episode_count": 150,
+        "merge_precision": 1.0,
+        "merge_recall": 1.0,
+        "exact_episode_rate": 1.0,
+        "intact_gold_episode_rate": 1.0,
+        "pure_predicted_episode_rate": 1.0,
+        "boundary_precision": 1.0,
+        "boundary_recall": 1.0,
+        "overmerged_predicted_episodes": 0,
+        "split_gold_episodes": 0
+      },
+      "performance": {
+        "total_ms": 10427.47260001488,
+        "mean_ms_per_event": 32.79079433966943
+      },
+      "examples": {
+        "overmerged": [],
+        "split": []
+      }
+    },
+    "compressed_role_hidden_ablation": {
+      "metrics": {
+        "event_count": 318,
+        "gold_episode_count": 150,
+        "predicted_episode_count": 30,
+        "merge_precision": 0.12290502793296089,
+        "merge_recall": 1.0,
+        "exact_episode_rate": 0.0,
+        "intact_gold_episode_rate": 1.0,
+        "pure_predicted_episode_rate": 0.0,
+        "boundary_precision": 1.0,
+        "boundary_recall": 0.19463087248322147,
+        "overmerged_predicted_episodes": 30,
+        "split_gold_episodes": 0
+      },
+      "performance": {
+        "total_ms": 6720.461999997497,
+        "mean_ms_per_event": 21.13352830187892
+      },
+      "examples": {
+        "overmerged": [
+          {
+            "group_id": "episode_7379385278f7fc5e9c82d992",
+            "event_count": 10,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_000001",
+              "DIALOGUE_V4_EP_000002",
+              "DIALOGUE_V4_EP_000003",
+              "DIALOGUE_V4_EP_000004",
+              "DIALOGUE_V4_EP_000005"
+            ],
+            "predicted_episode_ids": [
+              "episode_7379385278f7fc5e9c82d992"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000001",
+                "gold_episode_id": "DIALOGUE_V4_EP_000001",
+                "role": "preference_statement",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "用表格工具整理月度经营报告时，先按修改时间倒序排，只给我看最新的三项。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000002",
+                "gold_episode_id": "DIALOGUE_V4_EP_000001",
+                "role": "clarification",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 尤其留意华东区经营数据这部分。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000003",
+                "gold_episode_id": "DIALOGUE_V4_EP_000002",
+                "role": "preference_statement",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "我不想每次都重新解释，用表格筛选工具核对差旅报销明细时，先把成功、失败和需要确认的结果分开。 结果来源也一起保留。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000004",
+                "gold_episode_id": "DIALOGUE_V4_EP_000002",
+                "role": "clarification",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 能看出差异的地方顺手标出来。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000005",
+                "gold_episode_id": "DIALOGUE_V4_EP_000003",
+                "role": "preference_statement",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "我先把要求说清楚，用文档摘要工具编写客户周报时，先按修改时间倒序排，只给我看最新的三项。 尤其留意本周进度和风险这部分。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000006",
+                "gold_episode_id": "DIALOGUE_V4_EP_000003",
+                "role": "clarification",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "对了，如果文档摘要工具返回空结果，告诉我检查了哪些范围，别直接说没有。 低相关结果先别混进来。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000007",
+                "gold_episode_id": "DIALOGUE_V4_EP_000004",
+                "role": "preference_statement",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "你记录的时候注意，用演示文稿生成工具准备季度汇报时，先按修改时间倒序排，只给我看最新的三项。 尤其留意目标完成情况这部分。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000008",
+                "gold_episode_id": "DIALOGUE_V4_EP_000004",
+                "role": "clarification",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 结果来源也一起保留。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000009",
+                "gold_episode_id": "DIALOGUE_V4_EP_000005",
+                "role": "preference_statement",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "为了后面省事，用日历空闲时间查询安排部门例会时，优先保留能追溯来源的结果，来源不明的放到最后。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000010",
+                "gold_episode_id": "DIALOGUE_V4_EP_000005",
+                "role": "clarification",
+                "ability": "tool_result_preference_capture",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "对了，同一个部门例会议程出现多个版本时，把版本差异也顺手标出来。 能看出差异的地方顺手标出来。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_b13627959fafd6a52d8aabce",
+            "event_count": 8,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_000201",
+              "DIALOGUE_V4_EP_000202",
+              "DIALOGUE_V4_EP_000203",
+              "DIALOGUE_V4_EP_000204",
+              "DIALOGUE_V4_EP_000205"
+            ],
+            "predicted_episode_ids": [
+              "episode_b13627959fafd6a52d8aabce"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000401",
+                "gold_episode_id": "DIALOGUE_V4_EP_000201",
+                "role": "habit_statement",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "核对差旅报销明细时，我习惯每完成一个阶段就保存一次，不要等到最后一起保存。 做完后把改动位置告诉我。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000402",
+                "gold_episode_id": "DIALOGUE_V4_EP_000201",
+                "role": "clarification",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "别漏了，中间生成的草稿先别删，我确认完再清理。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000403",
+                "gold_episode_id": "DIALOGUE_V4_EP_000202",
+                "role": "habit_statement",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "我先把要求说清楚，编写客户周报时，我习惯先把和本周进度和风险有关的窗口集中到一个桌面，再开始处理。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000404",
+                "gold_episode_id": "DIALOGUE_V4_EP_000202",
+                "role": "clarification",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "另外，中间生成的草稿先别删，我确认完再清理。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000405",
+                "gold_episode_id": "DIALOGUE_V4_EP_000203",
+                "role": "habit_statement",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "你记录的时候注意，准备季度汇报时，我习惯先把和目标完成情况有关的窗口集中到一个桌面，再开始处理。 中间草稿别提前清理。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000406",
+                "gold_episode_id": "DIALOGUE_V4_EP_000204",
+                "role": "habit_statement",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "为了后面省事，安排部门例会时，我习惯每完成一个阶段就保存一次，不要等到最后一起保存。 做完后把改动位置告诉我。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000407",
+                "gold_episode_id": "DIALOGUE_V4_EP_000204",
+                "role": "clarification",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "再说清楚一点，中间生成的草稿先别删，我确认完再清理。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000408",
+                "gold_episode_id": "DIALOGUE_V4_EP_000205",
+                "role": "habit_statement",
+                "ability": "operation_habit_capture",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "归档合同文件时，我习惯每完成一个阶段就保存一次，不要等到最后一起保存。 中间草稿别提前清理。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_b88f6c479423b7d5fd67e18c",
+            "event_count": 8,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_000401",
+              "DIALOGUE_V4_EP_000402",
+              "DIALOGUE_V4_EP_000403",
+              "DIALOGUE_V4_EP_000404",
+              "DIALOGUE_V4_EP_000405"
+            ],
+            "predicted_episode_ids": [
+              "episode_b88f6c479423b7d5fd67e18c"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000745",
+                "gold_episode_id": "DIALOGUE_V4_EP_000401",
+                "role": "preference_statement",
+                "ability": "output_style_preference",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "编写客户周报的结果按我习惯的方式来：能放表格的就放表格，数字统一保留两位小数。 细节可以保留，但不要挡住结论。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000746",
+                "gold_episode_id": "DIALOGUE_V4_EP_000402",
+                "role": "preference_statement",
+                "ability": "output_style_preference",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "你记录的时候注意，准备季度汇报的结果按我习惯的方式来：能放表格的就放表格，数字统一保留两位小数。 不用写得很正式，意思准确就行。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000747",
+                "gold_episode_id": "DIALOGUE_V4_EP_000402",
+                "role": "clarification",
+                "ability": "output_style_preference",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "还有一点，涉及目标完成情况的数字把单位写清楚，别让我自己猜。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000748",
+                "gold_episode_id": "DIALOGUE_V4_EP_000403",
+                "role": "preference_statement",
+                "ability": "output_style_preference",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "为了后面省事，安排部门例会的结果按我习惯的方式来：标题不要太长，正文按结论、依据、下一步来排。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000749",
+                "gold_episode_id": "DIALOGUE_V4_EP_000403",
+                "role": "clarification",
+                "ability": "output_style_preference",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "别漏了，涉及议题、参会人和会议室的数字把单位写清楚，别让我自己猜。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000750",
+                "gold_episode_id": "DIALOGUE_V4_EP_000404",
+                "role": "preference_statement",
+                "ability": "output_style_preference",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "归档合同文件的结果按我习惯的方式来：用短句和项目符号，别写成一大段。 单位和来源要写清楚。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000751",
+                "gold_episode_id": "DIALOGUE_V4_EP_000405",
+                "role": "preference_statement",
+                "ability": "output_style_preference",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "我不想每次都重新解释，汇总销售预测的结果按我习惯的方式来：用短句和项目符号，别写成一大段。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0000752",
+                "gold_episode_id": "DIALOGUE_V4_EP_000405",
+                "role": "clarification",
+                "ability": "output_style_preference",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "还有一点，涉及华东区第三季度预测的数字把单位写清楚，别让我自己猜。 异常项要让我一眼能看到。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_d2581d3eb42466263352efb6",
+            "event_count": 10,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_000601",
+              "DIALOGUE_V4_EP_000602",
+              "DIALOGUE_V4_EP_000603",
+              "DIALOGUE_V4_EP_000604",
+              "DIALOGUE_V4_EP_000605"
+            ],
+            "predicted_episode_ids": [
+              "episode_d2581d3eb42466263352efb6"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001114",
+                "gold_episode_id": "DIALOGUE_V4_EP_000601",
+                "role": "safety_constraint",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "处理季度经营目标时，没有明确权限的共享目录不要写入。 发现外部链接时先停一下。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001115",
+                "gold_episode_id": "DIALOGUE_V4_EP_000601",
+                "role": "scope_extension",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "对了，即使只是准备季度汇报的草稿，也按这个规则执行。 处理范围只限我明确指定的内容。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001116",
+                "gold_episode_id": "DIALOGUE_V4_EP_000602",
+                "role": "safety_constraint",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "我不想每次都重新解释，处理内部会议安排时，没有明确权限的共享目录不要写入。 脱敏后的内容也要保留来源记录。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001117",
+                "gold_episode_id": "DIALOGUE_V4_EP_000602",
+                "role": "scope_extension",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "补充一下，即使只是安排部门例会的草稿，也按这个规则执行。 处理范围只限我明确指定的内容。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001118",
+                "gold_episode_id": "DIALOGUE_V4_EP_000603",
+                "role": "safety_constraint",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "我先把要求说清楚，处理合同金额和客户信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001119",
+                "gold_episode_id": "DIALOGUE_V4_EP_000603",
+                "role": "scope_extension",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "别漏了，即使只是归档合同文件的草稿，也按这个规则执行。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001120",
+                "gold_episode_id": "DIALOGUE_V4_EP_000604",
+                "role": "safety_constraint",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "你记录的时候注意，处理销售预测数据时，对外发送前先停在预览界面，等我确认收件人。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001121",
+                "gold_episode_id": "DIALOGUE_V4_EP_000604",
+                "role": "scope_extension",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "再说清楚一点，即使只是汇总销售预测的草稿，也按这个规则执行。 不要为了完成任务绕过限制。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001122",
+                "gold_episode_id": "DIALOGUE_V4_EP_000605",
+                "role": "safety_constraint",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "为了后面省事，处理候选人个人信息时，对外发送前先停在预览界面，等我确认收件人。 脱敏后的内容也要保留来源记录。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001123",
+                "gold_episode_id": "DIALOGUE_V4_EP_000605",
+                "role": "scope_extension",
+                "ability": "security_strategy_preference",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "对了，即使只是处理招聘面试安排的草稿，也按这个规则执行。 特别是涉及候选人个人信息的时候。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_ffcb2513f24713c09728bb99",
+            "event_count": 15,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_000801",
+              "DIALOGUE_V4_EP_000802",
+              "DIALOGUE_V4_EP_000803",
+              "DIALOGUE_V4_EP_000804",
+              "DIALOGUE_V4_EP_000805"
+            ],
+            "predicted_episode_ids": [
+              "episode_ffcb2513f24713c09728bb99"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001514",
+                "gold_episode_id": "DIALOGUE_V4_EP_000801",
+                "role": "previous_preference_reference",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "以前这类结果我都要长摘要。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001515",
+                "gold_episode_id": "DIALOGUE_V4_EP_000801",
+                "role": "preference_update",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001516",
+                "gold_episode_id": "DIALOGUE_V4_EP_000801",
+                "role": "cross_scene_extension",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001517",
+                "gold_episode_id": "DIALOGUE_V4_EP_000802",
+                "role": "previous_preference_reference",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "有件事提前说一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001518",
+                "gold_episode_id": "DIALOGUE_V4_EP_000802",
+                "role": "preference_update",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "为了后面省事，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 别让新旧两套规则同时生效。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001519",
+                "gold_episode_id": "DIALOGUE_V4_EP_000802",
+                "role": "cross_scene_extension",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "先说明一下，这条不只用于年度合同资料，以后在邮件、文档和表格里碰到合同版本和签署状态也一样。 别让新旧两套规则同时生效。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001520",
+                "gold_episode_id": "DIALOGUE_V4_EP_000803",
+                "role": "previous_preference_reference",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "先说明一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001521",
+                "gold_episode_id": "DIALOGUE_V4_EP_000803",
+                "role": "preference_update",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 后续再改我会明确告诉你。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001522",
+                "gold_episode_id": "DIALOGUE_V4_EP_000803",
+                "role": "cross_scene_extension",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "麻烦记一下，这条不只用于销售预测_2026.xlsx，以后在邮件、文档和表格里碰到华东区第三季度预测也一样。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001523",
+                "gold_episode_id": "DIALOGUE_V4_EP_000804",
+                "role": "previous_preference_reference",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "麻烦记一下，之前我习惯按文件名判断版本。 这是旧规则，先别继续沿用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001524",
+                "gold_episode_id": "DIALOGUE_V4_EP_000804",
+                "role": "preference_update",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "我不想每次都重新解释，现在改成先给结论，细节按需展开，旧的做法作废。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0001525",
+                "gold_episode_id": "DIALOGUE_V4_EP_000804",
+                "role": "cross_scene_extension",
+                "ability": "version_update_cross_scene_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "这条不只用于面试安排表.xlsx，以后在邮件、文档和表格里碰到候选人时间和面试官空档也一样。 处理候选人时间和面试官空档时同样适用。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_6a8805591c4ab17e0f5093ca",
+            "event_count": 10,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_001001",
+              "DIALOGUE_V4_EP_001002",
+              "DIALOGUE_V4_EP_001003",
+              "DIALOGUE_V4_EP_001004",
+              "DIALOGUE_V4_EP_001005"
+            ],
+            "predicted_episode_ids": [
+              "episode_6a8805591c4ab17e0f5093ca"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002114",
+                "gold_episode_id": "DIALOGUE_V4_EP_001001",
+                "role": "workflow_definition",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "归档合同文件一直按这个顺序：先检查资料是否齐全，再按部门或主题分类，最后生成可复核的结果并归档。 这样后面复盘时能查到依据。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002115",
+                "gold_episode_id": "DIALOGUE_V4_EP_001001",
+                "role": "workflow_constraint",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "file_explorer",
+                  "pdf_viewer"
+                ],
+                "text": "麻烦记一下，每一步都要保留来源，尤其是合同版本和签署状态，以后复盘时能查回来。 每一步完成后都标一下状态。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002116",
+                "gold_episode_id": "DIALOGUE_V4_EP_001002",
+                "role": "workflow_definition",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "汇总销售预测一直按这个顺序：先检查资料是否齐全，再按部门或主题分类，最后生成可复核的结果并归档。 每一步完成后都标一下状态。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002117",
+                "gold_episode_id": "DIALOGUE_V4_EP_001002",
+                "role": "workflow_constraint",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "这个细节容易弄错，每一步都要保留来源，尤其是华东区第三季度预测，以后复盘时能查回来。 最后的未完成项要能继续跟进。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002118",
+                "gold_episode_id": "DIALOGUE_V4_EP_001003",
+                "role": "workflow_definition",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "我不想每次都重新解释，处理招聘面试安排一直按这个顺序：先锁定本次处理范围，再核对关键数字和异常项，最后生成可复核的结果并归档。 这样后面复盘时能查到依据。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002119",
+                "gold_episode_id": "DIALOGUE_V4_EP_001003",
+                "role": "workflow_constraint",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "这点对我挺重要的：每一步都要保留来源，尤其是候选人时间和面试官空档，以后复盘时能查回来。 最后的未完成项要能继续跟进。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002120",
+                "gold_episode_id": "DIALOGUE_V4_EP_001004",
+                "role": "workflow_definition",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "我先把要求说清楚，整理月度经营报告一直按这个顺序：先锁定本次处理范围，再按部门或主题分类，最后生成可复核的结果并归档。 最后的未完成项要能继续跟进。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002121",
+                "gold_episode_id": "DIALOGUE_V4_EP_001004",
+                "role": "workflow_constraint",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "有件事提前说一下，每一步都要保留来源，尤其是华东区经营数据，以后复盘时能查回来。 每一步完成后都标一下状态。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002122",
+                "gold_episode_id": "DIALOGUE_V4_EP_001005",
+                "role": "workflow_definition",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "你记录的时候注意，核对差旅报销明细一直按这个顺序：先锁定本次处理范围，再处理需要协作确认的部分，最后把未解决事项单独列出来。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002123",
+                "gold_episode_id": "DIALOGUE_V4_EP_001005",
+                "role": "workflow_constraint",
+                "ability": "workflow_knowledge_structuring",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "每一步都要保留来源，尤其是交通费和住宿费，以后复盘时能查回来。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_52bec65086e9e40d913f66fc",
+            "event_count": 10,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_001201",
+              "DIALOGUE_V4_EP_001202",
+              "DIALOGUE_V4_EP_001203",
+              "DIALOGUE_V4_EP_001204",
+              "DIALOGUE_V4_EP_001205"
+            ],
+            "predicted_episode_ids": [
+              "episode_52bec65086e9e40d913f66fc"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002514",
+                "gold_episode_id": "DIALOGUE_V4_EP_001201",
+                "role": "historical_case_reference",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "这次汇总销售预测可以参考去年同期预测那套处理方式，不过这次把异常项提前到第一页。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002515",
+                "gold_episode_id": "DIALOGUE_V4_EP_001201",
+                "role": "reuse_boundary",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app"
+                ],
+                "text": "这个细节容易弄错，上次已经确认过的格式可以复用，具体数据还是以销售预测_2026.xlsx为准。 本次仍以销售预测_2026.xlsx为准。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002516",
+                "gold_episode_id": "DIALOGUE_V4_EP_001202",
+                "role": "historical_case_reference",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "这个细节容易弄错，这次处理招聘面试安排可以参考春季招聘安排那套处理方式，不过这次把异常项提前到第一页。 上次的人员和日期不要直接照搬。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002517",
+                "gold_episode_id": "DIALOGUE_V4_EP_001202",
+                "role": "reuse_boundary",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "这点对我挺重要的：上次已经确认过的格式可以复用，具体数据还是以面试安排表.xlsx为准。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002518",
+                "gold_episode_id": "DIALOGUE_V4_EP_001203",
+                "role": "historical_case_reference",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "这点对我挺重要的：这次整理月度经营报告可以参考六月经营月报那套处理方式，只是截止时间换成这周五。 先确认上次做法现在还适用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002519",
+                "gold_episode_id": "DIALOGUE_V4_EP_001203",
+                "role": "reuse_boundary",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "有件事提前说一下，上次已经确认过的格式可以复用，具体数据还是以经营月报.xlsx为准。 先确认上次做法现在还适用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002520",
+                "gold_episode_id": "DIALOGUE_V4_EP_001204",
+                "role": "historical_case_reference",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "有件事提前说一下，这次核对差旅报销明细可以参考上季度报销核对那套处理方式，只是截止时间换成这周五。 如果找不到旧案例就告诉我。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002521",
+                "gold_episode_id": "DIALOGUE_V4_EP_001204",
+                "role": "reuse_boundary",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "先说明一下，上次已经确认过的格式可以复用，具体数据还是以差旅报销明细.xlsx为准。 先确认上次做法现在还适用。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002522",
+                "gold_episode_id": "DIALOGUE_V4_EP_001205",
+                "role": "historical_case_reference",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "先说明一下，这次编写客户周报可以参考上周客户周报那套处理方式，不过这次重点放在本周进度和风险。 相同的部分沿用，差异单独说明。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002523",
+                "gold_episode_id": "DIALOGUE_V4_EP_001205",
+                "role": "reuse_boundary",
+                "ability": "historical_case_reuse",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "上次已经确认过的格式可以复用，具体数据还是以客户周报.docx为准。 格式可以复用，数据必须重新核对。"
+              }
+            ]
+          },
+          {
+            "group_id": "episode_aec9cbfe5f2cec1025e2cbbd",
+            "event_count": 10,
+            "gold_episode_ids": [
+              "DIALOGUE_V4_EP_001401",
+              "DIALOGUE_V4_EP_001402",
+              "DIALOGUE_V4_EP_001403",
+              "DIALOGUE_V4_EP_001404",
+              "DIALOGUE_V4_EP_001405"
+            ],
+            "predicted_episode_ids": [
+              "episode_aec9cbfe5f2cec1025e2cbbd"
+            ],
+            "events": [
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002914",
+                "gold_episode_id": "DIALOGUE_V4_EP_001401",
+                "role": "template_definition",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "以后处理招聘面试安排就用这个模板：任务名称、输入文件、处理结果、异常项、检查人。 字段顺序固定下来，后面不要随意换。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002915",
+                "gold_episode_id": "DIALOGUE_V4_EP_001401",
+                "role": "template_constraint",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "calendar_app",
+                  "email_client"
+                ],
+                "text": "这点对我挺重要的：没有内容的栏目先保留并标“待补充”，不要直接删掉。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002916",
+                "gold_episode_id": "DIALOGUE_V4_EP_001402",
+                "role": "template_definition",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "我先把要求说清楚，以后整理月度经营报告就用这个模板：文件名称、版本、负责人、截止时间、状态。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002917",
+                "gold_episode_id": "DIALOGUE_V4_EP_001402",
+                "role": "template_constraint",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "document_editor"
+                ],
+                "text": "有件事提前说一下，没有内容的栏目先保留并标“待补充”，不要直接删掉。 同类任务尽量都用这一套。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002918",
+                "gold_episode_id": "DIALOGUE_V4_EP_001403",
+                "role": "template_definition",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "你记录的时候注意，以后核对差旅报销明细就用这个模板：任务名称、输入文件、处理结果、异常项、检查人。 同类任务尽量都用这一套。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002919",
+                "gold_episode_id": "DIALOGUE_V4_EP_001403",
+                "role": "template_constraint",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "spreadsheet_app",
+                  "pdf_viewer"
+                ],
+                "text": "先说明一下，没有内容的栏目先保留并标“待补充”，不要直接删掉。 模板只放结构，不要带上一次的具体数据。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002920",
+                "gold_episode_id": "DIALOGUE_V4_EP_001404",
+                "role": "template_definition",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "为了后面省事，以后编写客户周报就用这个模板：文件名称、版本、负责人、截止时间、状态。 模板名称就按编写客户周报来写。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002921",
+                "gold_episode_id": "DIALOGUE_V4_EP_001404",
+                "role": "template_constraint",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "document_editor",
+                  "email_client"
+                ],
+                "text": "麻烦记一下，没有内容的栏目先保留并标“待补充”，不要直接删掉。 字段顺序固定下来，后面不要随意换。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002922",
+                "gold_episode_id": "DIALOGUE_V4_EP_001405",
+                "role": "template_definition",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "以后准备季度汇报就用这个模板：文件名称、版本、负责人、截止时间、状态。 需要新增栏目时先告诉我原因。"
+              },
+              {
+                "event_id": "stress:DIALOGUE_V4_EVT_0002923",
+                "gold_episode_id": "DIALOGUE_V4_EP_001405",
+                "role": "template_constraint",
+                "ability": "reusable_template_distillation",
+                "apps": [
+                  "presentation_app",
+                  "spreadsheet_app"
+                ],
+                "text": "没有内容的栏目先保留并标“待补充”，不要直接删掉。 生成后先检查必填项有没有遗漏。"
+              }
+            ]
+          }
+        ],
+        "split": []
+      }
+    }
+  },
+  "matched_episode_examples": [
+    {
+      "episode_id": "DIALOGUE_V4_EP_000203",
+      "event_count": 1,
+      "ability": "operation_habit_capture",
+      "apps": [
+        "presentation_app",
+        "spreadsheet_app"
+      ],
+      "task": "准备季度汇报",
+      "artifact": "季度汇报.pptx",
+      "topic": "目标完成情况",
+      "messages": [
+        {
+          "event_id": "DIALOGUE_V4_EVT_0000405",
+          "role": "habit_statement",
+          "text": "你记录的时候注意，准备季度汇报时，我习惯先把和目标完成情况有关的窗口集中到一个桌面，再开始处理。 中间草稿别提前清理。"
+        }
+      ],
+      "prediction": "exact_match"
+    },
+    {
+      "episode_id": "DIALOGUE_V4_EP_000001",
+      "event_count": 2,
+      "ability": "tool_result_preference_capture",
+      "apps": [
+        "spreadsheet_app",
+        "document_editor"
+      ],
+      "task": "整理月度经营报告",
+      "artifact": "经营月报.xlsx",
+      "topic": "华东区经营数据",
+      "messages": [
+        {
+          "event_id": "DIALOGUE_V4_EVT_0000001",
+          "role": "preference_statement",
+          "text": "用表格工具整理月度经营报告时，先按修改时间倒序排，只给我看最新的三项。"
+        },
+        {
+          "event_id": "DIALOGUE_V4_EVT_0000002",
+          "role": "clarification",
+          "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 尤其留意华东区经营数据这部分。"
+        }
+      ],
+      "prediction": "exact_match"
+    },
+    {
+      "episode_id": "DIALOGUE_V4_EP_000801",
+      "event_count": 3,
+      "ability": "version_update_cross_scene_reuse",
+      "apps": [
+        "calendar_app",
+        "email_client"
+      ],
+      "task": "安排部门例会",
+      "artifact": "部门例会议程",
+      "topic": "议题、参会人和会议室",
+      "messages": [
+        {
+          "event_id": "DIALOGUE_V4_EVT_0001514",
+          "role": "previous_preference_reference",
+          "text": "以前这类结果我都要长摘要。"
+        },
+        {
+          "event_id": "DIALOGUE_V4_EVT_0001515",
+          "role": "preference_update",
+          "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+        },
+        {
+          "event_id": "DIALOGUE_V4_EVT_0001516",
+          "role": "cross_scene_extension",
+          "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+        }
+      ],
+      "prediction": "exact_match"
+    }
+  ],
+  "limitations": [
+    "The review workbook contains one gold episode per user, so the original view cannot expose cross-episode overmerge.",
+    "The compressed view changes user/session/time metadata but does not change or synthesize message text.",
+    "The role-hidden ablation is diagnostic only; the workbook does provide utterance_role as an Event field."
+  ]
+}

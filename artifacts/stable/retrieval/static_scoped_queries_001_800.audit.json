@@ -1,0 +1,206 @@
+{
+  "queries": 800,
+  "exact_slot_complete": 792,
+  "exact_slot_complete_rate": 99.0,
+  "top1_any_required": 792,
+  "top1_any_required_rate": 99.0,
+  "required_forbidden_parent_overlap_queries": 116,
+  "required_forbidden_parent_overlap_rate": 14.5,
+  "effective_forbidden_only_top1_queries": 2,
+  "effective_forbidden_only_top1_rate": 0.25,
+  "effective_forbidden_only_top2_queries": 36,
+  "effective_forbidden_only_top2_rate": 4.5,
+  "by_required_memory_count": {
+    "1": {
+      "queries": 240,
+      "exact_slot_complete": 232,
+      "top1_any_required": 232,
+      "exact_slot_complete_rate": 96.6667,
+      "top1_any_required_rate": 96.6667
+    },
+    "2": {
+      "queries": 368,
+      "exact_slot_complete": 368,
+      "top1_any_required": 368,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "3": {
+      "queries": 192,
+      "exact_slot_complete": 192,
+      "top1_any_required": 192,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    }
+  },
+  "by_evaluation_track": {
+    "clarification_required": {
+      "queries": 40,
+      "exact_slot_complete": 40,
+      "top1_any_required": 40,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "conflict_resolution": {
+      "queries": 144,
+      "exact_slot_complete": 144,
+      "top1_any_required": 144,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "dialogue_context_only": {
+      "queries": 24,
+      "exact_slot_complete": 24,
+      "top1_any_required": 24,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "dialogue_log_complementary": {
+      "queries": 224,
+      "exact_slot_complete": 224,
+      "top1_any_required": 224,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "multi_task_cross_app": {
+      "queries": 192,
+      "exact_slot_complete": 192,
+      "top1_any_required": 192,
+      "exact_slot_complete_rate": 100.0,
+      "top1_any_required_rate": 100.0
+    },
+    "operation_resume_only": {
+      "queries": 16,
+      "exact_slot_complete": 10,
+      "top1_any_required": 10,
+      "exact_slot_complete_rate": 62.5,
+      "top1_any_required_rate": 62.5
+    },
+    "single_memory": {
+      "queries": 160,
+      "exact_slot_complete": 158,
+      "top1_any_required": 158,
+      "exact_slot_complete_rate": 98.75,
+      "top1_any_required_rate": 98.75
+    }
+  },
+  "namespace_memory_count_distribution": {
+    "1": 124,
+    "2": 432,
+    "3": 244
+  },
+  "top1_misses": [
+    {
+      "sequence_no": 153,
+      "query_id": "V53_Q_005895_Q1",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_005895",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::WEBLINX_qgzyiog"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004147"
+      ]
+    },
+    {
+      "sequence_no": 248,
+      "query_id": "V53_Q_005895_Q3",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_005895",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::WEBLINX_qgzyiog"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004147"
+      ]
+    },
+    {
+      "sequence_no": 341,
+      "query_id": "V53_Q_004944_Q2",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_004944",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::BPI2020_DOMESTIC_fdb1217957bacab74cd3ebe2"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004346"
+      ]
+    },
+    {
+      "sequence_no": 358,
+      "query_id": "26a8440e-c166-4c50-aef4-bfb77314b46b_HQ2",
+      "precedent_case_id": "OFFICIAL1000_LEGACY_26a8440e-c166-4c50-aef4-bfb77314b46b",
+      "dataset_origin": "v3.1",
+      "evaluation_track": "single_memory",
+      "required_count": 1,
+      "required_memory_ids": [
+        "MTM_26a8440e-c166-4c50-aef4-bfb77314b46b"
+      ],
+      "top_memory_ids": [
+        "MTM_0a2e43bf-b26c-4631-a966-af9dfa12c9e5"
+      ]
+    },
+    {
+      "sequence_no": 415,
+      "query_id": "V53_Q_005895_Q4",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_005895",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::WEBLINX_qgzyiog"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004147"
+      ]
+    },
+    {
+      "sequence_no": 562,
+      "query_id": "26a8440e-c166-4c50-aef4-bfb77314b46b_HQ4",
+      "precedent_case_id": "OFFICIAL1000_LEGACY_26a8440e-c166-4c50-aef4-bfb77314b46b",
+      "dataset_origin": "v3.1",
+      "evaluation_track": "single_memory",
+      "required_count": 1,
+      "required_memory_ids": [
+        "MTM_26a8440e-c166-4c50-aef4-bfb77314b46b"
+      ],
+      "top_memory_ids": [
+        "MTM_0a2e43bf-b26c-4631-a966-af9dfa12c9e5"
+      ]
+    },
+    {
+      "sequence_no": 645,
+      "query_id": "V53_Q_004944_Q4",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_004944",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::BPI2020_DOMESTIC_fdb1217957bacab74cd3ebe2"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004346"
+      ]
+    },
+    {
+      "sequence_no": 776,
+      "query_id": "V53_Q_005895_Q5",
+      "precedent_case_id": "OFFICIAL1000_V53_CASE_005895",
+      "dataset_origin": "v5.3",
+      "evaluation_track": "operation_resume_only",
+      "required_count": 1,
+      "required_memory_ids": [
+        "OPERATION_MEMORY::WEBLINX_qgzyiog"
+      ],
+      "top_memory_ids": [
+        "DIALOGUE_MEMORY::DIALOGUE_V4_EP_004147"
+      ]
+    }
+  ]
+}

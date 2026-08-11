@@ -1,0 +1,1054 @@
+{
+  "purpose": "Deterministic replay of fixed DeepSeek Reflection decisions while varying only the secondary retrieval quality gate.",
+  "fixture": {
+    "raw_memory_count": 191,
+    "initial_memory_count": 210,
+    "late_memory_count": 12,
+    "log_control_count": 6,
+    "stale_probe_count": 12,
+    "active_probe_count": 12,
+    "late_memory_ids": [
+      "epmem_603682bd8614a6bd6a28241c",
+      "epmem_84ca1c1498dbbae35dbbe171",
+      "epmem_9104926f5d198c42bd778645",
+      "epmem_9db7fd1f4c4e37047df2840c",
+      "epmem_a3ca9365686ad15cfb8888ed",
+      "epmem_a5075335aa59223189ed7999",
+      "epmem_b349979674988ab087f5a91e",
+      "epmem_bc396ffebfb744c7619bb42c",
+      "epmem_c89ea46a41fae339912409cc",
+      "epmem_d0cc3bd30407a780013bb3e3",
+      "epmem_de2e65cfddf730e55c246812",
+      "epmem_fd0a7cbfd216f51a072b15e4"
+    ],
+    "temporal_labels": {
+      "temporal_short": 173,
+      "temporal_medium": 6,
+      "temporal_long": 12
+    },
+    "relation_count": 104,
+    "positive_relation_count": 93,
+    "conflict_relation_count": 8,
+    "memory_ids": [
+      "control-active:epmem_0895c7de014d4fb2cf8df2de",
+      "control-active:epmem_22038d214e48573af83f584b",
+      "control-active:epmem_4f3f8dcba6cefd773c3e270c",
+      "control-active:epmem_7889da66af5d0ed6580eac6c",
+      "control-active:epmem_7d635d2c0371018fb47ad2dc",
+      "control-active:epmem_83b877781042f794672dd5f3",
+      "control-active:epmem_8cc7e31024742b8a61fd2d86",
+      "control-active:epmem_906e45c45ae46703fb5f9bca",
+      "control-active:epmem_a3ca9365686ad15cfb8888ed",
+      "control-active:epmem_afeb7a4989826e4f5839538a",
+      "control-active:epmem_de2e65cfddf730e55c246812",
+      "control-active:epmem_e2f0f2fa3ed64ebe4864f476",
+      "control-source-log",
+      "control-source-text",
+      "control-stale:epmem_1aa4460e75b325ffedde4d9e",
+      "control-stale:epmem_1f63c628c8e5fafe949fad80",
+      "control-stale:epmem_36357720c80a4c3e479704cb",
+      "control-stale:epmem_3f61c2508ff97257c0e6cc9a",
+      "control-stale:epmem_441fabd145839c26b05db860",
+      "control-stale:epmem_4a102a57f5e61fdd4a15d79e",
+      "control-stale:epmem_74c6d5e5c3e9d57cd41878c3",
+      "control-stale:epmem_ae122d70891732a28003a1e0",
+      "control-stale:epmem_d0cc3bd30407a780013bb3e3",
+      "control-stale:epmem_f2e9b4f4cd5aa04606677323",
+      "control-stale:epmem_fc91eada9375097ef9d08397",
+      "control-stale:epmem_feeb665fd943d2eb129cdb88",
+      "epmem_012422a302a1b35e0915c499",
+      "epmem_080b52d0c2cbcaaf5e4b27ae",
+      "epmem_083d6f6b062174ca069371a3",
+      "epmem_0895c7de014d4fb2cf8df2de",
+      "epmem_0a0bbb930d5c76452dcde229",
+      "epmem_0d0517efeaaee9aa6178a076",
+      "epmem_0da4ae69d12e50868a009c25",
+      "epmem_0ea28630f379864067d4ebd5",
+      "epmem_0ee4dc009e01e83f08aaa45b",
+      "epmem_1133c42b46818a3ce82a91de",
+      "epmem_11857c59748d4fe387213ce2",
+      "epmem_11ed3924d5a2fc1bedd80545",
+      "epmem_12a1d268e1bf05c8304d47c8",
+      "epmem_13aacd824c99820c70084987",
+      "epmem_13e71ae384051bf0a24efffa",
+      "epmem_142729b750a14cff87bf1166",
+      "epmem_15dedcbf0d9284205a7c90b1",
+      "epmem_16c0bbdec2663f0b294faa54",
+      "epmem_1742521b12a20a2ba3cebdfd",
+      "epmem_189744a25348dc8e76599de0",
+      "epmem_191b1bbb3589e9a5143e489c",
+      "epmem_1aa4460e75b325ffedde4d9e",
+      "epmem_1accb4f5874b745949ccfd5a",
+      "epmem_1f63c628c8e5fafe949fad80",
+      "epmem_1ff99e82f8c91d4774bdbdd6",
+      "epmem_22038d214e48573af83f584b",
+      "epmem_231134a2a4bdf499fab24973",
+      "epmem_235338183f56e8f9e210c6db",
+      "epmem_24096a10d19094e95496925b",
+      "epmem_248bc46b0278e195bf0c4471",
+      "epmem_249ee1ee7278ce444e814c2a",
+      "epmem_24ac979f6b59d9921cbb461e",
+      "epmem_24d787d9396ef591caf194ab",
+      "epmem_28dfd7f5a1a1d5f9a65b12ea",
+      "epmem_2c3b9b68ce0c37bd22011130",
+      "epmem_2c9bf496100281ae0d1dbdf0",
+      "epmem_2cf549c9afb444560466a019",
+      "epmem_2d383b5a00897a8b8a408088",
+      "epmem_2d3cd509da4444ecc36e957d",
+      "epmem_2d4f2970c48459f931fa9ee2",
+      "epmem_2def1d08f1098c1e019f3bb6",
+      "epmem_2f1fd6b767e68cfa700cf4ac",
+      "epmem_31b21871d60ca2d7045777c5",
+      "epmem_34aaf72b709ccdc64714b148",
+      "epmem_36357720c80a4c3e479704cb",
+      "epmem_3642a3c9bc99a8cf40e79a80",
+      "epmem_3648476167e9d9134f6e18f5",
+      "epmem_3818efa861855c95f5ef3d9f",
+      "epmem_390bb393639557adc4cf70c5",
+      "epmem_3a284847afe1b73df26db60f",
+      "epmem_3aad24718d29ec4b6ccd5b7b",
+      "epmem_3bf61804819dbd83dfb7a645",
+      "epmem_3d60ea4b28913bf5c9224099",
+      "epmem_3f61c2508ff97257c0e6cc9a",
+      "epmem_432d6af0bc10c5a403738d2e",
+      "epmem_43653d0960b7daaa3b761d45",
+      "epmem_43f9351974517a2e192395d3",
+      "epmem_441fabd145839c26b05db860",
+      "epmem_4674a19a97f90db2e777cca9",
+      "epmem_49ad417fa08753f05f66d9f7",
+      "epmem_4a102a57f5e61fdd4a15d79e",
+      "epmem_4a34a6d462d257465c58254d",
+      "epmem_4b474f759510b61da321ae0d",
+      "epmem_4de306217cd7d23fa2b81a67",
+      "epmem_4f3f8dcba6cefd773c3e270c",
+      "epmem_4f6392a5ff2f598f623fac79",
+      "epmem_4f6f7235a39f6c6db8dc0b7f",
+      "epmem_4fe1dc4d1bcfd30d1e0bd8c0",
+      "epmem_51d136009cefce1ddd36df1f",
+      "epmem_54056670251fb4330a102929",
+      "epmem_55452592e5307f5f1e723545",
+      "epmem_55b1abd416df0bce03e98612",
+      "epmem_55f4f42d6c51d8ace0a8d85a",
+      "epmem_59b478d6b2de4c434f2b7808",
+      "epmem_5a5cb625e9d94c808d3c7376",
+      "epmem_5a762a1ff258f884cdec0b3a",
+      "epmem_5a904d4cb3c41f3e126841f5",
+      "epmem_5c6cc61f57a5be34ed19f5db",
+      "epmem_603682bd8614a6bd6a28241c",
+      "epmem_607dd8dcc96c090978abca3b",
+      "epmem_62567197f64d4f6e483d3080",
+      "epmem_65237a743e182609af3cfcc1",
+      "epmem_65a40464cc3e27b1b2a9a03f",
+      "epmem_683880ce1a2c03e9882b387b",
+      "epmem_68a84cbcc5e12812b0f39338",
+      "epmem_6908333b7808f932446121a8",
+      "epmem_6d559f35725a56711956237f",
+      "epmem_6f05cf6c1644d74748a20d46",
+      "epmem_712a1f74beea915a33691f3c",
+      "epmem_71c14a633bfb9b5b81098c0b",
+      "epmem_74c6d5e5c3e9d57cd41878c3",
+      "epmem_75783558876488be79ff0804",
+      "epmem_75d8a12b580f8c9e5d07acd3",
+      "epmem_76319575a5c0778de8fa9356",
+      "epmem_768b85c575e0e0258b9dba68",
+      "epmem_7736f38f5f5b665234eb1af7",
+      "epmem_7889da66af5d0ed6580eac6c",
+      "epmem_79933ea59ba51c20aeaed571",
+      "epmem_7d635d2c0371018fb47ad2dc",
+      "epmem_7dc3e343d60c4b425046413a",
+      "epmem_81254fe8a4bbee00a17412aa",
+      "epmem_81d63ac434836b9908b57966",
+      "epmem_831c62f6ab2966419b2851b5",
+      "epmem_839d133b3e0186a0d8910086",
+      "epmem_83b877781042f794672dd5f3",
+      "epmem_84c19b9e6c28ebbb84e26bce",
+      "epmem_84ca1c1498dbbae35dbbe171",
+      "epmem_84dd34737d78ec0521fa7d5a",
+      "epmem_86b226d3c81adfa87c990e11",
+      "epmem_86c932e63256752a3159a2de",
+      "epmem_898094cd1297b4e35a996029",
+      "epmem_8cc7e31024742b8a61fd2d86",
+      "epmem_8e9212e2555fa33271856ce2",
+      "epmem_902b3f99d41ead9b20823666",
+      "epmem_906e45c45ae46703fb5f9bca",
+      "epmem_90a80e5348eb984d4365baf1",
+      "epmem_90fa3e2ac91a36f15254d2c5",
+      "epmem_9104926f5d198c42bd778645",
+      "epmem_948db14bb05c6543cf6e14ac",
+      "epmem_9a08bf199790b17cdc6ccfb2",
+      "epmem_9b5366f4dad7117a8c56cef7",
+      "epmem_9b93452841566bb0cf094235",
+      "epmem_9cfa540b47d73f7e453fe945",
+      "epmem_9d3bd572ffb5f29f8411f8a8",
+      "epmem_9db27284d35bc3e412993af8",
+      "epmem_9db7fd1f4c4e37047df2840c",
+      "epmem_9fa5838f8153679e210555e0",
+      "epmem_a0926c60b8fcab16deeb8c9d",
+      "epmem_a0a8df595731d88d6d023311",
+      "epmem_a3ca9365686ad15cfb8888ed",
+      "epmem_a5075335aa59223189ed7999",
+      "epmem_a5f33ff5b746d12191d2c841",
+      "epmem_a67f6653dc3610209881c4b8",
+      "epmem_a69f2708e3bb587c0b2337cc",
+      "epmem_a74b224f03f7864b34576080",
+      "epmem_a83ab8dcbf01037bde24bc6d",
+      "epmem_a85ca74c1269b197172125f7",
+      "epmem_a8c6a781e8a3934769de0e50",
+      "epmem_a98a884eed61f1698628f1f7",
+      "epmem_a99021c3e98edcfe0ce884c6",
+      "epmem_a9f991fb71fc73ac1ccd8779",
+      "epmem_ae122d70891732a28003a1e0",
+      "epmem_af067b1f077f16da09a7d1b4",
+      "epmem_afeb7a4989826e4f5839538a",
+      "epmem_b349979674988ab087f5a91e",
+      "epmem_b3ca29ccbee879801b1924d7",
+      "epmem_b6d195c484aa40d5ea87b20c",
+      "epmem_bc396ffebfb744c7619bb42c",
+      "epmem_c091810a2cd5254575bd368e",
+      "epmem_c270550031e45238e6770309",
+      "epmem_c33b31b1fec74b59c33fe1ca",
+      "epmem_c3650f86a41443debbdb3fff",
+      "epmem_c4737b1cad1a82194a94ad80",
+      "epmem_c48fd1b175b3256961ccfc7d",
+      "epmem_c65b3fcb5d84acb5664cc010",
+      "epmem_c79339a964e8f4cc5818caa7",
+      "epmem_c89ea46a41fae339912409cc",
+      "epmem_ca6b48e70aa188059c893180",
+      "epmem_ca7ada2d3271874793315ef4",
+      "epmem_cb5a660554f1e8641c72d919",
+      "epmem_d0cc3bd30407a780013bb3e3",
+      "epmem_d19f77719c6f46dd743abdcd",
+      "epmem_d2deb76a22a9a21bc2ce25a4",
+      "epmem_d2ed271202922daf3b718a6e",
+      "epmem_d57b782bbe33e9d8ac7e0509",
+      "epmem_d5c658fe6e781f7a330b2930",
+      "epmem_d6440a4e15075b01cea3a7b3",
+      "epmem_d6ca27ae8277fda50db80ee4",
+      "epmem_d6cb6a6a9d17add5fb28205a",
+      "epmem_d8d71838833e6066ac3b8520",
+      "epmem_de2e65cfddf730e55c246812",
+      "epmem_e068b92b67fcd0eca65ab0ff",
+      "epmem_e070a575164c7e5473b3ee2e",
+      "epmem_e2f0f2fa3ed64ebe4864f476",
+      "epmem_e373d248ade15b1a427312d5",
+      "epmem_e4b9f6dd67af75cb2fda0b1c",
+      "epmem_e52c9c158ced47a2ae2ae553",
+      "epmem_ebda39ef2e5e2b52985e7491",
+      "epmem_ecb9def7b1e4897e4ab920f9",
+      "epmem_ed1dbfb05f90e0d1b6bd60d9",
+      "epmem_f2e9b4f4cd5aa04606677323",
+      "epmem_f5f65ce8b3c8e02026562e9f",
+      "epmem_f90a8c5de227185b719d9e79",
+      "epmem_f96df58b24342f4170631ee0",
+      "epmem_f9fc367282d3a1d2474392dc",
+      "epmem_fa09184ea5527872d89a0065",
+      "epmem_fa41bcf95383954eed236f08",
+      "epmem_fafbe2a5d64c02d0b178764b",
+      "epmem_fc91eada9375097ef9d08397",
+      "epmem_fd0a7cbfd216f51a072b15e4",
+      "epmem_feeb665fd943d2eb129cdb88",
+      "log-codex-process",
+      "log-dell-process",
+      "log-w32time-request",
+      "log-w32time-sync",
+      "log-w32time-updated"
+    ]
+  },
+  "reflection_source": "outputs/memory_reflection/deepseek_reflection_lifecycle_v1.json",
+  "merge_first": true,
+  "ratios": [
+    {
+      "secondary_selection_ratio": 0.78,
+      "baseline": {
+        "ai_gold_score": 7.179853,
+        "keep_recall": 0.894737,
+        "forget_recall": 0.457317,
+        "balanced_accuracy": 0.676027,
+        "hit_rate": 0.765049,
+        "selection_precision": 0.850467,
+        "semantic_selection_precision": 0.792929,
+        "selected_count": 963,
+        "semantic_selected_count": 594,
+        "incorrect_selection_counts": {
+          "compatible_competitor": 90,
+          "lifecycle_broad_match": 17,
+          "object_attitude_partial": 80,
+          "upstream_prediction": 37
+        },
+        "explicit_long_survival": 1.0,
+        "real_stale_risk_forget_rate": 0.757576,
+        "active_total": 121,
+        "forgotten_total": 101,
+        "performance_ms": 1021.202057,
+        "lifecycle_miss_samples": [
+          {
+            "case_id": "query:1954cced-e748-45c4-9c26-9855b97fbc5e_HQ1",
+            "at": "2026-02-13T18:48:38.918919+00:00",
+            "query_type": "human_context_explicit",
+            "gold_keys": [
+              [
+                "condition:file:invoices_xlsx",
+                "object:action:create_invoice_count_pivot",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:invoices_xlsx",
+                "object:action:create_invoice_count_pivot",
+                ""
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_2c3b9b68ce0c37bd22011130",
+              "epmem_a0a8df595731d88d6d023311"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:MULTI_MM06_HQ5",
+            "at": "2026-10-01T10:01:31.139241+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:salesrep_xlsx",
+                "object:action:create_month_total_table",
+                "support"
+              ],
+              [
+                "condition:file:salesrep_xlsx",
+                "object:action:build_total_and_growth_charts",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:action:create_month_total_table",
+                ""
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_7dc3e343d60c4b425046413a"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q01",
+            "at": "2026-10-03T16:42:31.898734+00:00",
+            "query_type": "human_context_explicit",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q03",
+            "at": "2026-10-04T10:56:12.151899+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q04",
+            "at": "2026-10-04T20:03:02.278481+00:00",
+            "query_type": "low_overlap_paraphrase",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q05",
+            "at": "2026-10-05T05:09:52.405063+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q02",
+            "at": "2026-10-05T23:23:32.658228+00:00",
+            "query_type": "human_goal_oriented",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q03",
+            "at": "2026-10-06T08:30:22.784810+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q05",
+            "at": "2026-10-07T02:44:03.037975+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q01",
+            "at": "2026-10-07T11:50:53.164557+00:00",
+            "query_type": "human_context_explicit",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                ""
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q02",
+            "at": "2026-10-07T20:57:43.291139+00:00",
+            "query_type": "human_goal_oriented",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q03",
+            "at": "2026-10-08T06:04:33.417722+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_607dd8dcc96c090978abca3b",
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q04",
+            "at": "2026-10-08T15:11:23.544304+00:00",
+            "query_type": "low_overlap_paraphrase",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q05",
+            "at": "2026-10-09T00:18:13.670886+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_607dd8dcc96c090978abca3b",
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          }
+        ]
+      },
+      "reflection": {
+        "ai_gold_score": 8.442432,
+        "keep_recall": 1.0,
+        "forget_recall": 0.646341,
+        "balanced_accuracy": 0.823171,
+        "hit_rate": 0.76699,
+        "selection_precision": 0.813793,
+        "semantic_selection_precision": 0.815199,
+        "selected_count": 580,
+        "semantic_selected_count": 579,
+        "incorrect_selection_counts": {
+          "compatible_competitor": 74,
+          "lifecycle_broad_match": 16,
+          "object_attitude_partial": 78,
+          "upstream_prediction": 18
+        },
+        "explicit_long_survival": 1.0,
+        "real_stale_risk_forget_rate": 0.405405,
+        "active_total": 87,
+        "forgotten_total": 61,
+        "performance_ms": 1047.947032,
+        "lifecycle_miss_samples": [
+          {
+            "case_id": "query:MULTI_MM06_HQ5",
+            "at": "2026-10-01T10:01:31.139241+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:salesrep_xlsx",
+                "object:action:create_month_total_table",
+                "support"
+              ],
+              [
+                "condition:file:salesrep_xlsx",
+                "object:action:build_total_and_growth_charts",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:action:create_month_total_table",
+                ""
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q01",
+            "at": "2026-10-03T16:42:31.898734+00:00",
+            "query_type": "human_context_explicit",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q03",
+            "at": "2026-10-04T10:56:12.151899+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q04",
+            "at": "2026-10-04T20:03:02.278481+00:00",
+            "query_type": "low_overlap_paraphrase",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ02_Q05",
+            "at": "2026-10-05T05:09:52.405063+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:netincome_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q02",
+            "at": "2026-10-05T23:23:32.658228+00:00",
+            "query_type": "human_goal_oriented",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q03",
+            "at": "2026-10-06T08:30:22.784810+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ03_Q05",
+            "at": "2026-10-07T02:44:03.037975+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:weeklysales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q01",
+            "at": "2026-10-07T11:50:53.164557+00:00",
+            "query_type": "human_context_explicit",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                ""
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q02",
+            "at": "2026-10-07T20:57:43.291139+00:00",
+            "query_type": "human_goal_oriented",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q03",
+            "at": "2026-10-08T06:04:33.417722+00:00",
+            "query_type": "contextual_ellipsis",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_607dd8dcc96c090978abca3b",
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q04",
+            "at": "2026-10-08T15:11:23.544304+00:00",
+            "query_type": "low_overlap_paraphrase",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          },
+          {
+            "case_id": "query:V3_AQ04_Q05",
+            "at": "2026-10-09T00:18:13.670886+00:00",
+            "query_type": "human_constraint_emphasis",
+            "gold_keys": [
+              [
+                "condition:file:boomerangsales_xlsx",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_keys": [
+              [
+                "",
+                "object:ambiguous_prior_workflow",
+                "support"
+              ]
+            ],
+            "predicted_observation_count": 1,
+            "selected_memory_ids": [
+              "epmem_607dd8dcc96c090978abca3b",
+              "epmem_c33b31b1fec74b59c33fe1ca"
+            ],
+            "correct_memory_ids": [],
+            "eligible": true,
+            "hit": false,
+            "failure_stage": "lifecycle_retrieval_miss"
+          }
+        ]
+      }
+    }
+  ]
+}

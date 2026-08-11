@@ -42,6 +42,19 @@ ACTION_ALIASES = {
     "succeeded": "success",
 }
 
+STRUCTURED_CONTEXT_FIELDS = (
+    "scenario_id",
+    "competition_ability_id",
+    "ability_group",
+    "utterance_role",
+    "memory_signal_type",
+    "preference_scope",
+    "effective_scope",
+    "referenced_app_ids",
+    "supersedes_event_id",
+    "conflict_group_id",
+)
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -120,6 +133,9 @@ def _build(
     _privacy_gate(event)
     source_event_id = _source_id(event, source_type)
     context = _mapping(event.get("context"))
+    for field_name in STRUCTURED_CONTEXT_FIELDS:
+        if field_name in event and field_name not in context:
+            context[field_name] = event[field_name]
     values = {
         "user_id": _text(event.get("user_id")) or "nex_user",
         "session_id": _text(event.get("session_id")) or "unknown",

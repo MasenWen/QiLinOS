@@ -1,0 +1,234 @@
+[
+  {
+    "id": "POC-001",
+    "text": "当前会话在 Excel 整理预算时，暂时用折线图。",
+    "options": {
+      "condition_tag_ids": [
+        "app:spreadsheet",
+        "app:word_processor",
+        "app:presentation"
+      ],
+      "object_tag_ids": [
+        "chart:line",
+        "chart:bar",
+        "document:template"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:spreadsheet",
+      "object_tag_id": "chart:line",
+      "attitude_direction": "positive",
+      "temporal_label": "temporal_short",
+      "promotion_seed": 0.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-002",
+    "text": "下个月开始在 PowerPoint 做汇报时，优先使用旧模板。",
+    "options": {
+      "condition_tag_ids": [
+        "app:presentation",
+        "app:spreadsheet",
+        "app:word_processor"
+      ],
+      "object_tag_ids": [
+        "document:template",
+        "chart:line",
+        "chart:bar"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:presentation",
+      "object_tag_id": "document:template",
+      "attitude_direction": "positive",
+      "temporal_label": "temporal_medium",
+      "promotion_seed": 1.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-003",
+    "text": "今后在终端做代码解释时，默认用 ChatGPT Codex。",
+    "options": {
+      "condition_tag_ids": [
+        "app:terminal",
+        "app:web_browser",
+        "app:spreadsheet"
+      ],
+      "object_tag_ids": [
+        "app:chatgpt_codex",
+        "chart:line",
+        "document:template"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:terminal",
+      "object_tag_id": "app:chatgpt_codex",
+      "attitude_direction": "positive",
+      "temporal_label": "temporal_long",
+      "promotion_seed": 1.0,
+      "explicit_long_term": true
+    }
+  },
+  {
+    "id": "POC-004",
+    "text": "今天在 Word 写报告时，别用旧模板。",
+    "options": {
+      "condition_tag_ids": [
+        "app:word_processor",
+        "app:presentation",
+        "app:spreadsheet"
+      ],
+      "object_tag_ids": [
+        "document:template",
+        "chart:line",
+        "setting:preference"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:word_processor",
+      "object_tag_id": "document:template",
+      "attitude_direction": "negative",
+      "temporal_label": "temporal_short",
+      "promotion_seed": 0.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-005",
+    "text": "这周在浏览器做预算比较时，避免柱状图。",
+    "options": {
+      "condition_tag_ids": [
+        "app:web_browser",
+        "app:spreadsheet",
+        "app:presentation"
+      ],
+      "object_tag_ids": [
+        "chart:bar",
+        "chart:line",
+        "document:template"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:web_browser",
+      "object_tag_id": "chart:bar",
+      "attitude_direction": "negative",
+      "temporal_label": "temporal_medium",
+      "promotion_seed": 1.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-006",
+    "text": "本轮在 ChatGPT Codex 中解释代码时，优先用柱状图。",
+    "options": {
+      "condition_tag_ids": [
+        "app:chatgpt_codex",
+        "app:terminal",
+        "app:web_browser"
+      ],
+      "object_tag_ids": [
+        "chart:bar",
+        "chart:line",
+        "document:template"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:chatgpt_codex",
+      "object_tag_id": "chart:bar",
+      "attitude_direction": "positive",
+      "temporal_label": "temporal_short",
+      "promotion_seed": 0.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-007",
+    "text": "后续在 Excel 做财务汇总时，默认用折线图。",
+    "options": {
+      "condition_tag_ids": [
+        "app:spreadsheet",
+        "app:word_processor",
+        "app:presentation"
+      ],
+      "object_tag_ids": [
+        "chart:line",
+        "chart:bar",
+        "artifact:budget_sheet"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:spreadsheet",
+      "object_tag_id": "chart:line",
+      "attitude_direction": "positive",
+      "temporal_label": "temporal_medium",
+      "promotion_seed": 1.0,
+      "explicit_long_term": false
+    }
+  },
+  {
+    "id": "POC-008",
+    "text": "每次用 PowerPoint 做报告时，都不要使用柱状图。",
+    "options": {
+      "condition_tag_ids": [
+        "app:presentation",
+        "app:word_processor",
+        "app:spreadsheet"
+      ],
+      "object_tag_ids": [
+        "chart:bar",
+        "chart:line",
+        "document:template"
+      ],
+      "temporal_labels": [
+        "temporal_short",
+        "temporal_medium",
+        "temporal_long"
+      ]
+    },
+    "expected": {
+      "condition_tag_id": "app:presentation",
+      "object_tag_id": "chart:bar",
+      "attitude_direction": "negative",
+      "temporal_label": "temporal_long",
+      "promotion_seed": 1.0,
+      "explicit_long_term": true
+    }
+  }
+]

@@ -14,6 +14,35 @@ STRONG_END_ACTIONS = frozenset(
     {"complete", "submit", "send", "save_final", "task_complete", "file_submitted", "email_sent"}
 )
 
+EPISODE_START_ROLES = frozenset(
+    {
+        "preference_statement",
+        "habit_statement",
+        "safety_constraint",
+        "previous_preference_reference",
+        "workflow_definition",
+        "historical_case_reference",
+        "template_definition",
+        "association_rule",
+        "standing_preference",
+    }
+)
+
+EPISODE_CONTINUATION_ROLES = frozenset(
+    {
+        "clarification",
+        "scope_extension",
+        "preference_update",
+        "cross_scene_extension",
+        "workflow_constraint",
+        "reuse_boundary",
+        "template_constraint",
+        "retrieval_constraint",
+        "one_time_exception",
+        "conflict_resolution",
+    }
+)
+
 
 def _stable_id(prefix: str, value: str) -> str:
     return f"{prefix}_{hashlib.sha256(value.encode('utf-8')).hexdigest()[:24]}"
@@ -66,6 +95,85 @@ def _is_complete(observation: Observation) -> bool:
     if observation.action in STRONG_END_ACTIONS:
         return True
     return bool(observation.result.get("task_complete") or observation.state.get("task_complete"))
+
+
+def _context_text(observation: Observation, name: str) -> str:
+    return str(observation.context.get(name) or "").strip()
+
+
+def _context_values(observation: Observation, name: str) -> set[str]:
+    value = observation.context.get(name)
+    if isinstance(value, str):
+        return {value} if value else set()
+    if isinstance(value, (list, tuple, set)):
+        return {str(item) for item in value if str(item)}
+    return {str(value)} if value not in (None, "") else set()
+
+
+def _application_ids(observation: Observation) -> set[str]:
+    values = _context_values(observation, "referenced_app_ids")
+    if observation.app:
+        values.add(observation.app)
+    return values
+
+
+def _valid_relation_marker(value: str) -> bool:
+    return bool(value and not value.isdecimal() and value.casefold() != "none")
+
+
+def _explicitly_related(
+    previous: Observation,
+    current: Observation,
+) -> bool:
+    supersedes = _context_text(current, "supersedes_event_id")
+    if supersedes and supersedes == previous.source_event_id:
+        return True
+    previous_group = _context_text(previous, "conflict_group_id")
+    current_group = _context_text(current, "conflict_group_id")
+    return bool(
+        previous_group == current_group
+        and _valid_relation_marker(current_group)
+    )
+
+
+def _same_structured_context(
+    previous: Observation,
+    current: Observation,
+) -> bool:
+    compared = 0
+    for name in (
+        "scenario_id",
+        "competition_ability_id",
+        "memory_signal_type",
+    ):
+        left = _context_text(previous, name)
+        right = _context_text(current, name)
+        if not left or not right:
+            continue
+        compared += 1
+        if left != right:
+            return False
+    return compared > 0
+
+
+def _structured_context_changed(
+    previous: Observation,
+    current: Observation,
+) -> bool:
+    changes = 0
+    compared = 0
+    for name in (
+        "scenario_id",
+        "competition_ability_id",
+        "memory_signal_type",
+    ):
+        left = _context_text(previous, name)
+        right = _context_text(current, name)
+        if not left or not right:
+            continue
+        compared += 1
+        changes += left != right
+    return compared >= 2 and changes >= 1
 
 
 @dataclass(frozen=True)
@@ -147,8 +255,40 @@ class EpisodeManager:
             and task_similarity >= self.task_similarity_threshold
         )
 
-        if shared_instance or shared_artifact or shared_entity or same_task:
+        if (
+            _explicitly_related(previous, current)
+            or shared_instance
+            or shared_artifact
+            or shared_entity
+            or same_task
+        ):
             return BoundaryDecision(False, 0.95, "strong_relation", 0.0)
+
+        current_role = _context_text(current, "utterance_role")
+        if (
+            current_role in EPISODE_CONTINUATION_ROLES
+            and _same_structured_context(previous, current)
+        ):
+            return BoundaryDecision(
+                False,
+                0.95,
+                "structured_continuation",
+                0.0,
+            )
+        if current_role in EPISODE_START_ROLES:
+            return BoundaryDecision(
+                True,
+                0.98,
+                "structured_episode_start",
+                1.0,
+            )
+        if _structured_context_changed(previous, current):
+            return BoundaryDecision(
+                True,
+                0.90,
+                "structured_context_switch",
+                0.85,
+            )
 
         elapsed = _seconds_between(previous.event_time, current.event_time)
         duration = _seconds_between(episode.start_time, current.event_time)
@@ -163,6 +303,13 @@ class EpisodeManager:
         )
         artifact_disjoint = bool(episode.artifact_refs and current.artifact_refs and not shared_artifact)
         entity_disjoint = bool(episode.entity_refs and current.entity_refs and not shared_entity)
+        previous_apps = _application_ids(previous)
+        current_apps = _application_ids(current)
+        app_disjoint = bool(
+            previous_apps
+            and current_apps
+            and not previous_apps & current_apps
+        )
         if goal_changed and artifact_disjoint and entity_disjoint:
             return BoundaryDecision(True, 0.95, "strong_goal_artifact_entity_switch", 0.95)
 
@@ -173,6 +320,8 @@ class EpisodeManager:
             score += 0.20
         if entity_disjoint:
             score += 0.15
+        if app_disjoint and elapsed > 0.5 * self.idle_gap_seconds:
+            score += 0.10
         if _is_complete(previous):
             score += 0.25
         if previous.state and current.state and previous.state != current.state:

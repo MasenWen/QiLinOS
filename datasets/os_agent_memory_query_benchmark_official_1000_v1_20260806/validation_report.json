@@ -1,0 +1,20 @@
+{
+  "valid": true,
+  "checks": {
+    "precedent_case_count_200": true,
+    "precedent_input_count_200": true,
+    "query_count_800": true,
+    "four_queries_per_case": true,
+    "answer_group_count_200": true,
+    "exact_text_cap_two": true,
+    "no_consecutive_case_repeat": true,
+    "no_consecutive_text_repeat": true,
+    "all_evidence_resolved": true
+  },
+  "missing": {
+    "dialogue_event_ids": [],
+    "operation_event_ids": [],
+    "operation_episode_ids": [],
+    "legacy_memory_ids": []
+  }
+}

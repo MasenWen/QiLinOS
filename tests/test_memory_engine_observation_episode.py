@@ -111,6 +111,36 @@ class MemoryEngineObservationTest(unittest.TestCase):
         self.assertEqual(1, len(self.store.list_observations("U001")))
         self.assertEqual(1, len(self.store.list_episodes("U001")))
 
+    def test_structured_dialogue_fields_are_preserved_in_context(self):
+        event = {
+            "source_type": "dialogue",
+            "source_event_id": "structured-dialogue-1",
+            "user_id": "U001",
+            "session_id": "S001",
+            "content": "Keep this clarification with the current task.",
+            "scenario_id": "office_automation",
+            "competition_ability_id": "operation_habit_capture",
+            "utterance_role": "clarification",
+            "memory_signal_type": "operation_habit",
+            "referenced_app_ids": ["document_editor", "email_client"],
+        }
+
+        result = self.engine.ingest_event(event)
+        observation = self.store.get_observation(result["observation_id"])
+
+        self.assertEqual(
+            "office_automation",
+            observation.context["scenario_id"],
+        )
+        self.assertEqual(
+            "clarification",
+            observation.context["utterance_role"],
+        )
+        self.assertEqual(
+            ["document_editor", "email_client"],
+            observation.context["referenced_app_ids"],
+        )
+
     def test_secret_config_is_rejected_before_storage(self):
         result = self.engine.ingest_event(
             {
@@ -158,6 +188,95 @@ class MemoryEngineEpisodeTest(unittest.TestCase):
         self.assertEqual(first["episode_id"], second["episode_id"])
         self.assertEqual("app_switch_only", second["boundary"]["reason"])
         self.assertEqual(1, len(self.store.list_episodes("U001")))
+
+    def test_structured_start_role_splits_without_waiting_for_idle_gap(self):
+        first = self.engine.ingest_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": "role-1",
+                "user_id": "U001",
+                "session_id": "S001",
+                "event_time": "2026-07-23T10:00:00+08:00",
+                "content": "First task.",
+                "scenario_id": "office_automation",
+                "competition_ability_id": "operation_habit_capture",
+                "memory_signal_type": "operation_habit",
+                "utterance_role": "habit_statement",
+            }
+        )
+        continuation = self.engine.ingest_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": "role-2",
+                "user_id": "U001",
+                "session_id": "S001",
+                "event_time": "2026-07-23T10:00:20+08:00",
+                "content": "One more detail.",
+                "scenario_id": "office_automation",
+                "competition_ability_id": "operation_habit_capture",
+                "memory_signal_type": "operation_habit",
+                "utterance_role": "clarification",
+            }
+        )
+        next_start = self.engine.ingest_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": "role-3",
+                "user_id": "U001",
+                "session_id": "S001",
+                "event_time": "2026-07-23T10:00:40+08:00",
+                "content": "Second task.",
+                "scenario_id": "office_automation",
+                "competition_ability_id": "operation_habit_capture",
+                "memory_signal_type": "operation_habit",
+                "utterance_role": "habit_statement",
+            }
+        )
+
+        self.assertEqual(first["episode_id"], continuation["episode_id"])
+        self.assertEqual(
+            "structured_continuation",
+            continuation["boundary"]["reason"],
+        )
+        self.assertNotEqual(first["episode_id"], next_start["episode_id"])
+        self.assertEqual(
+            "structured_episode_start",
+            next_start["boundary"]["reason"],
+        )
+
+    def test_structured_context_switch_splits_unknown_roles(self):
+        first = self.engine.ingest_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": "context-1",
+                "user_id": "U001",
+                "session_id": "S001",
+                "event_time": "2026-07-23T10:00:00+08:00",
+                "content": "Continue the report.",
+                "scenario_id": "office_automation",
+                "competition_ability_id": "operation_habit_capture",
+                "memory_signal_type": "operation_habit",
+            }
+        )
+        second = self.engine.ingest_event(
+            {
+                "source_type": "dialogue",
+                "source_event_id": "context-2",
+                "user_id": "U001",
+                "session_id": "S001",
+                "event_time": "2026-07-23T10:00:20+08:00",
+                "content": "Start a retrieval rule.",
+                "scenario_id": "office_automation",
+                "competition_ability_id": "associative_retrieval",
+                "memory_signal_type": "associative_retrieval_rule",
+            }
+        )
+
+        self.assertNotEqual(first["episode_id"], second["episode_id"])
+        self.assertEqual(
+            "structured_context_switch",
+            second["boundary"]["reason"],
+        )
 
     def test_idle_gap_splits_unrelated_activity(self):
         first = self._ingest(

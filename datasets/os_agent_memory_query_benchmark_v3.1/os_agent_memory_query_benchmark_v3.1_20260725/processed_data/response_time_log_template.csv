@@ -1,0 +1,2 @@
+﻿query_id,user_id,predicted_memory_ids,predicted_decision_class,predicted_action,start_time,end_time,response_time_ms,top1_hit,top3_hit,top5_hit,decision_correct,action_correct,error_message
+,,,,,,,,,,,,,

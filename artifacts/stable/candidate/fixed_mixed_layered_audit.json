@@ -1,0 +1,2894 @@
+{
+  "purpose": "Fixed mixed-source audit of Observation, Episode and promoted Memory relation layers.",
+  "score_origin": "Relation scores are fixed upstream inputs for this test. The graph builder does not call an LLM or Embedding model.",
+  "source_mix": {
+    "observation_node_count": 22,
+    "episode_node_count": 14,
+    "promoted_memory_count": 11,
+    "text_observation_count": 16,
+    "log_observation_count": 6
+  },
+  "performance": {
+    "single_build_ms": 1.1938000097870827,
+    "mean_build_ms_over_1000": 1.2123213000013493
+  },
+  "checks": {
+    "undirected_observation_matrix_is_symmetric": true,
+    "undirected_episode_matrix_is_symmetric": true,
+    "observation_evidence_matches_canonical_endpoints": true,
+    "episode_evidence_matches_canonical_endpoints": true,
+    "memory_evidence_matches_canonical_endpoints": true,
+    "supported_weak_episode_becomes_candidate": true,
+    "generic_process_relation_does_not_promote": true,
+    "conflict_blocks_weak_episode_promotion": true,
+    "latent_episodes_are_absent_from_memory_matrix": true
+  },
+  "promotion_states": [
+    {
+      "episode_id": "episode:latent:salesrep-confirmed",
+      "status": "promotion_candidate",
+      "base_strength": 0.79,
+      "supporting_strength": 0.873257,
+      "conflict_strength": 0.0,
+      "relation_reinforcement": 0.045846,
+      "conflict_penalty": 0.0,
+      "effective_strength": 0.835846,
+      "supporting_episode_ids": [
+        "prefep_35bc82a50474ede2e5319ceb"
+      ],
+      "conflicting_episode_ids": [],
+      "schema_version": "memory_graph.episode_promotion_state.v1",
+      "promotion_candidate": true
+    },
+    {
+      "episode_id": "episode:latent:codex-process",
+      "status": "latent",
+      "base_strength": 0.79,
+      "supporting_strength": 0.0,
+      "conflict_strength": 0.0,
+      "relation_reinforcement": 0.0,
+      "conflict_penalty": 0.0,
+      "effective_strength": 0.79,
+      "supporting_episode_ids": [],
+      "conflicting_episode_ids": [],
+      "schema_version": "memory_graph.episode_promotion_state.v1",
+      "promotion_candidate": false
+    },
+    {
+      "episode_id": "episode:latent:salesrep-conflicted",
+      "status": "latent",
+      "base_strength": 0.79,
+      "supporting_strength": 0.835291,
+      "conflict_strength": 0.737015,
+      "relation_reinforcement": 0.043853,
+      "conflict_penalty": 0.116448,
+      "effective_strength": 0.717404,
+      "supporting_episode_ids": [
+        "prefep_35bc82a50474ede2e5319ceb"
+      ],
+      "conflicting_episode_ids": [
+        "prefep_0156b628bc3e0949cc97edf9"
+      ],
+      "schema_version": "memory_graph.episode_promotion_state.v1",
+      "promotion_candidate": false
+    }
+  ],
+  "episode_local_view": [
+    {
+      "source": "episode-log-time-source-sync",
+      "source_label": "episode-log-time-source-sync",
+      "relation": "precedes",
+      "directed": true,
+      "target": "episode-log-time-updated",
+      "target_label": "episode-log-time-updated",
+      "weight": 0.928117,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "prefep_0156b628bc3e0949cc97edf9",
+      "source_label": "prefep_0156b628bc3e0949cc97edf9",
+      "relation": "supports",
+      "directed": false,
+      "target": "prefep_35bc82a50474ede2e5319ceb",
+      "target_label": "prefep_35bc82a50474ede2e5319ceb",
+      "weight": 0.915465,
+      "support_count": 2,
+      "source_coverage": 1,
+      "target_coverage": 2
+    },
+    {
+      "source": "episode:latent:salesrep-confirmed",
+      "source_label": "A weak repeated SalesRep chart preference",
+      "relation": "supports",
+      "directed": false,
+      "target": "prefep_35bc82a50474ede2e5319ceb",
+      "target_label": "prefep_35bc82a50474ede2e5319ceb",
+      "weight": 0.894401,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode-log-time-request",
+      "source_label": "episode-log-time-request",
+      "relation": "precedes",
+      "directed": true,
+      "target": "episode-log-time-source-sync",
+      "target_label": "episode-log-time-source-sync",
+      "weight": 0.890144,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode-log-codex-process",
+      "source_label": "episode-log-codex-process",
+      "relation": "activates",
+      "directed": true,
+      "target": "episode:latent:codex-process",
+      "target_label": "A weak generic Codex process event",
+      "weight": 0.883153,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode:latent:salesrep-conflicted",
+      "source_label": "A weak SalesRep preference with contrary evidence",
+      "relation": "conflicts",
+      "directed": false,
+      "target": "prefep_0156b628bc3e0949cc97edf9",
+      "target_label": "prefep_0156b628bc3e0949cc97edf9",
+      "weight": 0.880823,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode:latent:salesrep-conflicted",
+      "source_label": "A weak SalesRep preference with contrary evidence",
+      "relation": "supports",
+      "directed": false,
+      "target": "prefep_35bc82a50474ede2e5319ceb",
+      "target_label": "prefep_35bc82a50474ede2e5319ceb",
+      "weight": 0.855515,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "prefep_35bc82a50474ede2e5319ceb",
+      "source_label": "prefep_35bc82a50474ede2e5319ceb",
+      "relation": "related",
+      "directed": false,
+      "target": "prefep_3ce67ad32da28ce5da9a2e08",
+      "target_label": "prefep_3ce67ad32da28ce5da9a2e08",
+      "weight": 0.754716,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode-log-time-request",
+      "source_label": "episode-log-time-request",
+      "relation": "causes",
+      "directed": true,
+      "target": "episode-log-time-updated",
+      "target_label": "episode-log-time-updated",
+      "weight": 0.716479,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "prefep_0156b628bc3e0949cc97edf9",
+      "source_label": "prefep_0156b628bc3e0949cc97edf9",
+      "relation": "related",
+      "directed": false,
+      "target": "prefep_3ce67ad32da28ce5da9a2e08",
+      "target_label": "prefep_3ce67ad32da28ce5da9a2e08",
+      "weight": 0.673854,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "episode-log-codex-process",
+      "source_label": "episode-log-codex-process",
+      "relation": "activates",
+      "directed": true,
+      "target": "episode-text-codex-preference",
+      "target_label": "episode-text-codex-preference",
+      "weight": 0.642594,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    },
+    {
+      "source": "prefep_35bc82a50474ede2e5319ceb",
+      "source_label": "prefep_35bc82a50474ede2e5319ceb",
+      "relation": "related",
+      "directed": false,
+      "target": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+      "target_label": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+      "weight": 0.608324,
+      "support_count": 1,
+      "source_coverage": 1,
+      "target_coverage": 1
+    }
+  ],
+  "memory_local_view": [
+    {
+      "source": "memory-log-time-source-sync",
+      "source_label": "W32time 与 time.windows.com 同步",
+      "relation": "precedes",
+      "directed": true,
+      "target": "memory-log-system-time-updated",
+      "target_label": "W32time 已设置系统时间",
+      "weight": 0.935855,
+      "association_strength": 0.94,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "log-w32time-source-sync",
+          "log-w32time-system-time-updated"
+        ]
+      ]
+    },
+    {
+      "source": "memory-log-time-resync-request",
+      "source_label": "W32time 收到重新同步请求",
+      "relation": "precedes",
+      "directed": true,
+      "target": "memory-log-time-source-sync",
+      "target_label": "W32time 与 time.windows.com 同步",
+      "weight": 0.903059,
+      "association_strength": 0.91,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "log-w32time-resync-request",
+          "log-w32time-source-sync"
+        ]
+      ]
+    },
+    {
+      "source": "epmem_e068b92b67fcd0eca65ab0ff",
+      "source_label": "SalesRep / Total+Growth",
+      "relation": "supports",
+      "directed": false,
+      "target": "epmem_f2e9b4f4cd5aa04606677323",
+      "target_label": "SalesRep.xlsx / total sales",
+      "weight": 0.893078,
+      "association_strength": 0.9,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "query:MULTI_MM06_HQ1",
+          "event:0326d92d-d218-48a8-9ca1-981cd6d064c7"
+        ]
+      ]
+    },
+    {
+      "source": "epmem_f2e9b4f4cd5aa04606677323",
+      "source_label": "SalesRep.xlsx / total sales",
+      "relation": "related",
+      "directed": false,
+      "target": "epmem_fc91eada9375097ef9d08397",
+      "target_label": "SalesRep.xlsx / monthly total sales",
+      "weight": 0.758159,
+      "association_strength": 0.76,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+          "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5"
+        ]
+      ]
+    },
+    {
+      "source": "memory-log-time-resync-request",
+      "source_label": "W32time 收到重新同步请求",
+      "relation": "causes",
+      "directed": true,
+      "target": "memory-log-system-time-updated",
+      "target_label": "W32time 已设置系统时间",
+      "weight": 0.725277,
+      "association_strength": 0.73,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "log-w32time-resync-request",
+          "log-w32time-system-time-updated"
+        ]
+      ]
+    },
+    {
+      "source": "epmem_e068b92b67fcd0eca65ab0ff",
+      "source_label": "SalesRep / Total+Growth",
+      "relation": "related",
+      "directed": false,
+      "target": "epmem_fc91eada9375097ef9d08397",
+      "target_label": "SalesRep.xlsx / monthly total sales",
+      "weight": 0.684354,
+      "association_strength": 0.69,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "query:MULTI_MM06_HQ1",
+          "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5"
+        ]
+      ]
+    },
+    {
+      "source": "memory-log-codex-start",
+      "source_label": "OpenAI Codex 创建进程",
+      "relation": "activates",
+      "directed": true,
+      "target": "memory-text-codex-code-explanation",
+      "target_label": "代码解释优先使用 ChatGPT Codex",
+      "weight": 0.653909,
+      "association_strength": 0.66,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "log-codex-process",
+          "text-codex-rule"
+        ]
+      ]
+    },
+    {
+      "source": "epmem_607dd8dcc96c090978abca3b",
+      "source_label": "SalesRep / 以前的做法",
+      "relation": "related",
+      "directed": false,
+      "target": "epmem_f2e9b4f4cd5aa04606677323",
+      "target_label": "SalesRep.xlsx / total sales",
+      "weight": 0.609417,
+      "association_strength": 0.61,
+      "support_count": 1,
+      "evidence_refs": [
+        [
+          "query:V3_AQ01_Q01",
+          "event:0326d92d-d218-48a8-9ca1-981cd6d064c7"
+        ]
+      ]
+    }
+  ],
+  "graph": {
+    "observation_graph": {
+      "nodes": [
+        {
+          "observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.97636,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+            "observation:event:0326d92d-d218-48a8-9ca1-981cd6d064c7:0",
+            "epmem_f2e9b4f4cd5aa04606677323",
+            "audit:event:0326d92d-d218-48a8-9ca1-981cd6d064c7:0",
+            "audit:query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1:0"
+          ],
+          "metadata": {
+            "label": "SalesRep.xlsx / total sales",
+            "source_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1",
+          "episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.97636,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1",
+            "observation:query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1:0"
+          ],
+          "metadata": {
+            "label": "SalesRep.xlsx / total sales",
+            "source_ref": "query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+          "episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.836734,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:MULTI_MM06_HQ1",
+            "observation:query:MULTI_MM06_HQ1:0",
+            "epmem_e068b92b67fcd0eca65ab0ff",
+            "audit:query:MULTI_MM06_HQ1:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / Total+Growth",
+            "source_ref": "query:MULTI_MM06_HQ1"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+          "episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.963134,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_monthly_total_line_chart"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+            "observation:event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5:0",
+            "epmem_fc91eada9375097ef9d08397",
+            "audit:event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5:0",
+            "audit:query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1:0"
+          ],
+          "metadata": {
+            "label": "SalesRep.xlsx / monthly total sales",
+            "source_ref": "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:1",
+          "episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.963134,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_monthly_total_line_chart"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1",
+            "observation:query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1:0"
+          ],
+          "metadata": {
+            "label": "SalesRep.xlsx / monthly total sales",
+            "source_ref": "query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:0",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:V3_AQ01_Q01",
+            "observation:query:V3_AQ01_Q01:0",
+            "epmem_607dd8dcc96c090978abca3b",
+            "audit:query:V3_AQ01_Q01:0",
+            "audit:query:V3_AQ01_Q02:0",
+            "audit:query:V3_AQ01_Q03:0",
+            "audit:query:V3_AQ01_Q04:0",
+            "audit:query:V3_AQ01_Q05:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "source_ref": "query:V3_AQ01_Q01"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:1",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:V3_AQ01_Q02",
+            "observation:query:V3_AQ01_Q02:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "source_ref": "query:V3_AQ01_Q02"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:2",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:V3_AQ01_Q03",
+            "observation:query:V3_AQ01_Q03:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "source_ref": "query:V3_AQ01_Q03"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:3",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:V3_AQ01_Q04",
+            "observation:query:V3_AQ01_Q04:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "source_ref": "query:V3_AQ01_Q04"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:4",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:V3_AQ01_Q05",
+            "observation:query:V3_AQ01_Q05:0"
+          ],
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "source_ref": "query:V3_AQ01_Q05"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:0",
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.994958,
+          "condition_tag_ids": [
+            "condition:file:student_level_fill_blank_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:fill_blank_from_above"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "event:01b269ae-2111-4a07-81fd-3fcd711993b0",
+            "observation:event:01b269ae-2111-4a07-81fd-3fcd711993b0:0",
+            "epmem_d6cb6a6a9d17add5fb28205a",
+            "audit:event:01b269ae-2111-4a07-81fd-3fcd711993b0:0",
+            "audit:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2:0",
+            "audit:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3:0"
+          ],
+          "metadata": {
+            "label": "Student_Level_Fill_Blank.xlsx / 那套补法",
+            "source_ref": "event:01b269ae-2111-4a07-81fd-3fcd711993b0"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:1",
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.994958,
+          "condition_tag_ids": [
+            "condition:file:student_level_fill_blank_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:fill_blank_from_above"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2",
+            "observation:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2:0"
+          ],
+          "metadata": {
+            "label": "Student_Level_Fill_Blank.xlsx / 那套补法",
+            "source_ref": "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:2",
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.994958,
+          "condition_tag_ids": [
+            "condition:file:student_level_fill_blank_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:fill_blank_from_above"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3",
+            "observation:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3:0"
+          ],
+          "metadata": {
+            "label": "Student_Level_Fill_Blank.xlsx / 那套补法",
+            "source_ref": "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-text-codex-code-explanation:0",
+          "episode_id": "episode-text-codex-preference",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.91,
+          "condition_tag_ids": [
+            "condition:task:code_explanation"
+          ],
+          "object_tag_ids": [
+            "object:app:chatgpt_codex"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "text-codex-rule",
+            "observation:text-codex-rule",
+            "memory-text-codex-code-explanation"
+          ],
+          "metadata": {
+            "label": "代码解释优先使用 ChatGPT Codex",
+            "source_ref": "text-codex-rule"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-log-time-resync-request:0",
+          "episode_id": "episode-log-time-request",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.88,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_resync_request"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "log-w32time-resync-request",
+            "memory-log-time-resync-request"
+          ],
+          "metadata": {
+            "label": "W32time 收到重新同步请求",
+            "source_ref": "log-w32time-resync-request"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-log-time-source-sync:0",
+          "episode_id": "episode-log-time-source-sync",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.93,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_source_sync"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "log-w32time-source-sync",
+            "memory-log-time-source-sync"
+          ],
+          "metadata": {
+            "label": "W32time 与 time.windows.com 同步",
+            "source_ref": "log-w32time-source-sync"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-log-system-time-updated:0",
+          "episode_id": "episode-log-time-updated",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.96,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:system_time_update"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "log-w32time-system-time-updated",
+            "memory-log-system-time-updated"
+          ],
+          "metadata": {
+            "label": "W32time 已设置系统时间",
+            "source_ref": "log-w32time-system-time-updated"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-log-dell-power-manager-start:0",
+          "episode_id": "episode-log-dell-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.83,
+          "condition_tag_ids": [
+            "condition:app:dell_power_manager"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "log-dell-power-manager-process",
+            "memory-log-dell-power-manager-start"
+          ],
+          "metadata": {
+            "label": "Dell Power Manager 创建进程",
+            "source_ref": "log-dell-power-manager-process"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "graph-observation:memory-log-codex-start:0",
+          "episode_id": "episode-log-codex-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.86,
+          "condition_tag_ids": [
+            "condition:app:chatgpt_codex"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "log-codex-process",
+            "memory-log-codex-start"
+          ],
+          "metadata": {
+            "label": "OpenAI Codex 创建进程",
+            "source_ref": "log-codex-process"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "observation:latent:salesrep-confirmed",
+          "episode_id": "episode:latent:salesrep-confirmed",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.79,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "event:latent:salesrep-confirmed"
+          ],
+          "metadata": {
+            "label": "A weak repeated SalesRep chart preference"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "observation:latent:codex-process",
+          "episode_id": "episode:latent:codex-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.79,
+          "condition_tag_ids": [
+            "condition:app:chatgpt_codex"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "attitude_polarity": "",
+          "source_refs": [
+            "event:latent:codex-process"
+          ],
+          "metadata": {
+            "label": "A weak generic Codex process event"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        },
+        {
+          "observation_id": "observation:latent:salesrep-conflicted",
+          "episode_id": "episode:latent:salesrep-conflicted",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.79,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_refs": [
+            "event:latent:salesrep-conflicted"
+          ],
+          "metadata": {
+            "label": "A weak SalesRep preference with contrary evidence"
+          },
+          "schema_version": "memory_graph.observation_node.v1"
+        }
+      ],
+      "edges": [
+        {
+          "edge_id": "oedge_08df6f60e9f04b7b1c08ccc9",
+          "source_observation_id": "graph-observation:memory-log-time-source-sync:0",
+          "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.935855,
+          "association_strength": 0.94,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_70c9a0a7b0b77ac56131c268",
+              "source_observation_id": "graph-observation:memory-log-time-source-sync:0",
+              "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+              "source_ref": "log-w32time-source-sync",
+              "target_ref": "log-w32time-system-time-updated",
+              "relation_type": "precedes",
+              "directed": true,
+              "association": 0.94,
+              "confidence": 1.0,
+              "proof_strength": 0.935855,
+              "independent_unit_id": "observation_relation_unit_7b026ac040c323c4e6743ce1",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "explicit service event sequence"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_b5ad026bf5ed92abbe9e1cbf",
+          "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "target_observation_id": "observation:latent:salesrep-confirmed",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.911039,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_3a9775205d411a223ed9e465",
+              "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "target_observation_id": "observation:latent:salesrep-confirmed",
+              "source_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "target_ref": "event:latent:salesrep-confirmed",
+              "relation_type": "supports",
+              "directed": false,
+              "association": 0.92,
+              "confidence": 1.0,
+              "proof_strength": 0.911039,
+              "independent_unit_id": "observation_relation_unit_b3e668f3176b6fe773e7f8cb",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "repeated same-scope preference evidence"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_c985fac8bb420e0ae068bf8e",
+          "source_observation_id": "graph-observation:memory-log-codex-start:0",
+          "target_observation_id": "observation:latent:codex-process",
+          "relation_type": "activates",
+          "directed": true,
+          "weight": 0.907065,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_5abbf2b841c70f29492edf07",
+              "source_observation_id": "graph-observation:memory-log-codex-start:0",
+              "target_observation_id": "observation:latent:codex-process",
+              "source_ref": "log-codex-process",
+              "target_ref": "event:latent:codex-process",
+              "relation_type": "activates",
+              "directed": true,
+              "association": 0.92,
+              "confidence": 1.0,
+              "proof_strength": 0.907065,
+              "independent_unit_id": "observation_relation_unit_3ea3822851e6a68117c6c449",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "process continuity is not preference support"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_a0c26dd85304e9969529b484",
+          "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+          "target_observation_id": "observation:latent:salesrep-conflicted",
+          "relation_type": "conflicts",
+          "directed": false,
+          "weight": 0.906239,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_9f415c467b0a544dfeaafd0a",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "observation:latent:salesrep-conflicted",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "event:latent:salesrep-conflicted",
+              "relation_type": "conflicts",
+              "directed": false,
+              "association": 0.92,
+              "confidence": 1.0,
+              "proof_strength": 0.906239,
+              "independent_unit_id": "observation_relation_unit_5b6702ce31a32c8abb42d6ff",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "stronger contrary memory"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_6280d2d9b63a2d575a9c9f01",
+          "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+          "target_observation_id": "graph-observation:memory-log-time-source-sync:0",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.903059,
+          "association_strength": 0.91,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_81c6ba65878f56d6e2f01412",
+              "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+              "target_observation_id": "graph-observation:memory-log-time-source-sync:0",
+              "source_ref": "log-w32time-resync-request",
+              "target_ref": "log-w32time-source-sync",
+              "relation_type": "precedes",
+              "directed": true,
+              "association": 0.91,
+              "confidence": 1.0,
+              "proof_strength": 0.903059,
+              "independent_unit_id": "observation_relation_unit_eae2dbb9d44f3118df99afe7",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "explicit service event sequence"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_0602d5d2097c3ffafffe8398",
+          "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+          "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.893078,
+          "association_strength": 0.9,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_4ed67cb66e75b497b035cc70",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "relation_type": "supports",
+              "directed": false,
+              "association": 0.9,
+              "confidence": 1.0,
+              "proof_strength": 0.893078,
+              "independent_unit_id": "salesrep-total-growth",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "same file, action family and preference direction"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_1ed812e22e14cca492a49caf",
+          "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "target_observation_id": "observation:latent:salesrep-conflicted",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.871429,
+          "association_strength": 0.88,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_b1531f2ac7ea5f5ee6095433",
+              "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "target_observation_id": "observation:latent:salesrep-conflicted",
+              "source_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "target_ref": "event:latent:salesrep-conflicted",
+              "relation_type": "supports",
+              "directed": false,
+              "association": 0.88,
+              "confidence": 1.0,
+              "proof_strength": 0.871429,
+              "independent_unit_id": "observation_relation_unit_88f687ae0615a12610ef67a7",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "one agreeing memory"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_6be5ed0a09d63acfa59f58b9",
+          "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+          "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.853385,
+          "association_strength": 0.86,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_c4143b6f0d32cc4e1a719fb4",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1",
+              "relation_type": "supports",
+              "directed": false,
+              "association": 0.86,
+              "confidence": 1.0,
+              "proof_strength": 0.853385,
+              "independent_unit_id": "salesrep-total-growth",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "duplicate frame from the same relation unit"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_904e96a69d452a8b10fa853e",
+          "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.758159,
+          "association_strength": 0.76,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_f10a96f36686db1c3a95a217",
+              "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+              "source_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "target_ref": "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.76,
+              "confidence": 1.0,
+              "proof_strength": 0.758159,
+              "independent_unit_id": "observation_relation_unit_a9f85942e5b260a9edd32c0e",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "same file and monthly chart workflow"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_86952d12c41aec17dcc8dca0",
+          "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+          "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+          "relation_type": "causes",
+          "directed": true,
+          "weight": 0.725277,
+          "association_strength": 0.73,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_38baaabdf7e1dc7a28d4521a",
+              "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+              "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+              "source_ref": "log-w32time-resync-request",
+              "target_ref": "log-w32time-system-time-updated",
+              "relation_type": "causes",
+              "directed": true,
+              "association": 0.73,
+              "confidence": 1.0,
+              "proof_strength": 0.725277,
+              "independent_unit_id": "observation_relation_unit_2f4f3c86c884d810fd22498d",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "request-to-result relation"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_ac830ffd7c648394f85871c6",
+          "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+          "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.684354,
+          "association_strength": 0.69,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_d47ee3f84f2763a3cc8c1ef1",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.69,
+              "confidence": 1.0,
+              "proof_strength": 0.684354,
+              "independent_unit_id": "observation_relation_unit_ae004f2fa18b47dcf07808eb",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "same file with overlapping chart objective"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_2d9ae4f96bf54f3017e6217a",
+          "source_observation_id": "graph-observation:memory-log-codex-start:0",
+          "target_observation_id": "graph-observation:memory-text-codex-code-explanation:0",
+          "relation_type": "activates",
+          "directed": true,
+          "weight": 0.653909,
+          "association_strength": 0.66,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_5db40ba5b08eeac0af86dcf2",
+              "source_observation_id": "graph-observation:memory-log-codex-start:0",
+              "target_observation_id": "graph-observation:memory-text-codex-code-explanation:0",
+              "source_ref": "log-codex-process",
+              "target_ref": "text-codex-rule",
+              "relation_type": "activates",
+              "directed": true,
+              "association": 0.66,
+              "confidence": 1.0,
+              "proof_strength": 0.653909,
+              "independent_unit_id": "observation_relation_unit_5c6f4249eff7fb03951c9d7b",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "application launch can activate an app-scoped preference but does not prove the preference"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        },
+        {
+          "edge_id": "oedge_ff1ad782296267984c53f960",
+          "source_observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:0",
+          "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.609417,
+          "association_strength": 0.61,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "ore_7bbb3148fd7b9440bdf341bf",
+              "source_observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:0",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "source_ref": "query:V3_AQ01_Q01",
+              "target_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.61,
+              "confidence": 1.0,
+              "proof_strength": 0.609417,
+              "independent_unit_id": "observation_relation_unit_00b7fae9bdbc901a33d5285f",
+              "source_memory_hint": "",
+              "target_memory_hint": "",
+              "metadata": {
+                "basis": "same file but vague prior-workflow object"
+              },
+              "schema_version": "memory_graph.observation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.observation_edge.v1"
+        }
+      ],
+      "relation_matrix": {
+        "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": {
+          "observation:latent:salesrep-confirmed": 0.911039,
+          "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0": 0.893078,
+          "observation:latent:salesrep-conflicted": 0.871429,
+          "graph-observation:epmem_fc91eada9375097ef9d08397:0": 0.758159,
+          "graph-observation:epmem_607dd8dcc96c090978abca3b:0": 0.609417
+        },
+        "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1": {
+          "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0": 0.853385
+        },
+        "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0": {
+          "observation:latent:salesrep-conflicted": 0.906239,
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": 0.893078,
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1": 0.853385,
+          "graph-observation:epmem_fc91eada9375097ef9d08397:0": 0.684354
+        },
+        "graph-observation:epmem_fc91eada9375097ef9d08397:0": {
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": 0.758159,
+          "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0": 0.684354
+        },
+        "graph-observation:epmem_fc91eada9375097ef9d08397:1": {},
+        "graph-observation:epmem_607dd8dcc96c090978abca3b:0": {
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": 0.609417
+        },
+        "graph-observation:epmem_607dd8dcc96c090978abca3b:1": {},
+        "graph-observation:epmem_607dd8dcc96c090978abca3b:2": {},
+        "graph-observation:epmem_607dd8dcc96c090978abca3b:3": {},
+        "graph-observation:epmem_607dd8dcc96c090978abca3b:4": {},
+        "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:0": {},
+        "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:1": {},
+        "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:2": {},
+        "graph-observation:memory-text-codex-code-explanation:0": {},
+        "graph-observation:memory-log-time-resync-request:0": {
+          "graph-observation:memory-log-time-source-sync:0": 0.903059,
+          "graph-observation:memory-log-system-time-updated:0": 0.725277
+        },
+        "graph-observation:memory-log-time-source-sync:0": {
+          "graph-observation:memory-log-system-time-updated:0": 0.935855
+        },
+        "graph-observation:memory-log-system-time-updated:0": {},
+        "graph-observation:memory-log-dell-power-manager-start:0": {},
+        "graph-observation:memory-log-codex-start:0": {
+          "observation:latent:codex-process": 0.907065,
+          "graph-observation:memory-text-codex-code-explanation:0": 0.653909
+        },
+        "observation:latent:salesrep-confirmed": {
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": 0.911039
+        },
+        "observation:latent:codex-process": {},
+        "observation:latent:salesrep-conflicted": {
+          "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0": 0.906239,
+          "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0": 0.871429
+        }
+      }
+    },
+    "episode_graph": {
+      "nodes": [
+        {
+          "episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+            "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1"
+          ],
+          "base_strength": 0.97636,
+          "memory_ids": [
+            "epmem_f2e9b4f4cd5aa04606677323"
+          ],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0"
+          ],
+          "base_strength": 0.836734,
+          "memory_ids": [
+            "epmem_e068b92b67fcd0eca65ab0ff"
+          ],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+            "graph-observation:epmem_fc91eada9375097ef9d08397:1"
+          ],
+          "base_strength": 0.963134,
+          "memory_ids": [
+            "epmem_fc91eada9375097ef9d08397"
+          ],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_monthly_total_line_chart"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:epmem_607dd8dcc96c090978abca3b:0",
+            "graph-observation:epmem_607dd8dcc96c090978abca3b:1",
+            "graph-observation:epmem_607dd8dcc96c090978abca3b:2",
+            "graph-observation:epmem_607dd8dcc96c090978abca3b:3",
+            "graph-observation:epmem_607dd8dcc96c090978abca3b:4"
+          ],
+          "base_strength": 0.999875,
+          "memory_ids": [
+            "epmem_607dd8dcc96c090978abca3b"
+          ],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:0",
+            "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:1",
+            "graph-observation:epmem_d6cb6a6a9d17add5fb28205a:2"
+          ],
+          "base_strength": 0.994958,
+          "memory_ids": [
+            "epmem_d6cb6a6a9d17add5fb28205a"
+          ],
+          "condition_tag_ids": [
+            "condition:file:student_level_fill_blank_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:fill_blank_from_above"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-text-codex-preference",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "graph-observation:memory-text-codex-code-explanation:0"
+          ],
+          "base_strength": 0.91,
+          "memory_ids": [
+            "memory-text-codex-code-explanation"
+          ],
+          "condition_tag_ids": [
+            "condition:task:code_explanation"
+          ],
+          "object_tag_ids": [
+            "object:app:chatgpt_codex"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-log-time-request",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "graph-observation:memory-log-time-resync-request:0"
+          ],
+          "base_strength": 0.88,
+          "memory_ids": [
+            "memory-log-time-resync-request"
+          ],
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_resync_request"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-log-time-source-sync",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "graph-observation:memory-log-time-source-sync:0"
+          ],
+          "base_strength": 0.93,
+          "memory_ids": [
+            "memory-log-time-source-sync"
+          ],
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_source_sync"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-log-time-updated",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "graph-observation:memory-log-system-time-updated:0"
+          ],
+          "base_strength": 0.96,
+          "memory_ids": [
+            "memory-log-system-time-updated"
+          ],
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:system_time_update"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-log-dell-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "graph-observation:memory-log-dell-power-manager-start:0"
+          ],
+          "base_strength": 0.83,
+          "memory_ids": [
+            "memory-log-dell-power-manager-start"
+          ],
+          "condition_tag_ids": [
+            "condition:app:dell_power_manager"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode-log-codex-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "graph-observation:memory-log-codex-start:0"
+          ],
+          "base_strength": 0.86,
+          "memory_ids": [
+            "memory-log-codex-start"
+          ],
+          "condition_tag_ids": [
+            "condition:app:chatgpt_codex"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "metadata": {},
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": true
+        },
+        {
+          "episode_id": "episode:latent:salesrep-confirmed",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "observation:latent:salesrep-confirmed"
+          ],
+          "base_strength": 0.79,
+          "memory_ids": [],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "metadata": {
+            "label": "A weak repeated SalesRep chart preference"
+          },
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": false
+        },
+        {
+          "episode_id": "episode:latent:codex-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "observation_ids": [
+            "observation:latent:codex-process"
+          ],
+          "base_strength": 0.79,
+          "memory_ids": [],
+          "condition_tag_ids": [
+            "condition:app:chatgpt_codex"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "metadata": {
+            "label": "A weak generic Codex process event"
+          },
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": false
+        },
+        {
+          "episode_id": "episode:latent:salesrep-conflicted",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "observation_ids": [
+            "observation:latent:salesrep-conflicted"
+          ],
+          "base_strength": 0.79,
+          "memory_ids": [],
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "metadata": {
+            "label": "A weak SalesRep preference with contrary evidence"
+          },
+          "schema_version": "memory_graph.episode_node.v1",
+          "promoted": false
+        }
+      ],
+      "edges": [
+        {
+          "edge_id": "epedge_848d7b3fb6699443e091fcbc",
+          "source_episode_id": "episode-log-time-source-sync",
+          "target_episode_id": "episode-log-time-updated",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.928117,
+          "association_strength": 0.94,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_61e71b41dd518e5b47f0b04c",
+              "observation_edge_id": "oedge_08df6f60e9f04b7b1c08ccc9",
+              "source_observation_id": "graph-observation:memory-log-time-source-sync:0",
+              "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+              "proof_strength": 0.928117,
+              "association_strength": 0.94,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_43bec51b179c7340f155f40a",
+          "source_episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "target_episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.915465,
+          "association_strength": 0.9301,
+          "support_count": 2,
+          "source_coverage": 1,
+          "target_coverage": 2,
+          "evidence": [
+            {
+              "evidence_id": "epe_9622d25ddcb8ae71f23b8e21",
+              "observation_edge_id": "oedge_0602d5d2097c3ffafffe8398",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "proof_strength": 0.880198,
+              "association_strength": 0.9,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            },
+            {
+              "evidence_id": "epe_0940ed237207cbed725fe987",
+              "observation_edge_id": "oedge_6be5ed0a09d63acfa59f58b9",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:1",
+              "proof_strength": 0.841078,
+              "association_strength": 0.86,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_7666f7ea6626bea8e5eef479",
+          "source_episode_id": "episode:latent:salesrep-confirmed",
+          "target_episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.894401,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_9e11ef5e7962dfed592374aa",
+              "observation_edge_id": "oedge_b5ad026bf5ed92abbe9e1cbf",
+              "source_observation_id": "observation:latent:salesrep-confirmed",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "proof_strength": 0.894401,
+              "association_strength": 0.92,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_ee13cc0a516a3ebb90eb9340",
+          "source_episode_id": "episode-log-time-request",
+          "target_episode_id": "episode-log-time-source-sync",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.890144,
+          "association_strength": 0.91,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_f1c58df49c6d485ad775ea66",
+              "observation_edge_id": "oedge_6280d2d9b63a2d575a9c9f01",
+              "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+              "target_observation_id": "graph-observation:memory-log-time-source-sync:0",
+              "proof_strength": 0.890144,
+              "association_strength": 0.91,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_a206aec032ef02032ab2393d",
+          "source_episode_id": "episode-log-codex-process",
+          "target_episode_id": "episode:latent:codex-process",
+          "relation_type": "activates",
+          "directed": true,
+          "weight": 0.883153,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_b06ed008b6b32947936399cb",
+              "observation_edge_id": "oedge_c985fac8bb420e0ae068bf8e",
+              "source_observation_id": "graph-observation:memory-log-codex-start:0",
+              "target_observation_id": "observation:latent:codex-process",
+              "proof_strength": 0.883153,
+              "association_strength": 0.92,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_4e017cba7deefab818662071",
+          "source_episode_id": "episode:latent:salesrep-conflicted",
+          "target_episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "relation_type": "conflicts",
+          "directed": false,
+          "weight": 0.880823,
+          "association_strength": 0.92,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_120f1cc672c7481225d6929f",
+              "observation_edge_id": "oedge_a0c26dd85304e9969529b484",
+              "source_observation_id": "observation:latent:salesrep-conflicted",
+              "target_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "proof_strength": 0.880823,
+              "association_strength": 0.92,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_aecb1aee5f1eb89d9d0e69c2",
+          "source_episode_id": "episode:latent:salesrep-conflicted",
+          "target_episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.855515,
+          "association_strength": 0.88,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_7937ade3afb2e5f0e7d48643",
+              "observation_edge_id": "oedge_1ed812e22e14cca492a49caf",
+              "source_observation_id": "observation:latent:salesrep-conflicted",
+              "target_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "proof_strength": 0.855515,
+              "association_strength": 0.88,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_2882eb4d6b5e2a5f63a408c1",
+          "source_episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "target_episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.754716,
+          "association_strength": 0.76,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_8205ff12d22293e9e42d8f90",
+              "observation_edge_id": "oedge_904e96a69d452a8b10fa853e",
+              "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+              "proof_strength": 0.754716,
+              "association_strength": 0.76,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_c42f9b88395380fd60c2f35a",
+          "source_episode_id": "episode-log-time-request",
+          "target_episode_id": "episode-log-time-updated",
+          "relation_type": "causes",
+          "directed": true,
+          "weight": 0.716479,
+          "association_strength": 0.73,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_a55a94f4baa3affc9b078ec1",
+              "observation_edge_id": "oedge_86952d12c41aec17dcc8dca0",
+              "source_observation_id": "graph-observation:memory-log-time-resync-request:0",
+              "target_observation_id": "graph-observation:memory-log-system-time-updated:0",
+              "proof_strength": 0.716479,
+              "association_strength": 0.73,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_b0c7815a2bb980bb541349ee",
+          "source_episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "target_episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.673854,
+          "association_strength": 0.69,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_c2be6554b64dda8da58cdcf4",
+              "observation_edge_id": "oedge_ac830ffd7c648394f85871c6",
+              "source_observation_id": "graph-observation:epmem_e068b92b67fcd0eca65ab0ff:0",
+              "target_observation_id": "graph-observation:epmem_fc91eada9375097ef9d08397:0",
+              "proof_strength": 0.673854,
+              "association_strength": 0.69,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_c654245484143347e64643a6",
+          "source_episode_id": "episode-log-codex-process",
+          "target_episode_id": "episode-text-codex-preference",
+          "relation_type": "activates",
+          "directed": true,
+          "weight": 0.642594,
+          "association_strength": 0.66,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_918746a19ac0f0f147914905",
+              "observation_edge_id": "oedge_2d9ae4f96bf54f3017e6217a",
+              "source_observation_id": "graph-observation:memory-log-codex-start:0",
+              "target_observation_id": "graph-observation:memory-text-codex-code-explanation:0",
+              "proof_strength": 0.642594,
+              "association_strength": 0.66,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        },
+        {
+          "edge_id": "epedge_df1b4b56dcfaa5558488f4a2",
+          "source_episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "target_episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.608324,
+          "association_strength": 0.61,
+          "support_count": 1,
+          "source_coverage": 1,
+          "target_coverage": 1,
+          "evidence": [
+            {
+              "evidence_id": "epe_f734534192cbdaa6fa0eafb2",
+              "observation_edge_id": "oedge_ff1ad782296267984c53f960",
+              "source_observation_id": "graph-observation:epmem_f2e9b4f4cd5aa04606677323:0",
+              "target_observation_id": "graph-observation:epmem_607dd8dcc96c090978abca3b:0",
+              "proof_strength": 0.608324,
+              "association_strength": 0.61,
+              "schema_version": "memory_graph.episode_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.episode_edge.v1"
+        }
+      ],
+      "relation_matrix": {
+        "prefep_35bc82a50474ede2e5319ceb": {
+          "prefep_0156b628bc3e0949cc97edf9": 0.915465,
+          "episode:latent:salesrep-confirmed": 0.894401,
+          "episode:latent:salesrep-conflicted": 0.855515,
+          "prefep_3ce67ad32da28ce5da9a2e08": 0.754716,
+          "prefep_f8c76f2092e8f9e6ba6d1b7b": 0.608324
+        },
+        "prefep_0156b628bc3e0949cc97edf9": {
+          "prefep_35bc82a50474ede2e5319ceb": 0.915465,
+          "episode:latent:salesrep-conflicted": 0.880823,
+          "prefep_3ce67ad32da28ce5da9a2e08": 0.673854
+        },
+        "prefep_3ce67ad32da28ce5da9a2e08": {
+          "prefep_35bc82a50474ede2e5319ceb": 0.754716,
+          "prefep_0156b628bc3e0949cc97edf9": 0.673854
+        },
+        "prefep_f8c76f2092e8f9e6ba6d1b7b": {
+          "prefep_35bc82a50474ede2e5319ceb": 0.608324
+        },
+        "prefep_e5c4942b24e3754fde762bcf": {},
+        "episode-text-codex-preference": {},
+        "episode-log-time-request": {
+          "episode-log-time-source-sync": 0.890144,
+          "episode-log-time-updated": 0.716479
+        },
+        "episode-log-time-source-sync": {
+          "episode-log-time-updated": 0.928117
+        },
+        "episode-log-time-updated": {},
+        "episode-log-dell-process": {},
+        "episode-log-codex-process": {
+          "episode:latent:codex-process": 0.883153,
+          "episode-text-codex-preference": 0.642594
+        },
+        "episode:latent:salesrep-confirmed": {
+          "prefep_35bc82a50474ede2e5319ceb": 0.894401
+        },
+        "episode:latent:codex-process": {},
+        "episode:latent:salesrep-conflicted": {
+          "prefep_0156b628bc3e0949cc97edf9": 0.880823,
+          "prefep_35bc82a50474ede2e5319ceb": 0.855515
+        }
+      },
+      "internal_relation_counts": {
+        "prefep_35bc82a50474ede2e5319ceb": 0,
+        "prefep_0156b628bc3e0949cc97edf9": 0,
+        "prefep_3ce67ad32da28ce5da9a2e08": 0,
+        "prefep_f8c76f2092e8f9e6ba6d1b7b": 0,
+        "prefep_e5c4942b24e3754fde762bcf": 0,
+        "episode-text-codex-preference": 0,
+        "episode-log-time-request": 0,
+        "episode-log-time-source-sync": 0,
+        "episode-log-time-updated": 0,
+        "episode-log-dell-process": 0,
+        "episode-log-codex-process": 0,
+        "episode:latent:salesrep-confirmed": 0,
+        "episode:latent:codex-process": 0,
+        "episode:latent:salesrep-conflicted": 0
+      },
+      "promotion_states": [
+        {
+          "episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "status": "existing_memory",
+          "base_strength": 0.97636,
+          "supporting_strength": 0.766001,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.004527,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.980887,
+          "supporting_episode_ids": [
+            "prefep_0156b628bc3e0949cc97edf9"
+          ],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "status": "existing_memory",
+          "base_strength": 0.836734,
+          "supporting_strength": 0.893823,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.036483,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.873217,
+          "supporting_episode_ids": [
+            "prefep_35bc82a50474ede2e5319ceb"
+          ],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "status": "existing_memory",
+          "base_strength": 0.963134,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.963134,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "status": "existing_memory",
+          "base_strength": 0.999875,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.999875,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "status": "existing_memory",
+          "base_strength": 0.994958,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.994958,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-text-codex-preference",
+          "status": "existing_memory",
+          "base_strength": 0.91,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.91,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-log-time-request",
+          "status": "existing_memory",
+          "base_strength": 0.88,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.88,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-log-time-source-sync",
+          "status": "existing_memory",
+          "base_strength": 0.93,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.93,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-log-time-updated",
+          "status": "existing_memory",
+          "base_strength": 0.96,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.96,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-log-dell-process",
+          "status": "existing_memory",
+          "base_strength": 0.83,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.83,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode-log-codex-process",
+          "status": "existing_memory",
+          "base_strength": 0.86,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.86,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode:latent:salesrep-confirmed",
+          "status": "promotion_candidate",
+          "base_strength": 0.79,
+          "supporting_strength": 0.873257,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.045846,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.835846,
+          "supporting_episode_ids": [
+            "prefep_35bc82a50474ede2e5319ceb"
+          ],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": true
+        },
+        {
+          "episode_id": "episode:latent:codex-process",
+          "status": "latent",
+          "base_strength": 0.79,
+          "supporting_strength": 0.0,
+          "conflict_strength": 0.0,
+          "relation_reinforcement": 0.0,
+          "conflict_penalty": 0.0,
+          "effective_strength": 0.79,
+          "supporting_episode_ids": [],
+          "conflicting_episode_ids": [],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        },
+        {
+          "episode_id": "episode:latent:salesrep-conflicted",
+          "status": "latent",
+          "base_strength": 0.79,
+          "supporting_strength": 0.835291,
+          "conflict_strength": 0.737015,
+          "relation_reinforcement": 0.043853,
+          "conflict_penalty": 0.116448,
+          "effective_strength": 0.717404,
+          "supporting_episode_ids": [
+            "prefep_35bc82a50474ede2e5319ceb"
+          ],
+          "conflicting_episode_ids": [
+            "prefep_0156b628bc3e0949cc97edf9"
+          ],
+          "schema_version": "memory_graph.episode_promotion_state.v1",
+          "promotion_candidate": false
+        }
+      ]
+    },
+    "memory_graph": {
+      "nodes": [
+        {
+          "memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+          "episode_id": "prefep_35bc82a50474ede2e5319ceb",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.97636,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:event:0326d92d-d218-48a8-9ca1-981cd6d064c7:0",
+            "observation:query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1:0"
+          ],
+          "source_event_ids": [
+            "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+            "query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1"
+          ],
+          "source_memory_ids": [
+            "audit:event:0326d92d-d218-48a8-9ca1-981cd6d064c7:0",
+            "audit:query:0326d92d-d218-48a8-9ca1-981cd6d064c7_HQ1:0"
+          ],
+          "observed_time": "",
+          "metadata": {
+            "label": "SalesRep.xlsx / total sales",
+            "condition": "condition:file:salesrep_xlsx",
+            "object": "object:action:build_total_and_growth_charts"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "epmem_e068b92b67fcd0eca65ab0ff",
+          "episode_id": "prefep_0156b628bc3e0949cc97edf9",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.836734,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_total_and_growth_charts"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:query:MULTI_MM06_HQ1:0"
+          ],
+          "source_event_ids": [
+            "query:MULTI_MM06_HQ1"
+          ],
+          "source_memory_ids": [
+            "audit:query:MULTI_MM06_HQ1:0"
+          ],
+          "observed_time": "",
+          "metadata": {
+            "label": "SalesRep / Total+Growth",
+            "condition": "condition:file:salesrep_xlsx",
+            "object": "object:action:build_total_and_growth_charts"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "epmem_fc91eada9375097ef9d08397",
+          "episode_id": "prefep_3ce67ad32da28ce5da9a2e08",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.963134,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:build_monthly_total_line_chart"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5:0",
+            "observation:query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1:0"
+          ],
+          "source_event_ids": [
+            "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+            "query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1"
+          ],
+          "source_memory_ids": [
+            "audit:event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5:0",
+            "audit:query:0a2e43bf-b26c-4631-a966-af9dfa12c9e5_HQ1:0"
+          ],
+          "observed_time": "",
+          "metadata": {
+            "label": "SalesRep.xlsx / monthly total sales",
+            "condition": "condition:file:salesrep_xlsx",
+            "object": "object:action:build_monthly_total_line_chart"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "epmem_607dd8dcc96c090978abca3b",
+          "episode_id": "prefep_f8c76f2092e8f9e6ba6d1b7b",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.999875,
+          "condition_tag_ids": [
+            "condition:file:salesrep_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:ambiguous_prior_workflow"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:query:V3_AQ01_Q01:0",
+            "observation:query:V3_AQ01_Q02:0",
+            "observation:query:V3_AQ01_Q03:0",
+            "observation:query:V3_AQ01_Q04:0",
+            "observation:query:V3_AQ01_Q05:0"
+          ],
+          "source_event_ids": [
+            "query:V3_AQ01_Q01",
+            "query:V3_AQ01_Q02",
+            "query:V3_AQ01_Q03",
+            "query:V3_AQ01_Q04",
+            "query:V3_AQ01_Q05"
+          ],
+          "source_memory_ids": [
+            "audit:query:V3_AQ01_Q01:0",
+            "audit:query:V3_AQ01_Q02:0",
+            "audit:query:V3_AQ01_Q03:0",
+            "audit:query:V3_AQ01_Q04:0",
+            "audit:query:V3_AQ01_Q05:0"
+          ],
+          "observed_time": "",
+          "metadata": {
+            "label": "SalesRep / 以前的做法",
+            "condition": "condition:file:salesrep_xlsx",
+            "object": "object:ambiguous_prior_workflow"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "epmem_d6cb6a6a9d17add5fb28205a",
+          "episode_id": "prefep_e5c4942b24e3754fde762bcf",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.994958,
+          "condition_tag_ids": [
+            "condition:file:student_level_fill_blank_xlsx"
+          ],
+          "object_tag_ids": [
+            "object:action:fill_blank_from_above"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:event:01b269ae-2111-4a07-81fd-3fcd711993b0:0",
+            "observation:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2:0",
+            "observation:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3:0"
+          ],
+          "source_event_ids": [
+            "event:01b269ae-2111-4a07-81fd-3fcd711993b0",
+            "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2",
+            "query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3"
+          ],
+          "source_memory_ids": [
+            "audit:event:01b269ae-2111-4a07-81fd-3fcd711993b0:0",
+            "audit:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ2:0",
+            "audit:query:01b269ae-2111-4a07-81fd-3fcd711993b0_HQ3:0"
+          ],
+          "observed_time": "",
+          "metadata": {
+            "label": "Student_Level_Fill_Blank.xlsx / 那套补法",
+            "condition": "condition:file:student_level_fill_blank_xlsx",
+            "object": "object:action:fill_blank_from_above"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-text-codex-code-explanation",
+          "episode_id": "episode-text-codex-preference",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "observation",
+          "strength": 0.91,
+          "condition_tag_ids": [
+            "condition:task:code_explanation"
+          ],
+          "object_tag_ids": [
+            "object:app:chatgpt_codex"
+          ],
+          "attitude_polarity": "support",
+          "source_observation_ids": [
+            "observation:text-codex-rule"
+          ],
+          "source_event_ids": [
+            "text-codex-rule"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "代码解释优先使用 ChatGPT Codex",
+            "source_excerpt": "以后统一用 ChatGPT Codex 处理代码解释，普通聊天不需要。"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-log-time-resync-request",
+          "episode_id": "episode-log-time-request",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.88,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_resync_request"
+          ],
+          "attitude_polarity": "",
+          "source_observation_ids": [],
+          "source_event_ids": [
+            "log-w32time-resync-request"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "W32time 收到重新同步请求",
+            "source_excerpt": "W32time Service received notification to rediscover its time sources and/or resynchronize time."
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-log-time-source-sync",
+          "episode_id": "episode-log-time-source-sync",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.93,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:time_source_sync"
+          ],
+          "attitude_polarity": "",
+          "source_observation_ids": [],
+          "source_event_ids": [
+            "log-w32time-source-sync"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "W32time 与 time.windows.com 同步",
+            "source_excerpt": "The time service is now synchronizing the system time with the reference time source time.windows.com,0x9."
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-log-system-time-updated",
+          "episode_id": "episode-log-time-updated",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.96,
+          "condition_tag_ids": [
+            "condition:service:w32time"
+          ],
+          "object_tag_ids": [
+            "object:system_time_update"
+          ],
+          "attitude_polarity": "",
+          "source_observation_ids": [],
+          "source_event_ids": [
+            "log-w32time-system-time-updated"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "W32time 已设置系统时间",
+            "source_excerpt": "W32time service has set the system time to 2026-07-26T06:48:32.986Z(UTC)."
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-log-dell-power-manager-start",
+          "episode_id": "episode-log-dell-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.83,
+          "condition_tag_ids": [
+            "condition:app:dell_power_manager"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "attitude_polarity": "",
+          "source_observation_ids": [],
+          "source_event_ids": [
+            "log-dell-power-manager-process"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "Dell Power Manager 创建进程",
+            "source_excerpt": "已经为程序包 DellInc.DellPowerManager_3.14.40.0_x64 中的应用程序 DellPowerManager 创建进程。"
+          },
+          "schema_version": "memory_graph.node.v1"
+        },
+        {
+          "memory_id": "memory-log-codex-start",
+          "episode_id": "episode-log-codex-process",
+          "user_id": "os-agent-v31-user",
+          "source_kind": "log_event",
+          "strength": 0.86,
+          "condition_tag_ids": [
+            "condition:app:chatgpt_codex"
+          ],
+          "object_tag_ids": [
+            "object:process_creation"
+          ],
+          "attitude_polarity": "",
+          "source_observation_ids": [],
+          "source_event_ids": [
+            "log-codex-process"
+          ],
+          "source_memory_ids": [],
+          "observed_time": "",
+          "metadata": {
+            "label": "OpenAI Codex 创建进程",
+            "source_excerpt": "已经为程序包 OpenAI.Codex_26.721.4979.0_x64 中的应用程序 OpenAI.Codex 创建进程。"
+          },
+          "schema_version": "memory_graph.node.v1"
+        }
+      ],
+      "edges": [
+        {
+          "edge_id": "medge_7cd0fcb6ef3ff9d5882a2999",
+          "source_memory_id": "memory-log-time-source-sync",
+          "target_memory_id": "memory-log-system-time-updated",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.935855,
+          "association_strength": 0.94,
+          "node_reliability": 0.944881,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_cae77741d81b11dd70b0aea8",
+              "source_memory_id": "memory-log-time-source-sync",
+              "target_memory_id": "memory-log-system-time-updated",
+              "source_ref": "log-w32time-source-sync",
+              "target_ref": "log-w32time-system-time-updated",
+              "relation_type": "precedes",
+              "directed": true,
+              "association": 0.94,
+              "confidence": 1.0,
+              "proof_strength": 0.935855,
+              "independent_unit_id": "observation_relation_unit_7b026ac040c323c4e6743ce1",
+              "metadata": {
+                "basis": "explicit service event sequence"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_e484f80c8fcc67420041b601",
+          "source_memory_id": "memory-log-time-resync-request",
+          "target_memory_id": "memory-log-time-source-sync",
+          "relation_type": "precedes",
+          "directed": true,
+          "weight": 0.903059,
+          "association_strength": 0.91,
+          "node_reliability": 0.904655,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_c4d49d879d8f0411f4f98302",
+              "source_memory_id": "memory-log-time-resync-request",
+              "target_memory_id": "memory-log-time-source-sync",
+              "source_ref": "log-w32time-resync-request",
+              "target_ref": "log-w32time-source-sync",
+              "relation_type": "precedes",
+              "directed": true,
+              "association": 0.91,
+              "confidence": 1.0,
+              "proof_strength": 0.903059,
+              "independent_unit_id": "observation_relation_unit_eae2dbb9d44f3118df99afe7",
+              "metadata": {
+                "basis": "explicit service event sequence"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_29a849ecf0ba7a4c827adfa7",
+          "source_memory_id": "epmem_e068b92b67fcd0eca65ab0ff",
+          "target_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+          "relation_type": "supports",
+          "directed": false,
+          "weight": 0.893078,
+          "association_strength": 0.9,
+          "node_reliability": 0.903855,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_4d4987c9d56a888da847de06",
+              "source_memory_id": "epmem_e068b92b67fcd0eca65ab0ff",
+              "target_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "relation_type": "supports",
+              "directed": false,
+              "association": 0.9,
+              "confidence": 1.0,
+              "proof_strength": 0.893078,
+              "independent_unit_id": "salesrep-total-growth",
+              "metadata": {
+                "basis": "same file, action family and preference direction"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_af7b451192f8d5a85ca62c67",
+          "source_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+          "target_memory_id": "epmem_fc91eada9375097ef9d08397",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.758159,
+          "association_strength": 0.76,
+          "node_reliability": 0.969724,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_a5c80757834e4f64c6dceae0",
+              "source_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+              "target_memory_id": "epmem_fc91eada9375097ef9d08397",
+              "source_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "target_ref": "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.76,
+              "confidence": 1.0,
+              "proof_strength": 0.758159,
+              "independent_unit_id": "observation_relation_unit_a9f85942e5b260a9edd32c0e",
+              "metadata": {
+                "basis": "same file and monthly chart workflow"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_b83e27037b4443902ed27324",
+          "source_memory_id": "memory-log-time-resync-request",
+          "target_memory_id": "memory-log-system-time-updated",
+          "relation_type": "causes",
+          "directed": true,
+          "weight": 0.725277,
+          "association_strength": 0.73,
+          "node_reliability": 0.91913,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_fc47da3b0982f1533c16f7b6",
+              "source_memory_id": "memory-log-time-resync-request",
+              "target_memory_id": "memory-log-system-time-updated",
+              "source_ref": "log-w32time-resync-request",
+              "target_ref": "log-w32time-system-time-updated",
+              "relation_type": "causes",
+              "directed": true,
+              "association": 0.73,
+              "confidence": 1.0,
+              "proof_strength": 0.725277,
+              "independent_unit_id": "observation_relation_unit_2f4f3c86c884d810fd22498d",
+              "metadata": {
+                "basis": "request-to-result relation"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_156fb4fd632ef7fea0e8deba",
+          "source_memory_id": "epmem_e068b92b67fcd0eca65ab0ff",
+          "target_memory_id": "epmem_fc91eada9375097ef9d08397",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.684354,
+          "association_strength": 0.69,
+          "node_reliability": 0.897712,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_02cd27d631767f1da93a787e",
+              "source_memory_id": "epmem_e068b92b67fcd0eca65ab0ff",
+              "target_memory_id": "epmem_fc91eada9375097ef9d08397",
+              "source_ref": "query:MULTI_MM06_HQ1",
+              "target_ref": "event:0a2e43bf-b26c-4631-a966-af9dfa12c9e5",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.69,
+              "confidence": 1.0,
+              "proof_strength": 0.684354,
+              "independent_unit_id": "observation_relation_unit_ae004f2fa18b47dcf07808eb",
+              "metadata": {
+                "basis": "same file with overlapping chart objective"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_9e510a7a541ff35237576a20",
+          "source_memory_id": "memory-log-codex-start",
+          "target_memory_id": "memory-text-codex-code-explanation",
+          "relation_type": "activates",
+          "directed": true,
+          "weight": 0.653909,
+          "association_strength": 0.66,
+          "node_reliability": 0.884647,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_9cd1897f5dea99a00983c749",
+              "source_memory_id": "memory-log-codex-start",
+              "target_memory_id": "memory-text-codex-code-explanation",
+              "source_ref": "log-codex-process",
+              "target_ref": "text-codex-rule",
+              "relation_type": "activates",
+              "directed": true,
+              "association": 0.66,
+              "confidence": 1.0,
+              "proof_strength": 0.653909,
+              "independent_unit_id": "observation_relation_unit_5c6f4249eff7fb03951c9d7b",
+              "metadata": {
+                "basis": "application launch can activate an app-scoped preference but does not prove the preference"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        },
+        {
+          "edge_id": "medge_a96df6a375115a0adeb00e5f",
+          "source_memory_id": "epmem_607dd8dcc96c090978abca3b",
+          "target_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+          "relation_type": "related",
+          "directed": false,
+          "weight": 0.609417,
+          "association_strength": 0.61,
+          "node_reliability": 0.988048,
+          "support_count": 1,
+          "evidence": [
+            {
+              "evidence_id": "mre_68c16c1033737e8f0e2377ac",
+              "source_memory_id": "epmem_607dd8dcc96c090978abca3b",
+              "target_memory_id": "epmem_f2e9b4f4cd5aa04606677323",
+              "source_ref": "query:V3_AQ01_Q01",
+              "target_ref": "event:0326d92d-d218-48a8-9ca1-981cd6d064c7",
+              "relation_type": "related",
+              "directed": false,
+              "association": 0.61,
+              "confidence": 1.0,
+              "proof_strength": 0.609417,
+              "independent_unit_id": "observation_relation_unit_00b7fae9bdbc901a33d5285f",
+              "metadata": {
+                "basis": "same file but vague prior-workflow object"
+              },
+              "schema_version": "memory_graph.relation_evidence.v1"
+            }
+          ],
+          "schema_version": "memory_graph.edge.v1"
+        }
+      ],
+      "relation_matrix": {
+        "epmem_f2e9b4f4cd5aa04606677323": {
+          "epmem_e068b92b67fcd0eca65ab0ff": 0.893078,
+          "epmem_fc91eada9375097ef9d08397": 0.758159,
+          "epmem_607dd8dcc96c090978abca3b": 0.609417
+        },
+        "epmem_e068b92b67fcd0eca65ab0ff": {
+          "epmem_f2e9b4f4cd5aa04606677323": 0.893078,
+          "epmem_fc91eada9375097ef9d08397": 0.684354
+        },
+        "epmem_fc91eada9375097ef9d08397": {
+          "epmem_f2e9b4f4cd5aa04606677323": 0.758159,
+          "epmem_e068b92b67fcd0eca65ab0ff": 0.684354
+        },
+        "epmem_607dd8dcc96c090978abca3b": {
+          "epmem_f2e9b4f4cd5aa04606677323": 0.609417
+        },
+        "epmem_d6cb6a6a9d17add5fb28205a": {},
+        "memory-text-codex-code-explanation": {},
+        "memory-log-time-resync-request": {
+          "memory-log-time-source-sync": 0.903059,
+          "memory-log-system-time-updated": 0.725277
+        },
+        "memory-log-time-source-sync": {
+          "memory-log-system-time-updated": 0.935855
+        },
+        "memory-log-system-time-updated": {},
+        "memory-log-dell-power-manager-start": {},
+        "memory-log-codex-start": {
+          "memory-text-codex-code-explanation": 0.653909
+        }
+      },
+      "diagnostics": {
+        "input_signal_count": 9,
+        "admitted_evidence_count": 8,
+        "edge_count": 8,
+        "below_signal_threshold_count": 0,
+        "unresolved_signal_count": 0,
+        "ambiguous_signal_count": 0,
+        "cross_user_signal_count": 0,
+        "self_relation_count": 0,
+        "duplicate_evidence_count": 1,
+        "below_edge_threshold_count": 0
+      },
+      "schema_version": "memory_graph.v1"
+    },
+    "promotion_candidates": [
+      {
+        "episode_id": "episode:latent:salesrep-confirmed",
+        "status": "promotion_candidate",
+        "base_strength": 0.79,
+        "supporting_strength": 0.873257,
+        "conflict_strength": 0.0,
+        "relation_reinforcement": 0.045846,
+        "conflict_penalty": 0.0,
+        "effective_strength": 0.835846,
+        "supporting_episode_ids": [
+          "prefep_35bc82a50474ede2e5319ceb"
+        ],
+        "conflicting_episode_ids": [],
+        "schema_version": "memory_graph.episode_promotion_state.v1",
+        "promotion_candidate": true
+      }
+    ],
+    "diagnostics": {
+      "input_signal_count": 16,
+      "observation_edge_count": 13,
+      "episode_edge_count": 12,
+      "memory_edge_count": 8,
+      "internal_episode_relation_count": 0,
+      "promoted_episode_count": 11,
+      "latent_episode_count": 2,
+      "promotion_candidate_count": 1,
+      "relation_reinforced_episode_count": 4,
+      "below_signal_threshold_count": 3,
+      "below_observation_edge_threshold_count": 0,
+      "below_episode_edge_threshold_count": 0,
+      "unresolved_signal_count": 0,
+      "ambiguous_signal_count": 0,
+      "cross_user_signal_count": 0,
+      "self_relation_count": 0,
+      "duplicate_evidence_count": 0
+    },
+    "schema_version": "memory_graph.layered.v1"
+  }
+}

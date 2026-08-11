@@ -1,0 +1,79 @@
+{
+  "schema_version": "official.memory_query_1000.v1",
+  "selection_policy": {
+    "precedent_case_count": 200,
+    "query_count": 800,
+    "legacy_case_count": 40,
+    "v53_case_count": 160,
+    "queries_per_case": 4,
+    "v53_candidate_pool": "human_review_sample_1000",
+    "v53_track_quotas": {
+      "dialogue_log_complementary": 56,
+      "conflict_resolution": 36,
+      "multi_task_cross_app": 48,
+      "clarification_required": 10,
+      "operation_resume_only": 4,
+      "dialogue_context_only": 6
+    },
+    "answer_fields_used_for_selection": false,
+    "exact_query_text_max_occurrences": 2,
+    "ordering": "four deterministic interleaved rounds"
+  },
+  "counts": {
+    "precedent_cases": 200,
+    "precedent_input_records": 200,
+    "queries": 800,
+    "answer_groups": 200,
+    "legacy_memory_records": 40,
+    "legacy_source_events": 40,
+    "dialogue_events": 500,
+    "operation_events": 1465,
+    "operation_episodes": 212
+  },
+  "query_distribution": {
+    "origin": {
+      "v3.1": 160,
+      "v5.3": 640
+    },
+    "track": {
+      "clarification_required": 40,
+      "conflict_resolution": 144,
+      "dialogue_context_only": 24,
+      "dialogue_log_complementary": 224,
+      "multi_task_cross_app": 192,
+      "operation_resume_only": 16,
+      "single_memory": 160
+    },
+    "query_type": {
+      "contextual_ellipsis": 160,
+      "human_constraint_emphasis": 160,
+      "human_context_explicit": 160,
+      "human_goal_oriented": 160,
+      "low_overlap_paraphrase": 160
+    },
+    "partition": {
+      "dev": 248,
+      "test": 236,
+      "train": 316
+    },
+    "difficulty": {
+      "easy": 72,
+      "hard": 440,
+      "medium": 288
+    }
+  },
+  "duplication": {
+    "unique_query_texts": 731,
+    "max_exact_query_text_occurrences": 2,
+    "exact_query_texts_repeated_twice": 69,
+    "consecutive_same_case": 0,
+    "consecutive_same_text": 0,
+    "omitted_query_types": {
+      "contextual_ellipsis": 40,
+      "human_constraint_emphasis": 40,
+      "human_context_explicit": 40,
+      "human_goal_oriented": 40,
+      "low_overlap_paraphrase": 40
+    }
+  }
+}

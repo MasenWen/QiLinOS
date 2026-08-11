@@ -1,0 +1,417 @@
+[
+  {
+    "id": "SV2-001",
+    "atoms": [
+      {"text": "以后", "label": "temporal"},
+      {"text": "财务汇总", "label": "condition"},
+      {"text": "默认用", "label": "attitude"},
+      {"text": "柱状图", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-002",
+    "atoms": [
+      {"text": "销售趋势分析", "label": "condition"},
+      {"text": "不要用", "label": "attitude"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "改用", "label": "attitude"},
+      {"text": "折线图", "label": "object"},
+      {"text": "颜色", "label": "object"},
+      {"text": "先不用管", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-003",
+    "atoms": [
+      {"text": "本轮报告", "label": "temporal"},
+      {"text": "暂时用", "label": "attitude"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "就行", "label": "attitude"},
+      {"text": "后续", "label": "temporal"},
+      {"text": "再考虑", "label": "attitude"},
+      {"text": "换掉", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-004",
+    "annotation_source": "user",
+    "atoms": [
+      {"text": "之前", "label": "temporal"},
+      {"text": "默认", "label": "attitude"},
+      {"text": "ChatGPT-codex", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-005",
+    "atoms": [
+      {"text": "仿照", "label": "attitude"},
+      {"text": "上次", "label": "temporal"},
+      {"text": "样式", "label": "object"},
+      {"text": "monthly_report.pdf", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-006",
+    "annotation_source": "user",
+    "atoms": [
+      {"text": "预算比较", "label": "condition"},
+      {"text": "柱形图", "label": "object"},
+      {"text": "不太适合", "label": "attitude"},
+      {"text": "折线图", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-007",
+    "atoms": [
+      {"text": "今天", "label": "temporal"},
+      {"text": "先不要用", "label": "attitude"},
+      {"text": "公司API", "label": "object"},
+      {"text": "报价表", "label": "object"},
+      {"text": "手工核一下", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-008",
+    "atoms": [
+      {"text": "刚刚", "label": "temporal"},
+      {"text": "柱状图预览", "label": "object"},
+      {"text": "六月预算表", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-009",
+    "atoms": [
+      {"text": "柱状图", "label": "object"},
+      {"text": "差强人意", "label": "attitude"},
+      {"text": "先保留", "label": "attitude"},
+      {"text": "后面", "label": "temporal"},
+      {"text": "再说", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-010",
+    "atoms": [
+      {"text": "研发周报", "label": "condition"},
+      {"text": "后续", "label": "temporal"},
+      {"text": "别再这么处理", "label": "attitude"},
+      {"text": "老样子", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-011",
+    "atoms": [
+      {"text": "sales_report.xlsx", "label": "object"},
+      {"text": "只是查看", "label": "attitude"},
+      {"text": "不要写成偏好", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-012",
+    "atoms": [
+      {"text": "外发邮件场景", "label": "condition"},
+      {"text": "每次", "label": "temporal"},
+      {"text": "先让我确认", "label": "attitude"},
+      {"text": "有必要的话", "label": "condition"},
+      {"text": "代码助手", "label": "object"},
+      {"text": "润色", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-013",
+    "annotation_source": "user",
+    "atoms": [
+      {"text": "当前会话", "label": "temporal"},
+      {"text": "先按", "label": "attitude"},
+      {"text": "这个模板", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-014",
+    "atoms": [
+      {"text": "以后", "label": "temporal"},
+      {"text": "默认不要", "label": "attitude"},
+      {"text": "这个", "label": "object"},
+      {"text": "改成", "label": "attitude"},
+      {"text": "那个", "label": "object"},
+      {"text": "备注部分", "label": "condition"},
+      {"text": "可以忽略", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-015",
+    "atoms": [
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "优先用", "label": "attitude"},
+      {"text": "柱状图", "label": "object", "occurrence": 0},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "避免", "label": "attitude"},
+      {"text": "柱状图", "label": "object", "occurrence": 1}
+    ]
+  },
+  {
+    "id": "SV2-016",
+    "atoms": [
+      {"text": "柱状图", "label": "object"},
+      {"text": "折线图", "label": "object"},
+      {"text": "暂时", "label": "temporal"},
+      {"text": "没有新的偏好", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-017",
+    "atoms": [
+      {"text": "上次", "label": "temporal"},
+      {"text": "保持一致", "label": "attitude"},
+      {"text": "这次", "label": "temporal"},
+      {"text": "先", "label": "temporal"},
+      {"text": "异常值", "label": "object"},
+      {"text": "标红", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-018",
+    "annotation_source": "user",
+    "atoms": [
+      {"text": "以后统一", "label": "temporal"},
+      {"text": "ChatGPT Codex", "label": "object"},
+      {"text": "代码解释", "label": "condition"}
+    ]
+  },
+  {
+    "id": "SV2-019",
+    "atoms": [
+      {"text": "报价", "label": "condition"},
+      {"text": "不要再默认走", "label": "attitude"},
+      {"text": "报价表", "label": "object"},
+      {"text": "改用", "label": "attitude"},
+      {"text": "公司API", "label": "object"},
+      {"text": "除非", "label": "condition"},
+      {"text": "API", "label": "object", "occurrence": 1},
+      {"text": "不可用", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-020",
+    "atoms": [
+      {"text": "这个方案", "label": "object"},
+      {"text": "看着怪怪的", "label": "attitude"},
+      {"text": "先别动", "label": "attitude"},
+      {"text": "等用户确认", "label": "temporal"}
+    ]
+  },
+  {
+    "id": "SV2-021",
+    "atoms": [
+      {"text": "预算图表", "label": "condition"},
+      {"text": "今天", "label": "temporal"},
+      {"text": "先按", "label": "attitude"},
+      {"text": "之前的样式", "label": "object"},
+      {"text": "数据源", "label": "condition"},
+      {"text": "六月预算表", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-022",
+    "atoms": [
+      {"text": "这个展示方式", "label": "object"},
+      {"text": "好像也不是不行", "label": "attitude"},
+      {"text": "先别改", "label": "attitude"},
+      {"text": "下次评审", "label": "temporal"},
+      {"text": "再说", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-023",
+    "atoms": [
+      {"text": "这个", "label": "object"},
+      {"text": "先照旧", "label": "attitude"},
+      {"text": "那个", "label": "object"},
+      {"text": "暂时不用管", "label": "attitude"},
+      {"text": "报价表", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-024",
+    "atoms": [
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "继续用", "label": "attitude"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "还是改成", "label": "attitude"},
+      {"text": "折线图", "label": "object"},
+      {"text": "代码解释", "label": "condition"},
+      {"text": "照旧交给", "label": "attitude"},
+      {"text": "Codex", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-025",
+    "atoms": [
+      {"text": "报价邮件", "label": "object"},
+      {"text": "发出前", "label": "temporal"},
+      {"text": "仍然让我确认", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-026",
+    "atoms": [
+      {"text": "文件", "label": "object"},
+      {"text": "临时查看", "label": "attitude"},
+      {"text": "不代表", "label": "attitude"},
+      {"text": "以后", "label": "temporal"},
+      {"text": "这么做", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-027",
+    "atoms": [
+      {"text": "柱状图", "label": "object"},
+      {"text": "不能说完全不好", "label": "attitude"},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "不太想继续用", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-028",
+    "atoms": [
+      {"text": "以后", "label": "temporal"},
+      {"text": "大概", "label": "attitude"},
+      {"text": "那个", "label": "object"},
+      {"text": "具体哪个", "label": "object"},
+      {"text": "等我确认", "label": "temporal"}
+    ]
+  },
+  {
+    "id": "SV2-029",
+    "atoms": [
+      {"text": "刚才", "label": "temporal"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "撤回", "label": "attitude"},
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "改成", "label": "attitude"},
+      {"text": "折线图", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-030",
+    "atoms": [
+      {"text": "通常使用", "label": "attitude"},
+      {"text": "公司API", "label": "object"},
+      {"text": "除非网络不稳定", "label": "condition"},
+      {"text": "那时", "label": "temporal"},
+      {"text": "手工核对", "label": "attitude"},
+      {"text": "报价表", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-031",
+    "atoms": [
+      {"text": "季度报告", "label": "object"},
+      {"text": "外发前", "label": "temporal"},
+      {"text": "先让我确认", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-032",
+    "atoms": [
+      {"text": "以后", "label": "temporal"},
+      {"text": "代码解释", "label": "condition"},
+      {"text": "尽量用", "label": "attitude"},
+      {"text": "ChatGPT Codex", "label": "object"},
+      {"text": "普通聊天", "label": "condition"},
+      {"text": "随意", "label": "attitude"},
+      {"text": "今晚", "label": "temporal"},
+      {"text": "先不用改", "label": "attitude"},
+      {"text": "设置", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-033",
+    "atoms": [
+      {"text": "前两次", "label": "temporal"},
+      {"text": "一样处理", "label": "attitude"},
+      {"text": "颜色", "label": "object"},
+      {"text": "不用完全一致", "label": "attitude"},
+      {"text": "异常值", "label": "object"},
+      {"text": "标出来", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-034",
+    "atoms": [
+      {"text": "柱状图", "label": "object"},
+      {"text": "差强人意", "label": "attitude"},
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "勉强能用", "label": "attitude"},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "算了", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-035",
+    "atoms": [
+      {"text": "公司API", "label": "object"},
+      {"text": "不是我的偏好", "label": "attitude"},
+      {"text": "服务不可用", "label": "condition"}
+    ]
+  },
+  {
+    "id": "SV2-036",
+    "atoms": [
+      {"text": "外部客户", "label": "condition"},
+      {"text": "附件", "label": "condition"},
+      {"text": "报价表", "label": "object"},
+      {"text": "发送邮件之前", "label": "temporal"},
+      {"text": "必须让我确认", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-037",
+    "atoms": [
+      {"text": "这周", "label": "temporal"},
+      {"text": "先按", "label": "attitude"},
+      {"text": "旧模板", "label": "object"},
+      {"text": "下个月开始", "label": "temporal"},
+      {"text": "统一换", "label": "attitude"},
+      {"text": "新模板", "label": "object"},
+      {"text": "历史文件", "label": "condition"},
+      {"text": "不要动", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-038",
+    "atoms": [
+      {"text": "前一个", "label": "object"},
+      {"text": "保留", "label": "attitude"},
+      {"text": "后一个", "label": "object"},
+      {"text": "换掉", "label": "attitude"},
+      {"text": "默认设置", "label": "condition"},
+      {"text": "以后", "label": "temporal"},
+      {"text": "再谈", "label": "attitude"}
+    ]
+  },
+  {
+    "id": "SV2-039",
+    "atoms": [
+      {"text": "Q3-sales_report.final.xlsx", "label": "object"},
+      {"text": "别修改", "label": "attitude"},
+      {"text": "不用记住", "label": "attitude"},
+      {"text": "这个操作", "label": "object"}
+    ]
+  },
+  {
+    "id": "SV2-040",
+    "atoms": [
+      {"text": "季度汇总", "label": "condition"},
+      {"text": "销售趋势", "label": "condition"},
+      {"text": "继续用", "label": "attitude"},
+      {"text": "柱状图", "label": "object"},
+      {"text": "预算比较", "label": "condition"},
+      {"text": "改成", "label": "attitude"},
+      {"text": "折线图", "label": "object"},
+      {"text": "附录里的旧图", "label": "condition"},
+      {"text": "不要动", "label": "attitude"},
+      {"text": "完成后", "label": "temporal"}
+    ]
+  }
+]

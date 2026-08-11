@@ -12,6 +12,24 @@ rag_storage/
 uploads/
 milvus_demo.db/
 .env
+.eval_deps/
+
+# Memory-system evaluation workspaces and rebuildable runtime state.
+.strict_memory_engine_eval/
+experiments/
+outputs/
+runtime/
+
+# Generated databases and transfer bundles.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
 
 
 test_threat.py

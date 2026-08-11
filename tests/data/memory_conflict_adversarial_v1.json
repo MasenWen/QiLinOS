@@ -1,0 +1,180 @@
+{
+  "schema_version": "memory_conflict.benchmark.v1",
+  "memory_defaults": {
+    "user_id": "user-1",
+    "confidence": 0.82,
+    "source_kind": "text",
+    "observed_at": "2026-01-01T09:00:00Z",
+    "cardinality": "single",
+    "conditions": {},
+    "condition_tag_ids": [],
+    "valid_from": "",
+    "valid_to": "",
+    "supersedes_memory_ids": [],
+    "evidence_strength": 0.9,
+    "metadata": {}
+  },
+  "slot_aliases": {},
+  "cases": [
+    {
+      "id": "A001",
+      "split": "validation",
+      "description": "A leading negative sign is meaningful.",
+      "left": {"memory_id": "a001-left", "slot_key": "temperature_offset", "value": "-5"},
+      "right": {"memory_id": "a001-right", "slot_key": "temperature_offset", "value": "5"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A002",
+      "split": "validation",
+      "description": "Programming language punctuation is meaningful.",
+      "left": {"memory_id": "a002-left", "slot_key": "language", "value": "C++"},
+      "right": {"memory_id": "a002-right", "slot_key": "language", "value": "C"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A003",
+      "split": "validation",
+      "description": "Version punctuation is meaningful.",
+      "left": {"memory_id": "a003-left", "slot_key": "api_version", "value": "v1.2"},
+      "right": {"memory_id": "a003-right", "slot_key": "api_version", "value": "v12"},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A004",
+      "split": "validation",
+      "description": "Different condition axes can hold simultaneously.",
+      "left": {"memory_id": "a004-left", "slot_key": "default_chart", "value": "bar", "condition_tag_ids": ["condition:place:work"]},
+      "right": {"memory_id": "a004-right", "slot_key": "default_chart", "value": "line", "condition_tag_ids": ["condition:device:mobile"]},
+      "expected": {"conflict_type": "static", "penalty": "none", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A005",
+      "split": "validation",
+      "description": "Different values on the same condition axis partition behavior.",
+      "left": {"memory_id": "a005-left", "slot_key": "default_chart", "value": "bar", "condition_tag_ids": ["condition:place:work"]},
+      "right": {"memory_id": "a005-right", "slot_key": "default_chart", "value": "line", "condition_tag_ids": ["condition:place:home"]},
+      "expected": {"conflict_type": "conditional", "penalty": "none", "linked": true, "relation_type": "conditional_alternative", "directed": false}
+    },
+    {
+      "id": "A006",
+      "split": "validation",
+      "description": "Explicit supersession survives a condition correction.",
+      "left": {"memory_id": "a006-old", "slot_key": "default_chart", "value": "bar", "conditions": {"place": "work"}},
+      "right": {"memory_id": "a006-new", "slot_key": "default_chart", "value": "line", "conditions": {"place": "home"}, "supersedes_memory_ids": ["a006-old"]},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "a006-old", "successor_memory_id": "a006-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "A007",
+      "split": "validation",
+      "description": "One absent validity scope cannot be inferred from observation time.",
+      "left": {"memory_id": "a007-unscoped", "slot_key": "default_chart", "value": "bar"},
+      "right": {"memory_id": "a007-scoped", "slot_key": "default_chart", "value": "line", "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2027-01-01T00:00:00Z"},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "A008",
+      "split": "validation",
+      "description": "Validity rather than ingestion time orders backfilled history.",
+      "left": {"memory_id": "a008-history", "slot_key": "active_project", "value": "P100", "observed_at": "2027-01-01T00:00:00Z", "valid_from": "2025-01-01T00:00:00Z", "valid_to": "2026-01-01T00:00:00Z"},
+      "right": {"memory_id": "a008-current", "slot_key": "active_project", "value": "P200", "observed_at": "2026-01-01T00:00:00Z", "valid_from": "2026-01-01T00:00:00Z", "valid_to": "2027-01-01T00:00:00Z"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "a008-history", "successor_memory_id": "a008-current", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "A009",
+      "split": "validation",
+      "description": "Mutual supersession is invalid evidence rather than a direction.",
+      "left": {"memory_id": "a009-left", "slot_key": "assistant", "value": "Codex", "supersedes_memory_ids": ["a009-right"]},
+      "right": {"memory_id": "a009-right", "slot_key": "assistant", "value": "ChatGPT", "supersedes_memory_ids": ["a009-left"]},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "A010",
+      "split": "validation",
+      "description": "A full ranking can conflict below the first item.",
+      "left": {"memory_id": "a010-left", "slot_key": "tool_rank", "value": ["A", "B", "C"], "cardinality": "ranked", "metadata": {"ranking_semantics": "full"}},
+      "right": {"memory_id": "a010-right", "slot_key": "tool_rank", "value": ["A", "C", "B"], "cardinality": "ranked", "metadata": {"ranking_semantics": "full"}},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A011",
+      "split": "validation",
+      "description": "A broad and a narrow condition overlap on the narrow scope.",
+      "left": {"memory_id": "a011-broad", "slot_key": "default_chart", "value": "bar", "conditions": {"app": "spreadsheet"}},
+      "right": {"memory_id": "a011-narrow", "slot_key": "default_chart", "value": "line", "conditions": {"app": "spreadsheet", "task": "budget"}},
+      "expected": {"conflict_type": "static", "penalty": "none", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A012",
+      "split": "validation",
+      "description": "Untyped raw condition tags are not assumed mutually exclusive.",
+      "left": {"memory_id": "a012-left", "slot_key": "template", "value": "A", "condition_tag_ids": ["work"]},
+      "right": {"memory_id": "a012-right", "slot_key": "template", "value": "B", "condition_tag_ids": ["mobile"]},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "A013",
+      "split": "validation",
+      "description": "Mismatched slot cardinality needs schema resolution.",
+      "left": {"memory_id": "a013-left", "slot_key": "tool", "value": "Codex", "cardinality": "single"},
+      "right": {"memory_id": "a013-right", "slot_key": "tool", "value": ["Codex"], "cardinality": "set"},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "A014",
+      "split": "validation",
+      "description": "Additive sets can accumulate.",
+      "left": {"memory_id": "a014-left", "slot_key": "favorite_tools", "value": ["Excel"], "cardinality": "set", "metadata": {"set_semantics": "additive"}},
+      "right": {"memory_id": "a014-right", "slot_key": "favorite_tools", "value": ["Codex"], "cardinality": "set", "metadata": {"set_semantics": "additive"}},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "A015",
+      "split": "validation",
+      "description": "Snapshot sets conflict when their complete contents differ.",
+      "left": {"memory_id": "a015-left", "slot_key": "enabled_tools", "value": ["Excel"], "cardinality": "set", "metadata": {"set_semantics": "snapshot"}},
+      "right": {"memory_id": "a015-right", "slot_key": "enabled_tools", "value": ["Codex"], "cardinality": "set", "metadata": {"set_semantics": "snapshot"}},
+      "expected": {"conflict_type": "static", "penalty": "both", "linked": true, "relation_type": "conflicts", "directed": false}
+    },
+    {
+      "id": "A016",
+      "split": "validation",
+      "description": "Different set merge contracts cannot be compared safely.",
+      "left": {"memory_id": "a016-left", "slot_key": "enabled_tools", "value": ["Excel"], "cardinality": "set", "metadata": {"set_semantics": "additive"}},
+      "right": {"memory_id": "a016-right", "slot_key": "enabled_tools", "value": ["Codex"], "cardinality": "set", "metadata": {"set_semantics": "snapshot"}},
+      "expected": {"conflict_type": "unresolved", "penalty": "both", "linked": true, "relation_type": "possible_conflict", "directed": false}
+    },
+    {
+      "id": "A017",
+      "split": "validation",
+      "description": "Word separators remain canonicalized.",
+      "left": {"memory_id": "a017-left", "slot_key": "model", "value": "ChatGPT-Codex"},
+      "right": {"memory_id": "a017-right", "slot_key": "model", "value": "chatgpt codex"},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "A018",
+      "split": "validation",
+      "description": "Open validity bounds still preserve a touching temporal transition.",
+      "left": {"memory_id": "a018-old", "slot_key": "time_source", "value": "local", "valid_to": "2026-01-01T00:00:00Z"},
+      "right": {"memory_id": "a018-new", "slot_key": "time_source", "value": "ntp", "valid_from": "2026-01-01T00:00:00Z"},
+      "expected": {"conflict_type": "dynamic", "penalty": "predecessor", "predecessor_memory_id": "a018-old", "successor_memory_id": "a018-new", "linked": true, "relation_type": "supersedes", "directed": true}
+    },
+    {
+      "id": "A019",
+      "split": "validation",
+      "description": "Equivalent full snapshot sets are compatible.",
+      "left": {"memory_id": "a019-left", "slot_key": "enabled_tools", "value": ["Excel", "Codex"], "cardinality": "set", "metadata": {"set_semantics": "snapshot"}},
+      "right": {"memory_id": "a019-right", "slot_key": "enabled_tools", "value": ["Codex", "Excel"], "cardinality": "set", "metadata": {"set_semantics": "snapshot"}},
+      "expected": {"conflict_type": "none", "penalty": "none", "linked": false}
+    },
+    {
+      "id": "A020",
+      "split": "validation",
+      "description": "A weaker log claim receives the larger static penalty.",
+      "left": {"memory_id": "a020-text", "slot_key": "time_source", "value": "ntp", "source_kind": "text", "confidence": 0.94},
+      "right": {"memory_id": "a020-log", "slot_key": "time_source", "value": "local", "source_kind": "log_event", "confidence": 0.48},
+      "expected": {"conflict_type": "static", "penalty": "both", "weaker_memory_id": "a020-log", "linked": true, "relation_type": "conflicts", "directed": false}
+    }
+  ]
+}

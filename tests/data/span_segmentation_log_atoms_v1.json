@@ -1,0 +1,58 @@
+[
+  {
+    "id": "LOG-001",
+    "annotation_source": "user_log",
+    "atoms": [
+      {"text": "W32time Service", "label": "object"},
+      {"text": "rediscover its time sources", "label": "event"},
+      {"text": "resynchronize time", "label": "event"},
+      {"text": "Reason Code:0", "label": "value"},
+      {
+        "text": "An explicit time resynchronization request from an administrator",
+        "label": "condition"
+      },
+      {"text": "The time service", "label": "object"},
+      {"text": "synchronizing the system time", "label": "event"},
+      {"text": "reference time source", "label": "object"},
+      {"text": "time.windows.com,0x9", "label": "object"},
+      {"text": "W32time service", "label": "object"},
+      {"text": "set the system time", "label": "event"},
+      {"text": "2026-07-26T06:48:32.986Z(UTC)", "label": "temporal"},
+      {"text": "Previous system time", "label": "object"},
+      {"text": "2026-07-26T06:48:30.680Z(UTC)", "label": "temporal"}
+    ]
+  },
+  {
+    "id": "LOG-002",
+    "annotation_source": "user_log",
+    "atoms": [
+      {"text": "程序包", "label": "relation"},
+      {
+        "text": "DellInc.DellPowerManager_3.14.40.0_x64__htrsf667h5kn2",
+        "label": "object"
+      },
+      {"text": "应用程序", "label": "relation"},
+      {
+        "text": "DellInc.DellPowerManager_htrsf667h5kn2!App",
+        "label": "object"
+      },
+      {"text": "创建进程", "label": "event"},
+      {"text": "19328", "label": "value"}
+    ]
+  },
+  {
+    "id": "LOG-003",
+    "annotation_source": "user_log",
+    "atoms": [
+      {"text": "程序包", "label": "relation"},
+      {
+        "text": "OpenAI.Codex_26.721.4979.0_x64__2p2nqsd0c76g0",
+        "label": "object"
+      },
+      {"text": "应用程序", "label": "relation"},
+      {"text": "OpenAI.Codex_2p2nqsd0c76g0!App", "label": "object"},
+      {"text": "创建进程", "label": "event"},
+      {"text": "18732", "label": "value"}
+    ]
+  }
+]

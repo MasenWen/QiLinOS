@@ -1,0 +1,2295 @@
+{
+  "purpose": "Offline, leakage-free comparison of conservative boundary repair and global semi-Markov Episode decoding.",
+  "gold_used_after_grouping_only": true,
+  "condition_score_gate": {
+    "min_top_similarity": 0.7,
+    "min_top_margin": 0.03,
+    "null_condition_events_with_score_view": 22,
+    "null_condition_score_coverage": 0.18487394957983194
+  },
+  "object_typing": {
+    "relation_tag_ids": [
+      "object:preference_versioning"
+    ],
+    "substantive_by_default": true,
+    "note": "conflict_scope remains substantive because its meaning depends on sentence direction and context."
+  },
+  "baseline": {
+    "metrics": {
+      "event_count": 318,
+      "gold_episode_count": 150,
+      "predicted_episode_count": 153,
+      "merge_precision": 0.6339285714285714,
+      "merge_recall": 0.7171717171717171,
+      "exact_episode_rate": 0.72,
+      "intact_gold_episode_rate": 0.7866666666666666,
+      "pure_predicted_episode_rate": 0.8366013071895425,
+      "boundary_precision": 0.7894736842105263,
+      "boundary_recall": 0.8053691275167785,
+      "overmerged_predicted_episodes": 25,
+      "split_gold_episodes": 32
+    },
+    "boundary_count": 152,
+    "reason_counts": {
+      "initial": 1,
+      "condition_overlap": 61,
+      "condition_conflict": 144,
+      "semantic_unknown_keep": 66,
+      "object_overlap": 35,
+      "object_bridge_compatible": 3,
+      "object_conflict": 8
+    }
+  },
+  "bidirectional_repair": {
+    "metrics": {
+      "event_count": 318,
+      "gold_episode_count": 150,
+      "predicted_episode_count": 152,
+      "merge_precision": 0.6299559471365639,
+      "merge_recall": 0.7222222222222222,
+      "exact_episode_rate": 0.72,
+      "intact_gold_episode_rate": 0.7933333333333333,
+      "pure_predicted_episode_rate": 0.8355263157894737,
+      "boundary_precision": 0.7947019867549668,
+      "boundary_recall": 0.8053691275167785,
+      "overmerged_predicted_episodes": 25,
+      "split_gold_episodes": 31
+    },
+    "runtime_ms": 2.1269358694553375,
+    "boundary_count": 151,
+    "changed_boundary_count": 1,
+    "decision_reason_counts": {
+      "abstain_no_discriminative_evidence": 58,
+      "abstain_insufficient_gain": 25,
+      "abstain_ambiguous_boundary": 1,
+      "decisive_bidirectional_evidence_collapse": 1
+    },
+    "changed_decisions": [
+      {
+        "left_anchor_event_id": "DIALOGUE_V4_EVT_0009753",
+        "right_anchor_event_id": "DIALOGUE_V4_EVT_0009755",
+        "old_boundary": 247,
+        "new_boundary": 246,
+        "changed": true,
+        "reason": "decisive_bidirectional_evidence_collapse",
+        "old_score": -0.10449466705322263,
+        "new_score": -0.10449466705322263,
+        "runner_up_score": -0.170610249042511,
+        "evidence_event_ids": [
+          "DIALOGUE_V4_EVT_0009754"
+        ],
+        "old_boundaries": [
+          246,
+          247
+        ]
+      }
+    ],
+    "errors": {
+      "overmerged": [
+        {
+          "group_id": "optimized-episode-0019",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000602",
+            "DIALOGUE_V4_EP_000603"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0019"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001116",
+              "gold_episode_id": "DIALOGUE_V4_EP_000602",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:security_boundary",
+              "text": "我不想每次都重新解释，处理内部会议安排时，没有明确权限的共享目录不要写入。 脱敏后的内容也要保留来源记录。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001117",
+              "gold_episode_id": "DIALOGUE_V4_EP_000602",
+              "condition": "condition:task:7a0520943285",
+              "object": null,
+              "text": "补充一下，即使只是安排部门例会的草稿，也按这个规则执行。 处理范围只限我明确指定的内容。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001118",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我先把要求说清楚，处理合同金额和客户信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0022",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000605",
+            "DIALOGUE_V4_EP_000801"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0022"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001122",
+              "gold_episode_id": "DIALOGUE_V4_EP_000605",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": null,
+              "text": "为了后面省事，处理候选人个人信息时，对外发送前先停在预览界面，等我确认收件人。 脱敏后的内容也要保留来源记录。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001123",
+              "gold_episode_id": "DIALOGUE_V4_EP_000605",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": null,
+              "text": "对了，即使只是处理招聘面试安排的草稿，也按这个规则执行。 特别是涉及候选人个人信息的时候。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001514",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": null,
+              "object": null,
+              "text": "以前这类结果我都要长摘要。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0023",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000801",
+            "DIALOGUE_V4_EP_000802"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0023"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001515",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001516",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001517",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001518",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "为了后面省事，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 别让新旧两套规则同时生效。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0024",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000802",
+            "DIALOGUE_V4_EP_000803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0024"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001519",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": "condition:task:afb57653a33b",
+              "object": "object:preference_versioning",
+              "text": "先说明一下，这条不只用于年度合同资料，以后在邮件、文档和表格里碰到合同版本和签署状态也一样。 别让新旧两套规则同时生效。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001520",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "先说明一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001521",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 后续再改我会明确告诉你。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0027",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000804",
+            "DIALOGUE_V4_EP_000805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0027"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001525",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": "object:preference_versioning",
+              "text": "这条不只用于面试安排表.xlsx，以后在邮件、文档和表格里碰到候选人时间和面试官空档也一样。 处理候选人时间和面试官空档时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001526",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": null,
+              "text": "这个细节容易弄错，以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001527",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "现在改成先给结论，细节按需展开，旧的做法作废。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0050",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_001801",
+            "DIALOGUE_V4_EP_001802",
+            "DIALOGUE_V4_EP_001803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0050"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003716",
+              "gold_episode_id": "DIALOGUE_V4_EP_001801",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "我先把要求说清楚，这条只对本次有效，处理完还是恢复我原来的习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003717",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "为了后面省事，平时会议都优先安排在下午。 临时要求不要覆盖原来的长期规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003718",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": "condition:task:c5e372f88a8c",
+              "object": null,
+              "text": "不过这次编写客户周报先把完整明细给我。 我这次会单独检查结果。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003719",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "你记录的时候注意，这条只对本次有效，处理完还是恢复我原来的习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003720",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": null,
+              "object": null,
+              "text": "我通常不允许自动对外发送。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0051",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_001803",
+            "DIALOGUE_V4_EP_001804",
+            "DIALOGUE_V4_EP_001805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0051"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003721",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": "condition:task:8ceded110e8c",
+              "object": null,
+              "text": "我不想每次都重新解释，但这次季度汇报.pptx可以直接覆盖，因为我已经备份了。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003722",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "为了后面省事，这条只对本次有效，处理完还是恢复我原来的习惯。 下一次还是按原来的规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003723",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": null,
+              "text": "我不想每次都重新解释，我通常不允许自动对外发送。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003724",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": null,
+              "text": "我先把要求说清楚，这次时间紧，上午有空档就安排。 我这次会单独检查结果。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003725",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "这条只对本次有效，处理完还是恢复我原来的习惯。 别把它覆盖成长期习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003726",
+              "gold_episode_id": "DIALOGUE_V4_EP_001805",
+              "condition": null,
+              "object": null,
+              "text": "我先把要求说清楚，平时会议都优先安排在下午。 我明确说了只限本次就不要延续。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0069",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_002601",
+            "DIALOGUE_V4_EP_002602"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0069"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005433",
+              "gold_episode_id": "DIALOGUE_V4_EP_002601",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "处理跨部门决策信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005434",
+              "gold_episode_id": "DIALOGUE_V4_EP_002601",
+              "condition": "condition:task:2b4da6b96a71",
+              "object": null,
+              "text": "别漏了，即使只是组织跨部门评审会的草稿，也按这个规则执行。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005435",
+              "gold_episode_id": "DIALOGUE_V4_EP_002602",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我不想每次都重新解释，处理团队工作安排时，只在本机处理，不要上传到外部网站。"
+            }
+          ]
+        }
+      ],
+      "split": [
+        {
+          "group_id": "DIALOGUE_V4_EP_000002",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000002"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0002",
+            "optimized-episode-0003"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000003",
+              "gold_episode_id": "DIALOGUE_V4_EP_000002",
+              "condition": "condition:task:ecdaeee2db25",
+              "object": "object:result_selection",
+              "text": "我不想每次都重新解释，用表格筛选工具核对差旅报销明细时，先把成功、失败和需要确认的结果分开。 结果来源也一起保留。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000004",
+              "gold_episode_id": "DIALOGUE_V4_EP_000002",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:result_selection",
+              "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 能看出差异的地方顺手标出来。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000004",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000004"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0005",
+            "optimized-episode-0006"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000007",
+              "gold_episode_id": "DIALOGUE_V4_EP_000004",
+              "condition": "condition:task:8ceded110e8c",
+              "object": "object:result_selection",
+              "text": "你记录的时候注意，用演示文稿生成工具准备季度汇报时，先按修改时间倒序排，只给我看最新的三项。 尤其留意目标完成情况这部分。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000008",
+              "gold_episode_id": "DIALOGUE_V4_EP_000004",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:result_selection",
+              "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 结果来源也一起保留。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000603",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000603"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0019",
+            "optimized-episode-0020"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001118",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我先把要求说清楚，处理合同金额和客户信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001119",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": "condition:task:afb57653a33b",
+              "object": null,
+              "text": "别漏了，即使只是归档合同文件的草稿，也按这个规则执行。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000801",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000801"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0022",
+            "optimized-episode-0023"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001514",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": null,
+              "object": null,
+              "text": "以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001515",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001516",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000802",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000802"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0023",
+            "optimized-episode-0024"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001517",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001518",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "为了后面省事，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 别让新旧两套规则同时生效。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001519",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": "condition:task:afb57653a33b",
+              "object": "object:preference_versioning",
+              "text": "先说明一下，这条不只用于年度合同资料，以后在邮件、文档和表格里碰到合同版本和签署状态也一样。 别让新旧两套规则同时生效。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000803",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0024",
+            "optimized-episode-0025"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001520",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "先说明一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001521",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 后续再改我会明确告诉你。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001522",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": "condition:task:9429c36cc760",
+              "object": "object:preference_versioning",
+              "text": "麻烦记一下，这条不只用于销售预测_2026.xlsx，以后在邮件、文档和表格里碰到华东区第三季度预测也一样。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000804",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000804"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0026",
+            "optimized-episode-0027"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001523",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:preference_versioning",
+              "text": "麻烦记一下，之前我习惯按文件名判断版本。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001524",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "我不想每次都重新解释，现在改成先给结论，细节按需展开，旧的做法作废。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001525",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": "object:preference_versioning",
+              "text": "这条不只用于面试安排表.xlsx，以后在邮件、文档和表格里碰到候选人时间和面试官空档也一样。 处理候选人时间和面试官空档时同样适用。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000805",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0027",
+            "optimized-episode-0028"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001526",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": null,
+              "text": "这个细节容易弄错，以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001527",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "现在改成先给结论，细节按需展开，旧的做法作废。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001528",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": "condition:task:6c5310de550b",
+              "object": "object:preference_versioning",
+              "text": "这点对我挺重要的：这条不只用于经营月报.xlsx，以后在邮件、文档和表格里碰到华东区经营数据也一样。 新规则生效后要停止调用旧规则。"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "global_decoder": {
+    "metrics": {
+      "event_count": 318,
+      "gold_episode_count": 150,
+      "predicted_episode_count": 152,
+      "merge_precision": 0.6228070175438597,
+      "merge_recall": 0.7171717171717171,
+      "exact_episode_rate": 0.7133333333333334,
+      "intact_gold_episode_rate": 0.7866666666666666,
+      "pure_predicted_episode_rate": 0.8289473684210527,
+      "boundary_precision": 0.7880794701986755,
+      "boundary_recall": 0.7986577181208053,
+      "overmerged_predicted_episodes": 26,
+      "split_gold_episodes": 32
+    },
+    "runtime_ms": 227.22690412774682,
+    "boundary_count": 151,
+    "score": 180.50132091522286,
+    "changed_boundary_positions": [
+      303
+    ],
+    "segments": [
+      {
+        "start": 0,
+        "end": 2,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 2.04
+      },
+      {
+        "start": 2,
+        "end": 3,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 0.86
+      },
+      {
+        "start": 3,
+        "end": 4,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": -0.05715205907821583
+      },
+      {
+        "start": 4,
+        "end": 6,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.86
+      },
+      {
+        "start": 6,
+        "end": 7,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.86
+      },
+      {
+        "start": 7,
+        "end": 8,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": -0.05019484996795617
+      },
+      {
+        "start": 8,
+        "end": 10,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 1.86
+      },
+      {
+        "start": 10,
+        "end": 12,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 0.9
+      },
+      {
+        "start": 12,
+        "end": 14,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.9
+      },
+      {
+        "start": 14,
+        "end": 15,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.86
+      },
+      {
+        "start": 15,
+        "end": 17,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 0.9
+      },
+      {
+        "start": 17,
+        "end": 18,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 0.86
+      },
+      {
+        "start": 18,
+        "end": 19,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.86
+      },
+      {
+        "start": 19,
+        "end": 21,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 21,
+        "end": 23,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 23,
+        "end": 24,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 0.86
+      },
+      {
+        "start": 24,
+        "end": 26,
+        "condition_tag_id": "condition:task:9429c36cc760",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 26,
+        "end": 28,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.9117486214637728
+      },
+      {
+        "start": 28,
+        "end": 31,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 0.9402009606361418
+      },
+      {
+        "start": 31,
+        "end": 32,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 0.86
+      },
+      {
+        "start": 32,
+        "end": 34,
+        "condition_tag_id": "condition:task:9429c36cc760",
+        "score": 1.0596953248977676
+      },
+      {
+        "start": 34,
+        "end": 37,
+        "condition_tag_id": "condition:task:ab9de2b8a362",
+        "score": 0.8982269084453526
+      },
+      {
+        "start": 37,
+        "end": 41,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 1.86
+      },
+      {
+        "start": 41,
+        "end": 44,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 0.86
+      },
+      {
+        "start": 44,
+        "end": 45,
+        "condition_tag_id": "condition:task:9429c36cc760",
+        "score": 0.86
+      },
+      {
+        "start": 45,
+        "end": 47,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": -0.053067489862442
+      },
+      {
+        "start": 47,
+        "end": 50,
+        "condition_tag_id": "condition:task:ab9de2b8a362",
+        "score": 0.86
+      },
+      {
+        "start": 50,
+        "end": 51,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 0.86
+      },
+      {
+        "start": 51,
+        "end": 53,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 53,
+        "end": 55,
+        "condition_tag_id": "condition:task:9429c36cc760",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 55,
+        "end": 57,
+        "condition_tag_id": "condition:task:ab9de2b8a362",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 57,
+        "end": 59,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 59,
+        "end": 61,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 61,
+        "end": 63,
+        "condition_tag_id": "condition:task:9429c36cc760",
+        "score": 1.86
+      },
+      {
+        "start": 63,
+        "end": 65,
+        "condition_tag_id": "condition:task:ab9de2b8a362",
+        "score": 1.86
+      },
+      {
+        "start": 65,
+        "end": 67,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 1.86
+      },
+      {
+        "start": 67,
+        "end": 69,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 1.86
+      },
+      {
+        "start": 69,
+        "end": 71,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 1.86
+      },
+      {
+        "start": 71,
+        "end": 73,
+        "condition_tag_id": "condition:task:ab9de2b8a362",
+        "score": 0.86
+      },
+      {
+        "start": 73,
+        "end": 75,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 0.86
+      },
+      {
+        "start": 75,
+        "end": 77,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 0.9
+      },
+      {
+        "start": 77,
+        "end": 79,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.9
+      },
+      {
+        "start": 79,
+        "end": 81,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.86
+      },
+      {
+        "start": 81,
+        "end": 83,
+        "condition_tag_id": "condition:task:6c5310de550b",
+        "score": 0.9
+      },
+      {
+        "start": 83,
+        "end": 85,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 0.9
+      },
+      {
+        "start": 85,
+        "end": 87,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.86
+      },
+      {
+        "start": 87,
+        "end": 89,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.86
+      },
+      {
+        "start": 89,
+        "end": 91,
+        "condition_tag_id": "condition:task:7a0520943285",
+        "score": 0.86
+      },
+      {
+        "start": 91,
+        "end": 93,
+        "condition_tag_id": "condition:task:ecdaeee2db25",
+        "score": 0.86
+      },
+      {
+        "start": 93,
+        "end": 98,
+        "condition_tag_id": "condition:task:c5e372f88a8c",
+        "score": 0.9800000000000001
+      },
+      {
+        "start": 98,
+        "end": 104,
+        "condition_tag_id": "condition:task:8ceded110e8c",
+        "score": 0.7441053986549321
+      },
+      {
+        "start": 104,
+        "end": 106,
+        "condition_tag_id": "condition:task:afb57653a33b",
+        "score": 0.86
+      },
+      {
+        "start": 106,
+        "end": 107,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 0.86
+      },
+      {
+        "start": 107,
+        "end": 108,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": -0.04925529599189757
+      },
+      {
+        "start": 108,
+        "end": 110,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 0.86
+      },
+      {
+        "start": 110,
+        "end": 112,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 1.86
+      },
+      {
+        "start": 112,
+        "end": 114,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.86
+      },
+      {
+        "start": 114,
+        "end": 116,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 0.86
+      },
+      {
+        "start": 116,
+        "end": 117,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 0.86
+      },
+      {
+        "start": 117,
+        "end": 118,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 0.86
+      },
+      {
+        "start": 118,
+        "end": 119,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.86
+      },
+      {
+        "start": 119,
+        "end": 121,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 0.9
+      },
+      {
+        "start": 121,
+        "end": 122,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 0.86
+      },
+      {
+        "start": 122,
+        "end": 123,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 0.86
+      },
+      {
+        "start": 123,
+        "end": 125,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 1.86
+      },
+      {
+        "start": 125,
+        "end": 127,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 127,
+        "end": 128,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 0.86
+      },
+      {
+        "start": 128,
+        "end": 130,
+        "condition_tag_id": "condition:task:c97460c9a492",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 130,
+        "end": 133,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.9368548214435691
+      },
+      {
+        "start": 133,
+        "end": 134,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 0.86
+      },
+      {
+        "start": 134,
+        "end": 136,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 1.0179538464546318
+      },
+      {
+        "start": 136,
+        "end": 139,
+        "condition_tag_id": "condition:task:c97460c9a492",
+        "score": 0.9662932491302604
+      },
+      {
+        "start": 139,
+        "end": 141,
+        "condition_tag_id": "condition:task:388d12dcea85",
+        "score": 0.86
+      },
+      {
+        "start": 141,
+        "end": 145,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 1.86
+      },
+      {
+        "start": 145,
+        "end": 148,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 0.86
+      },
+      {
+        "start": 148,
+        "end": 151,
+        "condition_tag_id": "condition:task:c97460c9a492",
+        "score": 0.86
+      },
+      {
+        "start": 151,
+        "end": 154,
+        "condition_tag_id": "condition:task:388d12dcea85",
+        "score": 0.744747177362442
+      },
+      {
+        "start": 154,
+        "end": 155,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 0.86
+      },
+      {
+        "start": 155,
+        "end": 157,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 157,
+        "end": 159,
+        "condition_tag_id": "condition:task:c97460c9a492",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 159,
+        "end": 161,
+        "condition_tag_id": "condition:task:388d12dcea85",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 161,
+        "end": 163,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 163,
+        "end": 165,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 165,
+        "end": 167,
+        "condition_tag_id": "condition:task:c97460c9a492",
+        "score": 1.86
+      },
+      {
+        "start": 167,
+        "end": 169,
+        "condition_tag_id": "condition:task:388d12dcea85",
+        "score": 1.86
+      },
+      {
+        "start": 169,
+        "end": 171,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 1.86
+      },
+      {
+        "start": 171,
+        "end": 173,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 1.86
+      },
+      {
+        "start": 173,
+        "end": 175,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 1.86
+      },
+      {
+        "start": 175,
+        "end": 177,
+        "condition_tag_id": "condition:task:388d12dcea85",
+        "score": 0.86
+      },
+      {
+        "start": 177,
+        "end": 179,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 0.9
+      },
+      {
+        "start": 179,
+        "end": 181,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 0.9
+      },
+      {
+        "start": 181,
+        "end": 183,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 0.86
+      },
+      {
+        "start": 183,
+        "end": 185,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.86
+      },
+      {
+        "start": 185,
+        "end": 187,
+        "condition_tag_id": "condition:task:ad580c64df27",
+        "score": 1.86
+      },
+      {
+        "start": 187,
+        "end": 189,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 0.86
+      },
+      {
+        "start": 189,
+        "end": 191,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 0.9
+      },
+      {
+        "start": 191,
+        "end": 193,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.86
+      },
+      {
+        "start": 193,
+        "end": 195,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 195,
+        "end": 198,
+        "condition_tag_id": "condition:task:4e1b35ab4964",
+        "score": 1.7320162057876816
+      },
+      {
+        "start": 198,
+        "end": 200,
+        "condition_tag_id": "condition:task:d27d5617e29a",
+        "score": 0.86
+      },
+      {
+        "start": 200,
+        "end": 205,
+        "condition_tag_id": "condition:task:2b4da6b96a71",
+        "score": 0.8400216102600325
+      },
+      {
+        "start": 205,
+        "end": 208,
+        "condition_tag_id": "condition:task:3d640a2b6fd8",
+        "score": 0.9
+      },
+      {
+        "start": 208,
+        "end": 210,
+        "condition_tag_id": "condition:task:e9a80f7d5c01",
+        "score": 1.86
+      },
+      {
+        "start": 210,
+        "end": 212,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 0.86
+      },
+      {
+        "start": 212,
+        "end": 214,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 0.86
+      },
+      {
+        "start": 214,
+        "end": 216,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 0.86
+      },
+      {
+        "start": 216,
+        "end": 218,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.86
+      },
+      {
+        "start": 218,
+        "end": 220,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.86
+      },
+      {
+        "start": 220,
+        "end": 222,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 1.86
+      },
+      {
+        "start": 222,
+        "end": 223,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 0.86
+      },
+      {
+        "start": 223,
+        "end": 225,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.86
+      },
+      {
+        "start": 225,
+        "end": 227,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.86
+      },
+      {
+        "start": 227,
+        "end": 229,
+        "condition_tag_id": "condition:task:13555f56b6c5",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 229,
+        "end": 231,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 231,
+        "end": 233,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 233,
+        "end": 234,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.86
+      },
+      {
+        "start": 234,
+        "end": 236,
+        "condition_tag_id": "condition:task:13555f56b6c5",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 236,
+        "end": 238,
+        "condition_tag_id": "condition:task:75baa7d04650",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 238,
+        "end": 240,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.9164940154552573
+      },
+      {
+        "start": 240,
+        "end": 242,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.9179827189445723
+      },
+      {
+        "start": 242,
+        "end": 245,
+        "condition_tag_id": "condition:task:13555f56b6c5",
+        "score": 0.9395962631702309
+      },
+      {
+        "start": 245,
+        "end": 246,
+        "condition_tag_id": "condition:task:75baa7d04650",
+        "score": 0.86
+      },
+      {
+        "start": 246,
+        "end": 247,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": -0.03550533294675459
+      },
+      {
+        "start": 247,
+        "end": 250,
+        "condition_tag_id": "condition:task:437274b513b0",
+        "score": 0.86
+      },
+      {
+        "start": 250,
+        "end": 253,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.86
+      },
+      {
+        "start": 253,
+        "end": 256,
+        "condition_tag_id": "condition:task:13555f56b6c5",
+        "score": 0.86
+      },
+      {
+        "start": 256,
+        "end": 258,
+        "condition_tag_id": "condition:task:75baa7d04650",
+        "score": 0.86
+      },
+      {
+        "start": 258,
+        "end": 262,
+        "condition_tag_id": "condition:task:437274b513b0",
+        "score": 1.7875462687015762
+      },
+      {
+        "start": 262,
+        "end": 263,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 0.86
+      },
+      {
+        "start": 263,
+        "end": 265,
+        "condition_tag_id": "condition:task:13555f56b6c5",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 265,
+        "end": 267,
+        "condition_tag_id": "condition:task:75baa7d04650",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 267,
+        "end": 269,
+        "condition_tag_id": "condition:task:437274b513b0",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 269,
+        "end": 271,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 271,
+        "end": 273,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 273,
+        "end": 275,
+        "condition_tag_id": "condition:task:75baa7d04650",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 275,
+        "end": 277,
+        "condition_tag_id": "condition:task:437274b513b0",
+        "score": 1.86
+      },
+      {
+        "start": 277,
+        "end": 279,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 1.86
+      },
+      {
+        "start": 279,
+        "end": 281,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 1.86
+      },
+      {
+        "start": 281,
+        "end": 283,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 1.9000000000000001
+      },
+      {
+        "start": 283,
+        "end": 285,
+        "condition_tag_id": "condition:task:437274b513b0",
+        "score": 0.9
+      },
+      {
+        "start": 285,
+        "end": 287,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 0.9
+      },
+      {
+        "start": 287,
+        "end": 289,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 0.86
+      },
+      {
+        "start": 289,
+        "end": 291,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 0.86
+      },
+      {
+        "start": 291,
+        "end": 293,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.9
+      },
+      {
+        "start": 293,
+        "end": 295,
+        "condition_tag_id": "condition:task:9707fcaa8da1",
+        "score": 0.86
+      },
+      {
+        "start": 295,
+        "end": 297,
+        "condition_tag_id": "condition:task:631793cc1eed",
+        "score": 0.86
+      },
+      {
+        "start": 297,
+        "end": 299,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 0.86
+      },
+      {
+        "start": 299,
+        "end": 301,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.86
+      },
+      {
+        "start": 301,
+        "end": 305,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.83
+      },
+      {
+        "start": 305,
+        "end": 310,
+        "condition_tag_id": "condition:task:2a4c3aa6215e",
+        "score": 0.7159514486790158
+      },
+      {
+        "start": 310,
+        "end": 313,
+        "condition_tag_id": "condition:task:cc592bb63615",
+        "score": 0.9
+      },
+      {
+        "start": 313,
+        "end": 318,
+        "condition_tag_id": "condition:task:0baf471d0c7f",
+        "score": 0.8470611035824277
+      }
+    ],
+    "errors": {
+      "overmerged": [
+        {
+          "group_id": "optimized-episode-0019",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000602",
+            "DIALOGUE_V4_EP_000603"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0019"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001116",
+              "gold_episode_id": "DIALOGUE_V4_EP_000602",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:security_boundary",
+              "text": "我不想每次都重新解释，处理内部会议安排时，没有明确权限的共享目录不要写入。 脱敏后的内容也要保留来源记录。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001117",
+              "gold_episode_id": "DIALOGUE_V4_EP_000602",
+              "condition": "condition:task:7a0520943285",
+              "object": null,
+              "text": "补充一下，即使只是安排部门例会的草稿，也按这个规则执行。 处理范围只限我明确指定的内容。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001118",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我先把要求说清楚，处理合同金额和客户信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0022",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000605",
+            "DIALOGUE_V4_EP_000801"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0022"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001122",
+              "gold_episode_id": "DIALOGUE_V4_EP_000605",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": null,
+              "text": "为了后面省事，处理候选人个人信息时，对外发送前先停在预览界面，等我确认收件人。 脱敏后的内容也要保留来源记录。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001123",
+              "gold_episode_id": "DIALOGUE_V4_EP_000605",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": null,
+              "text": "对了，即使只是处理招聘面试安排的草稿，也按这个规则执行。 特别是涉及候选人个人信息的时候。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001514",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": null,
+              "object": null,
+              "text": "以前这类结果我都要长摘要。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0023",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000801",
+            "DIALOGUE_V4_EP_000802"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0023"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001515",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001516",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001517",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001518",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "为了后面省事，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 别让新旧两套规则同时生效。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0024",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000802",
+            "DIALOGUE_V4_EP_000803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0024"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001519",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": "condition:task:afb57653a33b",
+              "object": "object:preference_versioning",
+              "text": "先说明一下，这条不只用于年度合同资料，以后在邮件、文档和表格里碰到合同版本和签署状态也一样。 别让新旧两套规则同时生效。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001520",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "先说明一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001521",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 后续再改我会明确告诉你。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0027",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000804",
+            "DIALOGUE_V4_EP_000805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0027"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001525",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": "object:preference_versioning",
+              "text": "这条不只用于面试安排表.xlsx，以后在邮件、文档和表格里碰到候选人时间和面试官空档也一样。 处理候选人时间和面试官空档时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001526",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": null,
+              "text": "这个细节容易弄错，以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001527",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "现在改成先给结论，细节按需展开，旧的做法作废。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0050",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_001801",
+            "DIALOGUE_V4_EP_001802",
+            "DIALOGUE_V4_EP_001803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0050"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003716",
+              "gold_episode_id": "DIALOGUE_V4_EP_001801",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "我先把要求说清楚，这条只对本次有效，处理完还是恢复我原来的习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003717",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "为了后面省事，平时会议都优先安排在下午。 临时要求不要覆盖原来的长期规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003718",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": "condition:task:c5e372f88a8c",
+              "object": null,
+              "text": "不过这次编写客户周报先把完整明细给我。 我这次会单独检查结果。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003719",
+              "gold_episode_id": "DIALOGUE_V4_EP_001802",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "你记录的时候注意，这条只对本次有效，处理完还是恢复我原来的习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003720",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": null,
+              "object": null,
+              "text": "我通常不允许自动对外发送。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0051",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_001803",
+            "DIALOGUE_V4_EP_001804",
+            "DIALOGUE_V4_EP_001805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0051"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003721",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": "condition:task:8ceded110e8c",
+              "object": null,
+              "text": "我不想每次都重新解释，但这次季度汇报.pptx可以直接覆盖，因为我已经备份了。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003722",
+              "gold_episode_id": "DIALOGUE_V4_EP_001803",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "为了后面省事，这条只对本次有效，处理完还是恢复我原来的习惯。 下一次还是按原来的规则。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003723",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": null,
+              "text": "我不想每次都重新解释，我通常不允许自动对外发送。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003724",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": null,
+              "text": "我先把要求说清楚，这次时间紧，上午有空档就安排。 我这次会单独检查结果。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003725",
+              "gold_episode_id": "DIALOGUE_V4_EP_001804",
+              "condition": null,
+              "object": "object:conflict_scope",
+              "text": "这条只对本次有效，处理完还是恢复我原来的习惯。 别把它覆盖成长期习惯。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0003726",
+              "gold_episode_id": "DIALOGUE_V4_EP_001805",
+              "condition": null,
+              "object": null,
+              "text": "我先把要求说清楚，平时会议都优先安排在下午。 我明确说了只限本次就不要延续。"
+            }
+          ]
+        },
+        {
+          "group_id": "optimized-episode-0069",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_002601",
+            "DIALOGUE_V4_EP_002602"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0069"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005433",
+              "gold_episode_id": "DIALOGUE_V4_EP_002601",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "处理跨部门决策信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005434",
+              "gold_episode_id": "DIALOGUE_V4_EP_002601",
+              "condition": "condition:task:2b4da6b96a71",
+              "object": null,
+              "text": "别漏了，即使只是组织跨部门评审会的草稿，也按这个规则执行。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0005435",
+              "gold_episode_id": "DIALOGUE_V4_EP_002602",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我不想每次都重新解释，处理团队工作安排时，只在本机处理，不要上传到外部网站。"
+            }
+          ]
+        }
+      ],
+      "split": [
+        {
+          "group_id": "DIALOGUE_V4_EP_000002",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000002"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0002",
+            "optimized-episode-0003"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000003",
+              "gold_episode_id": "DIALOGUE_V4_EP_000002",
+              "condition": "condition:task:ecdaeee2db25",
+              "object": "object:result_selection",
+              "text": "我不想每次都重新解释，用表格筛选工具核对差旅报销明细时，先把成功、失败和需要确认的结果分开。 结果来源也一起保留。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000004",
+              "gold_episode_id": "DIALOGUE_V4_EP_000002",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:result_selection",
+              "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 能看出差异的地方顺手标出来。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000004",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000004"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0005",
+            "optimized-episode-0006"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000007",
+              "gold_episode_id": "DIALOGUE_V4_EP_000004",
+              "condition": "condition:task:8ceded110e8c",
+              "object": "object:result_selection",
+              "text": "你记录的时候注意，用演示文稿生成工具准备季度汇报时，先按修改时间倒序排，只给我看最新的三项。 尤其留意目标完成情况这部分。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0000008",
+              "gold_episode_id": "DIALOGUE_V4_EP_000004",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:result_selection",
+              "text": "另外，文件名里带“最终版”的不一定真是最新，还是以实际更新时间为准。 结果来源也一起保留。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000603",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000603"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0019",
+            "optimized-episode-0020"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001118",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": null,
+              "object": "object:security_boundary",
+              "text": "我先把要求说清楚，处理合同金额和客户信息时，只在本机处理，不要上传到外部网站。 发现外部链接时先停一下。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001119",
+              "gold_episode_id": "DIALOGUE_V4_EP_000603",
+              "condition": "condition:task:afb57653a33b",
+              "object": null,
+              "text": "别漏了，即使只是归档合同文件的草稿，也按这个规则执行。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000801",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000801"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0022",
+            "optimized-episode-0023"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001514",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": null,
+              "object": null,
+              "text": "以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001515",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "你记录的时候注意，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 处理议题、参会人和会议室时同样适用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001516",
+              "gold_episode_id": "DIALOGUE_V4_EP_000801",
+              "condition": "condition:task:7a0520943285",
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，这条不只用于部门例会议程，以后在邮件、文档和表格里碰到议题、参会人和会议室也一样。 新规则生效后要停止调用旧规则。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000802",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000802"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0023",
+            "optimized-episode-0024"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001517",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "有件事提前说一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001518",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "为了后面省事，现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 别让新旧两套规则同时生效。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001519",
+              "gold_episode_id": "DIALOGUE_V4_EP_000802",
+              "condition": "condition:task:afb57653a33b",
+              "object": "object:preference_versioning",
+              "text": "先说明一下，这条不只用于年度合同资料，以后在邮件、文档和表格里碰到合同版本和签署状态也一样。 别让新旧两套规则同时生效。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000803",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000803"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0024",
+            "optimized-episode-0025"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001520",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "先说明一下，原来我的规则是做完直接保存。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001521",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": null,
+              "object": "object:preference_versioning",
+              "text": "现在改成五行以内的摘要，异常情况再详细说明，旧的做法作废。 后续再改我会明确告诉你。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001522",
+              "gold_episode_id": "DIALOGUE_V4_EP_000803",
+              "condition": "condition:task:9429c36cc760",
+              "object": "object:preference_versioning",
+              "text": "麻烦记一下，这条不只用于销售预测_2026.xlsx，以后在邮件、文档和表格里碰到华东区第三季度预测也一样。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000804",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000804"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0026",
+            "optimized-episode-0027"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001523",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:cc592bb63615",
+              "object": "object:preference_versioning",
+              "text": "麻烦记一下，之前我习惯按文件名判断版本。 这是旧规则，先别继续沿用。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001524",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "我不想每次都重新解释，现在改成先给结论，细节按需展开，旧的做法作废。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001525",
+              "gold_episode_id": "DIALOGUE_V4_EP_000804",
+              "condition": "condition:task:ab9de2b8a362",
+              "object": "object:preference_versioning",
+              "text": "这条不只用于面试安排表.xlsx，以后在邮件、文档和表格里碰到候选人时间和面试官空档也一样。 处理候选人时间和面试官空档时同样适用。"
+            }
+          ]
+        },
+        {
+          "group_id": "DIALOGUE_V4_EP_000805",
+          "gold_episode_ids": [
+            "DIALOGUE_V4_EP_000805"
+          ],
+          "predicted_episode_ids": [
+            "optimized-episode-0027",
+            "optimized-episode-0028"
+          ],
+          "events": [
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001526",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": null,
+              "text": "这个细节容易弄错，以前这类结果我都要长摘要。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001527",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": null,
+              "object": "object:output_presentation",
+              "text": "现在改成先给结论，细节按需展开，旧的做法作废。"
+            },
+            {
+              "event_id": "DIALOGUE_V4_EVT_0001528",
+              "gold_episode_id": "DIALOGUE_V4_EP_000805",
+              "condition": "condition:task:6c5310de550b",
+              "object": "object:preference_versioning",
+              "text": "这点对我挺重要的：这条不只用于经营月报.xlsx，以后在邮件、文档和表格里碰到华东区经营数据也一样。 新规则生效后要停止调用旧规则。"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "diagnostic_only": {
+    "baseline_boundary_positions": [
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      10,
+      12,
+      14,
+      15,
+      17,
+      18,
+      19,
+      21,
+      23,
+      24,
+      26,
+      28,
+      31,
+      32,
+      34,
+      37,
+      41,
+      44,
+      45,
+      47,
+      50,
+      51,
+      53,
+      55,
+      57,
+      59,
+      61,
+      63,
+      65,
+      67,
+      69,
+      71,
+      73,
+      75,
+      77,
+      79,
+      81,
+      83,
+      85,
+      87,
+      89,
+      91,
+      93,
+      98,
+      104,
+      106,
+      107,
+      108,
+      110,
+      112,
+      114,
+      116,
+      117,
+      118,
+      119,
+      121,
+      122,
+      123,
+      125,
+      127,
+      128,
+      130,
+      133,
+      134,
+      136,
+      139,
+      141,
+      145,
+      148,
+      151,
+      154,
+      155,
+      157,
+      159,
+      161,
+      163,
+      165,
+      167,
+      169,
+      171,
+      173,
+      175,
+      177,
+      179,
+      181,
+      183,
+      185,
+      187,
+      189,
+      191,
+      193,
+      195,
+      198,
+      200,
+      205,
+      208,
+      210,
+      212,
+      214,
+      216,
+      218,
+      220,
+      222,
+      223,
+      225,
+      227,
+      229,
+      231,
+      233,
+      234,
+      236,
+      238,
+      240,
+      242,
+      245,
+      246,
+      247,
+      250,
+      253,
+      256,
+      258,
+      262,
+      263,
+      265,
+      267,
+      269,
+      271,
+      273,
+      275,
+      277,
+      279,
+      281,
+      283,
+      285,
+      287,
+      289,
+      291,
+      293,
+      295,
+      297,
+      299,
+      301,
+      303,
+      305,
+      310,
+      313
+    ],
+    "gold_boundary_count": 149
+  }
+}
