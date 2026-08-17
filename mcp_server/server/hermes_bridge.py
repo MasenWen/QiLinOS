@@ -253,6 +253,9 @@ async def hermes_write_memory(filename: str, content: str) -> str:
     """
     memories_dir = HERMES_HOME / "memories"
     memories_dir.mkdir(parents=True, exist_ok=True)
+    # P0 安全修复: 拒绝路径穿越（filename 必须为纯文件名且 .md 后缀）
+    if os.path.basename(filename) != filename or not filename.endswith(".md"):
+        return json.dumps({"success": False, "error": "非法文件名（仅允许 memories 目录内的 .md 文件）"})
     filepath = memories_dir / filename
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     entry = f"\n\n---\n## {timestamp}\n{content}\n"

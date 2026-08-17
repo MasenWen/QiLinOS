@@ -113,7 +113,7 @@ class NexAgent:
     def __init__(self, event_bus: EventBus):
         self.bus = event_bus
         db_manager.set_bus(event_bus)
-        self.user_input = ""
+        self._user_inputs: dict = {}  # per-session 用户反馈（P0 修复：不再用实例级共享变量）
         self.is_resuming = False
         self.thread_executor = ThreadPoolExecutor(max_workers=10)  # 支持多个会话
         self.session_tasks: Dict[int, asyncio.Task] = {}
@@ -208,12 +208,12 @@ class NexAgent:
         """清理资源"""
         self._executor.shutdown(wait=False)
 
-    def input_with_timeout(self, session_id, timeout=60, default="同意"):
+    def input_with_timeout(self, session_id, timeout=60, default="拒绝"):
         print(f"您有 {timeout} 秒时间进行输入，超时将自动选择 {default}")
         self.is_inputting[session_id] = True
         # 如果 msg_index == 1，则等待直到条件改变或超时
         start_time = time.time()
-        while self.user_input == '':
+        while self._user_inputs.get(session_id, '') == '':
             if db_manager.get_session_stop(session_id):
                 db_manager.set_session_node(session_id, "user_review")
                 self.is_inputting[session_id] = False
@@ -227,12 +227,12 @@ class NexAgent:
             time.sleep(0.1)
         # 如果 msg_index != 1，直接返回默认值
         self.is_inputting[session_id] = False
-        # logger.info(f"{session_id}-=-审核员===用户反馈： {self.user_input}")
-        return self.user_input
+        # logger.info(f"{session_id}-=-审核员===用户反馈： {self._user_inputs.get(session_id)}")
+        return self._user_inputs.get(session_id, '')
     
     def process_user_feedback(self, session_id: int):
-        # 获取用户输入
-        self.user_input = ""
+        # 获取用户输入（per-session，P0 修复）
+        self._user_inputs[session_id] = ""
         
         node = db_manager.get_wait_feedback_node(session_id)
         if node == "planner":
@@ -309,7 +309,7 @@ class NexAgent:
         print('检索所用时间：', t1-t0)
         #黄------------------------
         # self.infoAssistant.handle_query(self.user_input)
-        self.extract_user_info_async(self.user_input)
+        self.extract_user_info_async(user_input)  # P0 修复: 用函数参数而非共享变量
         #黄------------------------
         
         start_time = time.time()
@@ -580,7 +580,7 @@ class NexAgent:
         t0 = time.perf_counter()
         db_manager.add_chat(session_id, "user", query)
         db_manager.add_log(session_id, "用户", f"{query}")
-        self.user_input = query
+        # P0 修复: 删除 self.user_input = query（攻击者可并发覆盖共享变量绕过审核）
         if self.is_inputting.get(session_id, False) == False:
             db_manager.set_user_feedback(session_id, query)
             self.is_user_feedback[session_id] = True

@@ -93,6 +93,16 @@ async def connect_server(request: Request, name: str, body: ConnectRequest) -> D
         audit.log("connect_fail", {"server": name, "reason": "no_path"}, request_id=rid)
         raise HTTPException(status_code=400, detail=f"未提供 path 且 registry 中没有 '{name}' 的 abs_path")
 
+    # P0 安全修复: connect 的 path 必须位于服务器白名单目录内（防任意路径 RCE）
+    _base = os.path.abspath("./mcp_server/server")
+    if os.path.commonpath([os.path.abspath(path), _base]) != _base:
+        raise HTTPException(status_code=400, detail="path 不在白名单目录内（仅允许 mcp_server/server 下的脚本）")
+
+    # P0 安全修复: connect 的 path 必须位于服务器白名单目录内（防任意路径 RCE）
+    _base = os.path.abspath("./mcp_server/server")
+    if os.path.commonpath([os.path.abspath(path), _base]) != _base:
+        raise HTTPException(status_code=400, detail="path 不在白名单目录内（仅允许 mcp_server/server 下的脚本）")
+
     if client.is_connected(name):
         return {"server": name, "connected": True, "path": path, "request_id": rid, "already": True}
 

@@ -8,7 +8,7 @@ def main() -> int:
     cmd = [
         sys.executable, "-m", "uvicorn",
         "mcp_server.mcp_host:app",
-        "--host", os.environ.get("UVICORN_HOST", "0.0.0.0"),
+        "--host", os.environ.get("UVICORN_HOST", "127.0.0.1"),
         "--port", os.environ.get("UVICORN_PORT", "50066"),
     ]
     print("Running:", " ".join(cmd))

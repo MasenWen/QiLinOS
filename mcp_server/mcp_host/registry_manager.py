@@ -93,6 +93,10 @@ class ServerRegistry:
             raise ValueError(f"不支持的脚本后缀：{ext}，仅支持：{sorted(_ALLOWED_EXTS)}")
         if not os.path.exists(final_path):
             raise ValueError(f"找不到脚本文件：{final_path}")
+        # P0 安全修复: 拒绝白名单目录外的脚本路径（防任意路径 RCE）
+        base = os.path.abspath(self.servers_base_dir)
+        if os.path.commonpath([final_path, base]) != base:
+            raise ValueError(f"abs_path 必须在白名单目录内：{base}")
         return final_filename, final_path
 
     def register_server(

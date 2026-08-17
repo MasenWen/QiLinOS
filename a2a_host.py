@@ -33,7 +33,7 @@ class MissingAPIKeyError(Exception):
 
 
 @click.command()
-@click.option('--host', 'host', default='0.0.0.0')
+@click.option('--host', 'host', default='127.0.0.1')
 @click.option('--port', 'port', default=50076)
 def main(host, port):
     """Entry point for the A2A + CrewAI Image generation sample."""

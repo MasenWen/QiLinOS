@@ -10,7 +10,7 @@ from src.utils.file_process import make_safe_filename
 from agent import NexAgent
 
 # from src.utils.msg_process import safe_filename
-# ========== Flask 初始化 ==========atp_ry7rwe1o3am3bzma08rcn2gz1jobg6qy
+# ========== Flask 初始化 ==========
 app = Flask(__name__, static_folder='mcp_server/static', template_folder='mcp_server/templates')
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
@@ -32,6 +32,28 @@ def bind_event_loop():
         asyncio.set_event_loop(loop)
     except Exception:
         pass
+
+
+# P0 安全修复: /api/* 需要 X-API-Key（设置 APP_API_KEY 后生效）
+_APP_API_KEY = os.environ.get("APP_API_KEY", "")
+
+
+@app.before_request
+def check_api_auth():
+    if _APP_API_KEY and request.path.startswith("/api/"):
+        if request.headers.get("X-API-Key") != _APP_API_KEY:
+            return jsonify({"error": "unauthorized"}), 401
+
+
+# P0 安全修复: /api/* 需要 X-API-Key（设置 APP_API_KEY 后生效）
+_APP_API_KEY = os.environ.get("APP_API_KEY", "")
+
+
+@app.before_request
+def check_api_auth():
+    if _APP_API_KEY and request.path.startswith("/api/"):
+        if request.headers.get("X-API-Key") != _APP_API_KEY:
+            return jsonify({"error": "unauthorized"}), 401
 
 
 def run_async(coro):
@@ -426,7 +448,7 @@ if __name__ == '__main__':
         print("🚀 NexAgent 基于意图识别与动态规划的系统操作多智能体已启动：http://127.0.0.1:50056")
         sync_servers()
         startup_sync()
-        app.run(debug=False, host='0.0.0.0', port=50056, threaded=True)
+        app.run(debug=False, host=os.getenv("APP_HOST", "127.0.0.1"), port=50056, threaded=True)
     finally:
         try:
             run_async(mcp_client.cleanup())

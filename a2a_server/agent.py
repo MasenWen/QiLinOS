@@ -108,9 +108,28 @@ class SimpleQwenClient:
             return prompt
 
 
+# P0 安全修复: 仅允许阿里云(千问)域名，防 SSRF
+_ALLOWED_IMAGE_HOSTS = ("aliyuncs.com",)
+
+
+def _is_safe_image_url(url: str) -> bool:
+    try:
+        p = urlparse(url)
+        if p.scheme not in ("https", "http"):
+            return False
+        host = (p.netloc or "").lower()
+        if host in ("localhost", "127.0.0.1", "::1", "169.254.169.254", "metadata.google.internal"):
+            return False
+        return host.endswith(_ALLOWED_IMAGE_HOSTS)
+    except Exception:
+        return False
+
+
 def download_image_from_url(image_url: str) -> bytes:
     """Download image from URL and return bytes."""
     try:
+        if not _is_safe_image_url(image_url):
+            raise ValueError(f"禁止下载非白名单域名: {image_url}")
         print(f"⬇️ Downloading image from URL: {image_url}")
         response = requests.get(image_url, timeout=60)  # 增加超时时间
         response.raise_for_status()
