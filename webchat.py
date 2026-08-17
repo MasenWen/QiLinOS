@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.sdk import ai_text  # noqa: E402
 from src.memory.mem0_store import mem0_store  # noqa: E402
 from src.toolkit.init_tools import init_all_tools  # noqa: E402
-from src.toolkit.base import get_registry  # noqa: E402
+from src.toolkit.base import get_registry, ToolResult, ToolStatus  # noqa: E402
 from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
 
 # ---------- 初始化工具 ----------
@@ -37,6 +37,12 @@ TOOL_CATALOG = "\n".join(
     f"- {name}: {REGISTRY.get(name).description}"
     for name in REGISTRY.list_all()
 )
+
+# ---------- 安全配置（P0 修复） ----------
+WEBCHAT_TOKEN = os.getenv("WEBCHAT_TOKEN", "")          # 设置后 /api/* 需 X-Api-Token 头
+WEBCHAT_HOST = os.getenv("WEBCHAT_HOST", "127.0.0.1")   # 默认仅本机，防远程操控
+# 网页端禁用的高风险工具：不可逆 / 会中断服务，只能 SSH 人工执行
+WEB_DISALLOWED_TOOLS = {"power", "sleep", "datetime"}
 
 _mem_lock = threading.Lock()
 _tool_lock = threading.Lock()
@@ -237,6 +243,12 @@ const mdOpts = { breaks: true, gfm: true };
 let history = [];
 try { history = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { history = []; }
 let busy = false;
+// token 支持: URL ?token= 或 localStorage，之后所有请求自动携带
+const API_TOKEN = new URLSearchParams(location.search).get('token')
+  || localStorage.getItem('aichat_token_v1') || '';
+if (API_TOKEN) localStorage.setItem('aichat_token_v1', API_TOKEN);
+const apiHeaders = { 'Content-Type': 'application/json' };
+if (API_TOKEN) apiHeaders['X-Api-Token'] = API_TOKEN;
 
 let sessionId = localStorage.getItem(SKEY);
 if (!sessionId) {
@@ -324,7 +336,7 @@ async function submit() {
   try {
     const r = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: apiHeaders,
       body: JSON.stringify({ message: text, session_id: sessionId })
     });
     const data = await r.json();
@@ -375,7 +387,7 @@ document.getElementById('clear').onclick = () => {
 };
 document.getElementById('clearMem').onclick = async () => {
   try {
-    await fetch('/api/mem/clear', { method: 'POST' });
+    await fetch('/api/mem/clear', { method: 'POST', headers: apiHeaders });
     alert('已清空 AI 关于你的记忆');
   } catch (e) {
     alert('清空记忆失败: ' + e);
@@ -420,6 +432,14 @@ def _remember(messages):
 
 
 def _run_tool(tool_name: str, params: dict):
+    # P0 修复：网页端禁止不可逆/中断类系统操作，仅可 SSH 人工执行
+    if tool_name in WEB_DISALLOWED_TOOLS:
+        print(f"[tool] 已拦截网页端危险工具: {tool_name} {params}", flush=True)
+        return ToolResult(
+            tool_name=tool_name,
+            status=ToolStatus.REJECTED,
+            error=f"网页端已禁用 {tool_name}（危险/中断性操作），请通过 SSH 手动执行",
+        )
     with _tool_lock:
         async def _run():
             return await EXECUTOR.run(tool_name, confirmed=True, **params)
@@ -586,6 +606,12 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _auth_ok(self) -> bool:
+        """token 校验：未配置 WEBCHAT_TOKEN 时放行，配置后要求 X-Api-Token 匹配。"""
+        if not WEBCHAT_TOKEN:
+            return True
+        return self.headers.get("X-Api-Token") == WEBCHAT_TOKEN
+
     def _send(self, code, body: bytes, ctype: str):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
@@ -604,6 +630,8 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, b"not found", "text/plain; charset=utf-8")
 
     def do_POST(self):
+        if not self._auth_ok():
+            return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
         if self.path == "/api/mem/clear":
             try:
                 mem0_store.delete_all()
@@ -644,11 +672,16 @@ class Handler(BaseHTTPRequestHandler):
 
         self._json(200, {"reply": reply})
 
+    def do_OPTIONS(self):
+        # 明确拒绝跨域预检：浏览器跨站发 JSON POST 会先 OPTIONS，直接 403 防 CSRF
+        self._send(403, b"forbidden", "text/plain; charset=utf-8")
+
     def log_message(self, fmt, *args):
         print(f"[webchat] {self.address_string()} {fmt % args}", flush=True)
 
 
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
-    print(f"webchat（记忆增强 + 系统工具）已启动: http://0.0.0.0:{port}", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
+    print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
+    print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
+    ThreadingHTTPServer((WEBCHAT_HOST, port), Handler).serve_forever()
