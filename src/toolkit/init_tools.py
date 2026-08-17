@@ -55,6 +55,14 @@ def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     from .battery_tools import register_battery_tools
     register_battery_tools(registry)
 
+    # File tools (create folder/file within home dir)
+    from .file_tools import register_file_tools
+    register_file_tools(registry)
+
+    # Shell fallback tools (whitelisted OS commands)
+    from .shell_tools import register_shell_tools
+    register_shell_tools(registry)
+
     _initialized = True
 
     logger.info(

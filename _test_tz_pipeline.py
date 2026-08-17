@@ -34,13 +34,13 @@ async def run():
 
     obs = result.to_observation()
     print(f"[5/5] ToolResult.to_observation():")
-    print(f"      source_type={obs[source_type]}")
-    print(f"      tool={obs[tool_name]}")
-    print(f"      success={obs[success]}")
-    print(f"      latency_ms={obs[latency_ms]}")
-    print(f"      content={obs[content][:120]}")
-    print(f"      state_changed={obs[state_changed]}")
-    print(f"      action={obs[action]}")
+    print(f"      source_type={obs['source_type']}")
+    print(f"      tool={obs['tool_name']}")
+    print(f"      success={obs['success']}")
+    print(f"      latency_ms={obs['latency_ms']}")
+    print(f"      content={obs['content'][:120]}")
+    print(f"      state_changed={obs['state_changed']}")
+    print(f"      action={obs['action']}")
 
     # Verify the timezone actually changed
     import subprocess
@@ -68,9 +68,9 @@ print(f"  Duration: {result.duration_ms}ms")
 
 # check DB
 try:
-    from src.memory_engine.engine import MemoryEngine
-    me = MemoryEngine()
-    counts = me.store.counts()
+    from src.memory_engine.store import MemoryEngineStore
+    store = MemoryEngineStore()
+    counts = store.counts()
     print(f"\n  Memory Store: {counts}")
 except Exception as e:
     print(f"\n  Memory check: {e}")

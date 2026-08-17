@@ -1,50 +1,50 @@
 {
   "test_metadata": {
     "pipeline": "SDK_tool_result_to_memory_engine_observation_v1",
-    "date": "2026-08-09T14:57:13.915977+00:00",
+    "date": "2026-08-09T18:42:57.628470+00:00",
     "server": "Kylin V11 (阿里云 ECS)",
     "python": "3.12.3",
     "test_db": "/home/kylin/.nex-agent/_test_pipeline.db"
   },
   "latency_metrics": {
     "tool_execution_ms": {
-      "p50": 72.51,
-      "p95": 139.51,
-      "p99": 139.51,
-      "min": 4.86,
-      "max": 139.51,
-      "mean": 79.39,
-      "stdev": 42.98,
+      "p50": 52.61,
+      "p95": 131.17,
+      "p99": 131.17,
+      "min": 3.34,
+      "max": 131.17,
+      "mean": 60.79,
+      "stdev": 39.96,
       "count": 11
     },
     "observation_creation_ms": {
-      "p50": 26.44,
-      "p95": 39.98,
-      "p99": 39.98,
-      "min": 22.48,
-      "max": 39.98,
-      "mean": 28.03,
-      "stdev": 5.55,
+      "p50": 21.76,
+      "p95": 23.26,
+      "p99": 23.26,
+      "min": 18.42,
+      "max": 23.26,
+      "mean": 21.39,
+      "stdev": 1.57,
       "count": 11
     },
     "end_to_end_ms": {
-      "p50": 99.42,
-      "p95": 171.6,
-      "p99": 171.6,
-      "min": 31.3,
-      "max": 171.6,
-      "mean": 107.42,
-      "stdev": 42.48,
+      "p50": 74.53,
+      "p95": 153.79,
+      "p99": 153.79,
+      "min": 26.6,
+      "max": 153.79,
+      "mean": 82.18,
+      "stdev": 40.03,
       "count": 11
     },
     "memory_retrieval_ms": {
-      "p50": 0.06,
-      "p95": 1.6,
-      "p99": 1.6,
+      "p50": 0.04,
+      "p95": 1.16,
+      "p99": 1.16,
       "min": 0.03,
-      "max": 1.6,
-      "mean": 0.37,
-      "stdev": 0.69,
+      "max": 1.16,
+      "mean": 0.27,
+      "stdev": 0.5,
       "count": 5
     }
   },
@@ -75,14 +75,14 @@
       "expected_status": "VERIFIED",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 139.51,
+      "exec_latency_ms": 63.44,
       "observation_created": true,
-      "observation_id": "obs_429ed5b384bbb7c7746448fc",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_b3bb48006ea3d1e632df47d1",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 22.5,
+      "observation_latency_ms": 18.42,
       "source_type": "tool_result",
-      "e2e_latency_ms": 162.01
+      "e2e_latency_ms": 81.85
     },
     {
       "tool_name": "echo",
@@ -92,14 +92,14 @@
       "expected_status": "VERIFIED",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 57.41,
+      "exec_latency_ms": 31.72,
       "observation_created": true,
-      "observation_id": "obs_4253c0d934bac2a78a3638d7",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_7e4c7d158cd6af67c5ef4f43",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 39.98,
+      "observation_latency_ms": 19.59,
       "source_type": "tool_result",
-      "e2e_latency_ms": 97.39
+      "e2e_latency_ms": 51.31
     },
     {
       "tool_name": "echo",
@@ -109,14 +109,14 @@
       "expected_status": "VERIFIED",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 52.86,
+      "exec_latency_ms": 28.12,
       "observation_created": true,
-      "observation_id": "obs_5ecf1103781bcb3bb07658b8",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_7d81ce1b68405f0ab358ae9f",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 34.32,
+      "observation_latency_ms": 21.76,
       "source_type": "tool_result",
-      "e2e_latency_ms": 87.17
+      "e2e_latency_ms": 49.88
     },
     {
       "tool_name": "slower",
@@ -126,14 +126,14 @@
       "expected_status": "SUCCESS",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 72.51,
+      "exec_latency_ms": 38.71,
       "observation_created": true,
-      "observation_id": "obs_6633f381b11c6c1214b1759f",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_83851308a5a53815c2e54c9a",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 26.91,
+      "observation_latency_ms": 19.84,
       "source_type": "tool_result",
-      "e2e_latency_ms": 99.42
+      "e2e_latency_ms": 58.55
     },
     {
       "tool_name": "slower",
@@ -143,14 +143,14 @@
       "expected_status": "SUCCESS",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 89.64,
+      "exec_latency_ms": 82.19,
       "observation_created": true,
-      "observation_id": "obs_4a86a6847fdee62a82909013",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_61ec064957fe8b204a08b480",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 25.67,
+      "observation_latency_ms": 21.58,
       "source_type": "tool_result",
-      "e2e_latency_ms": 115.31
+      "e2e_latency_ms": 103.77
     },
     {
       "tool_name": "slower",
@@ -160,14 +160,14 @@
       "expected_status": "SUCCESS",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 138.59,
+      "exec_latency_ms": 131.17,
       "observation_created": true,
-      "observation_id": "obs_22a9455d691134073a3508e6",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_986a9b1115b199ce4bd80fa5",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 33.01,
+      "observation_latency_ms": 22.62,
       "source_type": "tool_result",
-      "e2e_latency_ms": 171.6
+      "e2e_latency_ms": 153.79
     },
     {
       "tool_name": "slower",
@@ -177,14 +177,14 @@
       "expected_status": "SUCCESS",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 64.07,
+      "exec_latency_ms": 52.61,
       "observation_created": true,
-      "observation_id": "obs_b1c33d37da44df59fea0b05c",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_a4bcd9b12101c48c12f993ca",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 28.66,
+      "observation_latency_ms": 21.92,
       "source_type": "tool_result",
-      "e2e_latency_ms": 92.73
+      "e2e_latency_ms": 74.53
     },
     {
       "tool_name": "slower",
@@ -194,14 +194,14 @@
       "expected_status": "SUCCESS",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 120.45,
+      "exec_latency_ms": 110.6,
       "observation_created": true,
-      "observation_id": "obs_6d3529162f03c47ab6198af7",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_21f5c31b25b5696e8422d7d3",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 23.68,
+      "observation_latency_ms": 20.64,
       "source_type": "tool_result",
-      "e2e_latency_ms": 144.14
+      "e2e_latency_ms": 131.24
     },
     {
       "tool_name": "failer",
@@ -209,14 +209,14 @@
       "expected_status": "FAILED",
       "exec_status": "failed",
       "exec_match": false,
-      "exec_latency_ms": 4.86,
+      "exec_latency_ms": 3.34,
       "observation_created": true,
-      "observation_id": "obs_f1fe23aacaaeafdf300a935d",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_5e43de641b834ab7864384b3",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 26.44,
+      "observation_latency_ms": 23.26,
       "source_type": "tool_result",
-      "e2e_latency_ms": 31.3
+      "e2e_latency_ms": 26.6
     },
     {
       "tool_name": "echo",
@@ -226,31 +226,31 @@
       "expected_status": "VERIFIED",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 33.41,
+      "exec_latency_ms": 29.63,
       "observation_created": true,
-      "observation_id": "obs_d98c6585979441f776378485",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_ec9404b05524cb5d5293818e",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 22.48,
+      "observation_latency_ms": 22.82,
       "source_type": "tool_result",
-      "e2e_latency_ms": 55.9
+      "e2e_latency_ms": 52.45
     },
     {
       "tool_name": "timezone",
       "kwargs": {
-        "timezone": "Asia/Singapore"
+        "timezone": "UTC"
       },
       "expected_status": "VERIFIED",
       "exec_status": "verified",
       "exec_match": false,
-      "exec_latency_ms": 99.99,
+      "exec_latency_ms": 97.22,
       "observation_created": true,
-      "observation_id": "obs_e99513605960524d4f3076b6",
-      "episode_id": "episode_9f976985fc096758a6f6fea8",
+      "observation_id": "obs_67bd7ba1b0ab0f91ed869db8",
+      "episode_id": "episode_76bb8756a33a704314ac5e8d",
       "episode_status": "open",
-      "observation_latency_ms": 24.67,
+      "observation_latency_ms": 22.83,
       "source_type": "tool_result",
-      "e2e_latency_ms": 124.66
+      "e2e_latency_ms": 120.05
     }
   ],
   "recall_results": [
@@ -259,28 +259,28 @@
       "hits": 0,
       "min_expected": 1,
       "satisfied": false,
-      "latency_ms": 1.6
+      "latency_ms": 1.16
     },
     {
       "query": "管线集成",
       "hits": 0,
       "min_expected": 1,
       "satisfied": false,
-      "latency_ms": 0.09
+      "latency_ms": 0.07
     },
     {
       "query": "slow tool result",
       "hits": 0,
       "min_expected": 1,
       "satisfied": false,
-      "latency_ms": 0.06
+      "latency_ms": 0.04
     },
     {
       "query": "batch complete",
       "hits": 0,
       "min_expected": 1,
       "satisfied": false,
-      "latency_ms": 0.04
+      "latency_ms": 0.03
     },
     {
       "query": "nonexistent_xyz_12345",

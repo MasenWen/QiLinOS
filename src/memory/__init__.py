@@ -1,5 +1,5 @@
-"""注册麒麟 Embedder + 向量数据库 到 Mem0 Factory"""
-from mem0.utils.factory import EmbedderFactory, VectorStoreFactory
+"""注册麒麟 Embedder + 向量数据库 + LLM 到 Mem0 Factory"""
+from mem0.utils.factory import EmbedderFactory, VectorStoreFactory, LlmFactory
 
 EmbedderFactory.provider_to_class["kylin_sdk"] = (
     "src.memory.kylin_embedder.KylinEmbedder"
@@ -14,3 +14,6 @@ EmbedderFactory.provider_to_class["kylin_sdk"] = (
 VectorStoreFactory.provider_to_class["kylin_vectordb"] = (
     "src.memory.kylin_mem0_adapter.KylinMem0Adapter"
 )
+
+# 麒麟千问 LLM 适配器（零 key）
+LlmFactory.register_provider("kylin_sdk", "src.memory.kylin_llm.KylinLLM")

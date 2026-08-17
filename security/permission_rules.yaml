@@ -37,6 +37,8 @@ servers:
     screenshot: L0
     notify: L0
     directory: L0
+    file: L0
+    shell: L0
     wallpaper: L1
     bluetooth: L1
     wifi: L1

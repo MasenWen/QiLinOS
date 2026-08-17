@@ -35,11 +35,9 @@ _config_dict = {
         },
     },
     "llm": {
-        "provider": "openai",
+        "provider": "openai",  # 占位通过 Pydantic 校验，实际后替换为 kylin_sdk
         "config": {
             "model": "qwen3.7-max",
-            "api_key": QWEN_KEY,
-            "openai_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         },
     },
     "history_db_path": os.path.join(MEM0_DIR, "history.db"),
@@ -55,6 +53,7 @@ class Mem0Store:
         # 替换为麒麟后端（绕过 Pydantic 白名单校验）
         cfg.embedder.provider = "kylin_sdk"
         cfg.vector_store.provider = "kylin_vectordb"
+        cfg.llm.provider = "kylin_sdk"  # 麒麟千问，零 key
         self._memory = Memory(cfg)
         
         self._default_user = "nex_user"
