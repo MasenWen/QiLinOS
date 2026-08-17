@@ -13,6 +13,8 @@
 import asyncio
 import json
 import os
+# P1-1: 强制禁用 mem0 PostHog 遥测（必须早于任何 mem0 导入）
+os.environ["MEM0_TELEMETRY"] = "False"
 import re
 import sys
 import threading
@@ -23,7 +25,19 @@ from socketserver import ThreadingMixIn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.sdk import ai_text  # noqa: E402
-from src.memory.mem0_store import mem0_store  # noqa: E402
+# mem0 惰性初始化：--no-memory 启动时完全不加载（P1-2）
+_NO_MEMORY = "--no-memory" in sys.argv
+_mem0 = None
+
+def _get_mem0():
+    """惰性获取 mem0 单例；--no-memory 模式返回 None。"""
+    global _mem0
+    if _NO_MEMORY:
+        return None
+    if _mem0 is None:
+        from src.memory.mem0_store import mem0_store
+        _mem0 = mem0_store
+    return _mem0
 from src.toolkit.init_tools import init_all_tools  # noqa: E402
 from src.toolkit.base import get_registry, ToolResult, ToolStatus  # noqa: E402
 from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
@@ -409,8 +423,11 @@ def _clean(reply: str) -> str:
 
 def _retrieve_memory(query: str) -> str:
     """召回记忆，去重后拼成提示文本。"""
+    store = _get_mem0()
+    if store is None:
+        return ""
     try:
-        items = mem0_store.search(query)
+        items = store.search(query)
     except Exception as e:
         print(f"[mem] 检索失败: {e}", flush=True)
         return ""
@@ -424,9 +441,12 @@ def _retrieve_memory(query: str) -> str:
 
 
 def _remember(messages):
+    store = _get_mem0()
+    if store is None:
+        return
     try:
         with _mem_lock:
-            mem0_store.add(messages)
+            store.add(messages)
     except Exception as e:
         print(f"[mem] 写入失败: {e}", flush=True)
 
@@ -633,8 +653,11 @@ class Handler(BaseHTTPRequestHandler):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
         if self.path == "/api/mem/clear":
+            store = _get_mem0()
+            if store is None:
+                return self._json(200, {"ok": True, "note": "no-memory 模式，记忆未启用"})
             try:
-                mem0_store.delete_all()
+                store.delete_all()
                 return self._json(200, {"ok": True})
             except Exception as e:
                 return self._json(500, {"error": str(e)})
@@ -684,4 +707,5 @@ if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
     print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
     print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
+    print(f"记忆模式: {'无记忆(--no-memory)' if _NO_MEMORY else '启用(mem0 持久化)'}", flush=True)
     ThreadingHTTPServer((WEBCHAT_HOST, port), Handler).serve_forever()

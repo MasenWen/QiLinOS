@@ -1,5 +1,7 @@
 """Mem0 记忆存储 — 麒麟 Embedding + 本地 Qdrant"""
 import os
+# 禁用 mem0 PostHog 遥测（P1-1 内存泄漏修复 + 隐私）：必须在 import mem0 前设置
+os.environ["MEM0_TELEMETRY"] = "False"
 from mem0 import Memory
 from mem0.configs.base import MemoryConfig
 
@@ -56,6 +58,7 @@ class Mem0Store:
         cfg.llm.provider = "kylin_sdk"  # 麒麟千问，零 key
         self._default_user = "nex_user"
         self._degraded = False
+        # 禁用 mem0 遥测(PostHog 客户端+后台队列) — P1-1 内存泄漏修复
         try:
             self._memory = Memory(cfg)
         except Exception as e:
