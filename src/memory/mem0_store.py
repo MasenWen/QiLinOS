@@ -54,7 +54,20 @@ class Mem0Store:
         cfg.embedder.provider = "kylin_sdk"
         cfg.vector_store.provider = "kylin_vectordb"
         cfg.llm.provider = "kylin_sdk"  # 麒麟千问，零 key
-        self._memory = Memory(cfg)
+        self._default_user = "nex_user"
+        self._degraded = False
+        try:
+            self._memory = Memory(cfg)
+        except Exception as e:
+            # MilvusLite 单实例锁：向量库文件被其它进程独占 →
+            # 降级到临时向量库，保证服务可多实例启动（数据不持久）
+            import tempfile
+            db_path = _config_dict["vector_store"]["config"]["path"]
+            tmp_db = os.path.join(tempfile.mkdtemp(prefix="mem0_degraded_"), "mem0_vectordb.db")
+            logger.warning("[Mem0] 向量库 %s 被占用，降级到临时库（重启后记忆不保留）: %s", db_path, e)
+            cfg.vector_store.config.path = tmp_db  # QdrantConfig 是 pydantic 对象，属性赋值
+            self._memory = Memory(cfg)
+            self._degraded = True
         
         self._default_user = "nex_user"
 

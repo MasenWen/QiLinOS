@@ -388,9 +388,10 @@ document.getElementById('clearMem').onclick = async () => {
 
 
 def _clean(reply: str) -> str:
-    """去掉 ai_text 输出里的引用标记，如 [1][2] 或 [无]。"""
+    """去掉 ai_text 输出里的引用标记，如 [1][2]、[无]、[工具结果]、[系统] 等。"""
     s = (reply or "").strip()
-    s = re.sub(r"\[(?:无|\d+)\]", "", s)
+    # 过滤独立引用标记 [xxx]；前瞻 (?!\() 排除 markdown 链接 [文字](url)
+    s = re.sub(r"[ \t]*\[[^\]]*\](?!\()", "", s)
     return s.strip()
 
 
