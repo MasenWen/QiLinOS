@@ -87,3 +87,8 @@ lexical_weight = 0.60
 kylin_semantic_weight = 0.40
 candidate_limit = 50
 require_kylin_semantic = true
+# HNSW 向量检索参数（retrieval.structured_hnsw.v1 使用）
+hnsw_dim = 768
+hnsw_m = 16
+hnsw_ef_construction = 200
+hnsw_ef = 100

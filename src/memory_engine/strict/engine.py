@@ -31,6 +31,7 @@ from .retrieval import (
     scoped_evidence_memories,
     StrictRetrievalContext,
     StructuredBM25Retriever,
+    StructuredHNSWRetriever,
     StructuredSimilarityActivation,
 )
 from .scoring import EvidenceShareConfidence, OpportunityWindowStability
@@ -1081,6 +1082,12 @@ def build_strict_v1_registry(
         "retrieval",
         StructuredBM25Retriever.module_id,
         StructuredBM25Retriever(config.retrieval, activation),
+    )
+    # HNSW 向量检索器（配置切换，保留 BM25 便于对比）
+    registry.register(
+        "retrieval",
+        StructuredHNSWRetriever.module_id,
+        StructuredHNSWRetriever(config.retrieval, activation),
     )
     registry.register(
         "forgetting",

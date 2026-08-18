@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping
+from src.memory_engine.vector_index import HNSWVectorIndex
 
 from .contracts import (
     AtomicEvidence,
@@ -309,6 +310,162 @@ class StructuredBM25Retriever:
                     if kylin_semantic_scores is not None
                     else "not_provided"
                 ),
+                "fallback_used": False,
+            },
+        }
+
+
+class StructuredHNSWRetriever:
+    """向量检索器：BM25 粗筛 top-N → 麒麟 embedding → HNSW ANN 精排。
+
+    与 StructuredBM25Retriever 输入输出契约完全一致（registry 按 module_id 切换），
+    便于两种检索后端对比。config.modules["retrieval"] 选择:
+      - "retrieval.structured_bm25.v1"  → 纯 BM25（默认，保留原架构）
+      - "retrieval.structured_hnsw.v1"  → BM25 粗筛 + HNSW 向量精排
+    """
+
+    module_id = "retrieval.structured_hnsw.v1"
+
+    def __init__(self, config: Mapping[str, Any], activation: Any):
+        self.k1 = float(config.get("bm25_k1", 1.5))
+        self.b = float(config.get("bm25_b", 0.75))
+        self.lexical_weight = float(config.get("lexical_weight", 0.6))
+        self.semantic_weight = float(config.get("kylin_semantic_weight", 0.4))
+        self.candidate_limit = int(config.get("candidate_limit", 50))
+        self.hnsw_dim = int(config.get("hnsw_dim", 768))
+        self.hnsw_m = int(config.get("hnsw_m", 16))
+        self.hnsw_ef_construction = int(config.get("hnsw_ef_construction", 200))
+        self.hnsw_ef = int(config.get("hnsw_ef", 100))
+        self.activation = activation
+        self._embedder = None
+
+    def _get_embedder(self):
+        if self._embedder is None:
+            from src.memory.kylin_embedder import KylinEmbedder
+            self._embedder = KylinEmbedder()
+        return self._embedder
+
+    def _query_text(self, context) -> str:
+        return " ".join(
+            (
+                context.query_text,
+                context.memory_need,
+                context.task,
+                context.goal,
+            )
+        ).strip()
+
+    def retrieve(
+        self,
+        memories: list[StrictMemory],
+        groups: list[StrictConflictGroup],
+        context: StrictRetrievalContext,
+        *,
+        top_k: int,
+        kylin_semantic_scores: Mapping[str, float] | None = None,
+        semantic_scorer: Any | None = None,
+    ) -> dict[str, Any]:
+        candidates, hard_filter_trace = _hard_filter(memories, context)
+        documents = {
+            item.memory_id: render_memory(item)
+            for item in candidates
+        }
+        # 1) BM25 粗筛 top-N（保留词面召回架构）
+        query_text = self._query_text(context)
+        lexical_scores = _bm25(query_text, documents, k1=self.k1, b=self.b)
+        preselect = sorted(lexical_scores, key=lexical_scores.get, reverse=True)[
+            : max(0, min(self.candidate_limit, top_k * 4))
+        ]
+        if not preselect:
+            return {
+                "items": [],
+                "planner": {"selected_memory_ids": [], "advisory_memory_ids": [], "clarifications": [], "abstained": True},
+                "trace": {"module_id": self.module_id, "activation_module_id": self.activation.module_id,
+                          "hard_filter": hard_filter_trace, "conflict_decisions": {}, "semantic_backend": "hnsw", "fallback_used": True},
+            }
+        # 2) 麒麟 embedding 向量化（粗筛候选 + query）
+        emb = self._get_embedder()
+        qv = emb.embed(query_text[:200])
+        vecs = {mid: emb.embed(documents[mid][:150]) for mid in preselect}
+        # 3) HNSW ANN 检索
+        idx = HNSWVectorIndex(
+            dim=self.hnsw_dim,
+            m=self.hnsw_m,
+            ef_construction=self.hnsw_ef_construction,
+            ef=self.hnsw_ef,
+        )
+        idx.build(list(preselect), [vecs[mid] for mid in preselect], [documents[mid] for mid in preselect])
+        ann = idx.search(qv, top_k=max(1, top_k))
+        idx.close()
+        ann_score = dict(ann)
+        ann_ids = set(ann_score)
+
+        # 4) 冲突解决 + 激活 + 分数（与 BM25 检索器同格式）
+        conflict_decisions = _resolve_conflicts(candidates, groups, context)
+        allowed_ids = conflict_decisions["allowed_ids"]
+        advisory_ids = set(conflict_decisions["advisory_ids"])
+        max_lexical = max((lexical_scores.get(mid, 0.0) for mid in preselect), default=0.0)
+        ranked: list[dict[str, Any]] = []
+        for memory in candidates:
+            if memory.memory_id not in allowed_ids or memory.memory_id not in ann_ids:
+                continue
+            lexical_n = (lexical_scores.get(memory.memory_id, 0.0) / max_lexical) if max_lexical > 0 else 0.0
+            hnsw = max(0.0, min(float(ann_score.get(memory.memory_id, 0.0)), 1.0))
+            hybrid = self.lexical_weight * lexical_n + self.semantic_weight * hnsw
+            activation = self.activation.score(memory, context, semantic_score=hybrid)
+            confidence_abstain = bool(memory.confidence.get("abstain", True))
+            if confidence_abstain:
+                advisory_ids.add(memory.memory_id)
+            ranked.append(
+                {
+                    "memory_id": memory.memory_id,
+                    "slot_key": memory.slot_key,
+                    "semantic_value": memory.semantic_value,
+                    "condition": dict(memory.condition),
+                    "status": memory.status.value,
+                    "confidence": dict(memory.confidence),
+                    "stability": dict(memory.stability),
+                    "scores": {
+                        "bm25": round(lexical_n, 8),
+                        "hnsw": round(hnsw, 8),
+                        "hybrid": round(hybrid, 8),
+                        "activation": activation,
+                    },
+                    "decision": "advisory" if memory.memory_id in advisory_ids else "actionable",
+                    "lineage": {
+                        "evidence_ids": list(memory.evidence_ids),
+                        "support_unit_ids": list(memory.support_unit_ids),
+                    },
+                }
+            )
+        ranked.sort(
+            key=lambda item: (
+                item["decision"] == "actionable",
+                item["scores"]["activation"]["total"],
+                item["scores"]["hybrid"],
+                item["memory_id"],
+            ),
+            reverse=True,
+        )
+        limited = ranked[: max(0, min(top_k, len(ranked)))]
+        selected = [item["memory_id"] for item in limited if item["decision"] == "actionable"]
+        advisory = [item["memory_id"] for item in limited if item["decision"] == "advisory"]
+        return {
+            "items": limited,
+            "planner": {
+                "selected_memory_ids": selected,
+                "advisory_memory_ids": advisory,
+                "clarifications": conflict_decisions["clarifications"],
+                "abstained": bool(not selected and (advisory or conflict_decisions["clarifications"])),
+            },
+            "trace": {
+                "module_id": self.module_id,
+                "activation_module_id": self.activation.module_id,
+                "hard_filter": hard_filter_trace,
+                "conflict_decisions": {
+                    key: value for key, value in conflict_decisions.items() if key != "allowed_ids"
+                },
+                "semantic_backend": "hnsw",
                 "fallback_used": False,
             },
         }
