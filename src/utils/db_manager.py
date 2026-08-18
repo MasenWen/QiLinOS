@@ -1,3 +1,4 @@
+import os
 import mysql.connector
 from mysql.connector import Error
 import logging
@@ -6,10 +7,12 @@ import threading
 import json
 from datetime import datetime
 DB_CONFIG = {
-    "host": "127.0.0.1",
-    "user": "root",
-    "password": "jh123123",
-    "database": "mcp_server"
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "user": os.getenv("DB_USER", "root"),
+    "password": os.getenv("DB_PASSWORD", "jh123123"),
+    "database": os.getenv("DB_NAME", "mcp_server"),
+    # 本地回环连接无需 SSL（修复 ecdh 握手错误）；密码可经 DB_PASSWORD 环境变量覆盖
+    "ssl_disabled": True,
 }
 
 class DBManager:
