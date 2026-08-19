@@ -910,6 +910,27 @@ def _chat(message: str, session_id: str = "default"):
                     return _render_tool_result(res)
         except Exception as e:
             print(f"[tool] 编排执行失败: {e}", flush=True)
+            # AI 输出畸形 JSON（如 "files":} 缺值）：用 LLM 修正重试一次
+            if '"tool"' in raw or "'tool'" in raw:
+                try:
+                    from src.sdk import ai_text as _ai
+                    with _ai.TextSession() as _t2:
+                        retry_raw = _t2.generate(
+                            prompt + "\n\n注意：您上一次输出的工具调用 JSON 格式不完整或无效。"
+                            "请重新输出，必须是一个完整合法的 JSON 对象，所有字段都要有值。"
+                        )
+                    m2 = re.search(r"\{.*\}", retry_raw, re.DOTALL)
+                    if m2:
+                        plan2 = json.loads(m2.group(0))
+                        tool2 = plan2.get("tool")
+                        if tool2 in REGISTRY.list_all():
+                            res2 = _run_tool(tool2, plan2.get("params") or {})
+                            return _summarize_result(message, tool2, res2)
+                except Exception as e2:
+                    print(f"[tool] JSON 修正重试失败: {e2}", flush=True)
+                return ("您的请求我理解到了，但生成的操作指令不完整。"
+                        "请换个说法再试一次，例如："
+                        "「在桌面新建文件夹 test，里面放 10 个空的 .md 文件」")
 
     return raw
 
