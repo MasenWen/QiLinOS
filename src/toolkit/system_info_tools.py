@@ -44,6 +44,7 @@ class SystemInfoTool(BaseTool):
             "cpu": ["top", "-bn1"],
             "load": ["cat", "/proc/loadavg"],
             "memory": ["free", "-h"],
+            "disk": ["df", "-h"],
             "uptime": ["uptime"],
             "arch": ["uname", "-m"],
         }
@@ -51,13 +52,26 @@ class SystemInfoTool(BaseTool):
         ext = self._official_ext(info_type)
         if ext is not None:
             return ext
+        # SDK 查询统一走子进程（麒麟 C 库 libky* 在主进程内 SIGSEGV，子进程隔离）
         try:
-            from src.sdk.system import query_system_info
-            text = query_system_info(info_type)
-            if text and "当前环境中不可用" not in text and "不可用" not in text[:20]:
-                return self._ok(text)
-        except Exception:
-            text = ""
+            import json as _json
+            import os as _os
+            import subprocess as _sp
+            import sys as _sys
+            _helper = _os.path.join(
+                _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+                "sdk", "query_ext.py")
+            _r = _sp.run([_sys.executable, _helper, info_type],
+                         capture_output=True, text=True, timeout=10,
+                         cwd=_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+            _out = (_r.stdout or "").strip()
+            if _out:
+                _data = _json.loads(_out.splitlines()[-1])
+                if _data.get("ok"):
+                    return self._ok(_data["ok"])
+        except Exception as _e:
+            print(f"[sysinfo] 子进程查询失败({info_type}): {_e}", flush=True)
+        text = ""
         # fallback 到标准系统命令
         cmd = _FALLBACK.get(info_type)
         if cmd:

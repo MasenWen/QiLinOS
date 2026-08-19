@@ -53,6 +53,13 @@ def main():
                       ob.BOUND_LIBS, _safe_cstring_call)
             if v is not None and v >= 0:
                 result["ok"] = f"瞬时网速: {v}（官方 SDK realtime）"
+        else:
+            # 通用分支: 其余系统信息(disk/network/cpu/memory/uptime/basic/gpu/fans等)
+            # 在子进程内执行 C 库调用, 崩溃只影响本子进程
+            from src.sdk import system
+            text = system.query_system_info(info_type)
+            if text and "当前环境中不可用" not in text and "不可用" not in text[:20]:
+                result["ok"] = text
     except Exception as e:
         result["err"] = str(e)
     print(json.dumps(result, ensure_ascii=False))
