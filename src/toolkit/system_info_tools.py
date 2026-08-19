@@ -28,7 +28,7 @@ class SystemInfoTool(BaseTool):
     _VALID_TYPES = {
         "basic", "kernel", "cpu", "memory", "disk", "load", "network",
         "battery", "gpu", "fans", "hostname", "arch", "uptime",
-        "boot_time", "locale", "edid", "monitor", "temp", "temperature",
+        "boot_time", "locale", "edid", "monitor", "display", "temp", "temperature",
         "package", "netspeed", "net_speed",
     }
 
@@ -88,7 +88,7 @@ class SystemInfoTool(BaseTool):
                     return None
             return None
 
-        if info_type in ("edid", "monitor"):
+        if info_type in ("edid", "monitor", "display"):
             parts = []
             # 仅封装已验证安全的接口（kdk_edid_get_interface 在 Kylin 上 segfault，跳过）
             for label, fn in (("厂商", "kdk_edid_get_manufacturer"), ("型号", "kdk_edid_get_model"),

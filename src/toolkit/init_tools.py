@@ -55,6 +55,10 @@ def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     from .battery_tools import register_battery_tools
     register_battery_tools(registry)
 
+    # System info query tools (cpu/memory/load etc.)
+    from .system_info_tools import register_system_info_tools
+    register_system_info_tools(registry)
+
     # File tools (create folder/file within home dir)
     from .file_tools import register_file_tools
     register_file_tools(registry)

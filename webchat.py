@@ -707,7 +707,11 @@ def _chat(message: str, session_id: str = "default"):
         try:
             plan = json.loads(m.group(0))
             tool = plan.get("tool")
-            if tool and tool in REGISTRY.list_all():
+            if tool:
+                if tool not in REGISTRY.list_all():
+                    # AI 编造了不存在的工具：不返回原始 JSON，给友好提示
+                    return (f"我无法执行「{tool}」这个操作，它不在我可用的工具列表中。"
+                            f"请换个说法描述您的需求，例如：系统 CPU 占用情况、当前内存使用、磁盘空间等。")
                 params = plan.get("params") or {}
                 res = _run_tool(tool, params)
                 try:

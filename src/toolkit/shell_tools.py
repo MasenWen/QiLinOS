@@ -24,7 +24,7 @@ class ShellTool(BaseTool):
     description = (
         "当其它工具无法完成请求时，用白名单系统命令兜底执行。"
         "可用命令: mkdir, touch, rmdir, ls, pwd, tree, cat, head, tail, wc, grep, "
-        "file, stat, sort, uniq, cp, mv, df, du, date, whoami, hostname, uname, uptime。"
+        "file, stat, sort, uniq, cp, mv, df, du, date, whoami, hostname, uname, uptime, top。"
         "写类命令(mkdir/touch/cp/mv/rmdir)的路径必须在主目录 ~/ 内。"
         "参数: cmd（完整命令字符串，例如 'mkdir -p ~/桌面/测试文档'）"
     )
@@ -35,7 +35,7 @@ class ShellTool(BaseTool):
     READONLY_CMDS = {
         "ls", "pwd", "tree", "cat", "head", "tail", "wc", "grep",
         "file", "stat", "sort", "uniq", "df", "du", "date",
-        "whoami", "hostname", "uname", "uptime",
+        "whoami", "hostname", "uname", "uptime", "top",
     }
     # 写类命令：路径必须限定在主目录内
     WRITE_CMDS = {"mkdir", "touch", "rmdir", "cp", "mv"}
