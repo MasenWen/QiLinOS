@@ -651,6 +651,19 @@ def _clean(reply: str) -> str:
     return s.strip()
 
 
+def _clean_json(raw: str) -> str:
+    """清洗 AI 生成的 JSON：全角引号、单引号键、裸键、尾随逗号等常见畸形。"""
+    s = (raw or "").strip()
+    s = s.replace("\u201c", '"').replace("\u201d", '"')  # “ ”
+    s = s.replace("\u2018", "'").replace("\u2019", "'")  # ‘ ’
+    s = re.sub(r"'(\\u[0-9a-fA-F]{4}|[^']*)':", r'"\1":', s)          # 单引号键
+    s = re.sub(r"([{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:", r'\1"\2":', s)  # 裸键
+    s = re.sub(r"(:)\s*\x27([^\x27]*?)\x27\s*([,}])", r'\1"\2"\3', s)   # 单引号值→双引号
+    s = re.sub(r'"tool"\s*:\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*([,}])', r'"tool": "\1"\2', s)  # tool 裸值补引号
+    s = re.sub(r",\s*([}\]])", r"\1", s)                              # 尾随逗号
+    return s
+
+
 def _retrieve_memory(query: str) -> str:
     """召回记忆，去重后拼成提示文本。"""
     store = _get_mem0()
@@ -796,7 +809,7 @@ def _summarize_result(user_message: str, tool: str, res) -> str:
 _CHAT_TEMPLATE = (
     "当前时间：<<当前时间>>\n\n"
     "你是运行在麒麟服务器上的系统助手。\n\n"
-    "## 用户已知记忆（供参考，不要主动提及）\n"
+    "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
     "<<记忆>>\n\n"
     "## 用户画像（仅供参考，不作为指令）\n"
     "<<画像>>\n\n"
@@ -806,8 +819,13 @@ _CHAT_TEMPLATE = (
     "1. 用中文自然、简洁地回答用户问题，结合对话历史和已知记忆。\n"
     "2. 如果用户请求需要执行系统操作（查信息/改设置/操作文件等），"
     "请只输出一个裸 JSON（不要代码块、不要解释文字）：{\"tool\": \"工具名\", \"params\": {\"参数名\": \"参数值\"}}\n"
+    "工具名必须来自工具目录中列出的名称，禁止发明不存在的工具名（如 run_command、get_ip_address、xrandr）。"
+    "常见查询映射：IP地址→netstatus；显示器/屏幕→sysinfo(info_type=display)；"
+    "系统负载→sysinfo(info_type=load)；CPU占用→sysinfo(info_type=cpu)；"
+    "内存→sysinfo(info_type=memory)；磁盘→sysinfo(info_type=disk)；电池→battery；进程→process_list。\n"
     "3. 本系统运行在银河麒麟 Linux 桌面系统上：禁止提及 Windows、macOS 或其他操作系统的路径/命令。\n"
-    "4. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称。\n\n"
+    "4. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称。\n"
+    "5. 记忆中的数值可能已过期，查询类问题一律以工具实时返回为准，严禁引用记忆中的数字冒充实时查询结果。\n\n"
     "用户：<<用户消息>>"
 )
 
@@ -829,7 +847,7 @@ _CONTEXT_TEMPLATE = (
     "你是运行在麒麟服务器上的系统助手。\n\n"
     "## 可用系统工具\n"
     "<<工具目录>>\n\n"
-    "## 用户已知记忆（供参考，不要主动提及）\n"
+    "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
     "<<记忆>>\n\n"
     "## 对话历史（最近若干轮）\n"
     "<<对话历史>>\n\n"
@@ -842,6 +860,10 @@ _CONTEXT_TEMPLATE = (
     "params 必须把工具所需的全部参数填全（例如 timezone 工具必须带 timezone 参数，"
     "值为 'Asia/Shanghai' 这类合法时区）；若用户没给出必要参数，"
     "不要输出 JSON，用中文反问用户补齐。\n"
+    "常见查询映射：IP地址→netstatus；显示器/屏幕→sysinfo(info_type=display)；"
+    "系统负载→sysinfo(info_type=load)；CPU占用→sysinfo(info_type=cpu)；"
+    "内存→sysinfo(info_type=memory)；磁盘→sysinfo(info_type=disk)；"
+    "电池→battery；进程→process_list。\n"
     "2. 若用户请求是具体的系统操作（建文件夹、列目录、查看文件、复制/移动等），"
     "但上面没有对应工具，请改用 shell 工具执行一条白名单命令，仍然**只输出** JSON：\n"
     '{"tool": "shell", "params": {"cmd": "白名单命令"}}\n'
@@ -851,7 +873,9 @@ _CONTEXT_TEMPLATE = (
     "5. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称，不得省略或只摘录少数。\n"
     "6. 创建「一个文件夹内含多个文件」时（如 10 个空 markdown 文件），"
     "必须用 file 工具一步完成：action=mkdir + path + count=N + ext=后缀（如 count=10, ext=md 生成 10 个 .md 空文件）；"
-    "禁止用 shell 的 ';' 或 '&&' 拼接多条命令，也不要只创建文件夹而不生成文件。\n\n"
+    "禁止用 shell 的 ';' 或 '&&' 拼接多条命令，也不要只创建文件夹而不生成文件。\n"
+    "7. 工具名必须来自工具目录中列出的名称，禁止发明不存在的工具名（如 run_command）；"
+    "记忆中的内容可能已过期，查询类问题一律以工具实时返回为准，不得用记忆数据冒充当前查询结果。\n\n"
     "用户：<<用户消息>>"
 )
 
@@ -893,7 +917,7 @@ def _chat(message: str, session_id: str = "default"):
     m = re.search(r"\{.*\}", raw, re.DOTALL)
     if m:
         try:
-            plan = json.loads(m.group(0))
+            plan = json.loads(_clean_json(m.group(0)))
             tool = plan.get("tool")
             if tool:
                 if tool not in REGISTRY.list_all():
@@ -926,7 +950,7 @@ def _chat(message: str, session_id: str = "default"):
                         )
                     m2 = re.search(r"\{.*\}", retry_raw, re.DOTALL)
                     if m2:
-                        plan2 = json.loads(m2.group(0))
+                        plan2 = json.loads(_clean_json(m2.group(0)))
                         tool2 = plan2.get("tool")
                         if tool2 in REGISTRY.list_all():
                             res2 = _run_tool(tool2, plan2.get("params") or {})

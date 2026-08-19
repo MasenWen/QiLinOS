@@ -399,6 +399,15 @@ def query_system_info(info_type: str) -> str:
         return ""
 
     if info_type in ("load",):
+        # 官方 SDK（libkyrtinfo）无负载接口 → 读取 /proc/loadavg 兜底
+        try:
+            with open("/proc/loadavg", "r", encoding="utf-8") as _f:
+                _p = _f.read().split()
+            if len(_p) >= 3:
+                return ("系统负载(load average): 1分钟 %s | 5分钟 %s | 15分钟 %s"
+                        % (_p[0], _p[1], _p[2]))
+        except OSError:
+            pass
         up = get_uptime_text()
         if up:
             return up

@@ -94,7 +94,7 @@ class DnsTool(BaseTool):
 class NetworkStatusTool(BaseTool):
     """Network status query."""
     name = "netstatus"
-    description = "查询网络状态：在线状态、接口、网关、DNS"
+    description = "查询网络状态：在线状态、接口(含IP地址)、网关、DNS；查IP地址用本工具"
     risk = RiskLevel.LOW
     timeout_s = 10.0
 

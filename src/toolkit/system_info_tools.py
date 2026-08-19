@@ -18,7 +18,8 @@ class SystemInfoTool(BaseTool):
     name = "sysinfo"
     description = (
         "查询系统信息。info_type: cpu=CPU占用/型号, memory=内存占用, load=系统负载, "
-        "disk=磁盘, network=网络, basic=基本信息, hostname, uptime, arch 等。"
+        "disk=磁盘, network=网络, basic=基本信息, hostname, uptime, arch, "
+        "display=显示器/屏幕(厂商/型号/分辨率) 等。"
         "例如查询\"cpu占用情况\"用 info_type=cpu。"
     )
     risk = None  # 由注册处指定
