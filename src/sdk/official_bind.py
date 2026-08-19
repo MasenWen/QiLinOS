@@ -130,6 +130,151 @@ if _lib_date is not None:
         BOUND_FUNCS["kdk_date_freeall"] = "libkydate"
     except (AttributeError, OSError):
         pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_dateformat", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_get_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_eUser_login_time", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_eUser_login_time"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_longformat", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_longformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_longformat_date", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_longformat_date"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_now_dateformat", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_now_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_now_timeformat", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_now_timeformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_shortformat", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_shortformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_shortformat_date", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_get_shortformat_date"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_shutdown_time", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_get_shutdown_time"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_get_startup_time", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_get_startup_time"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_gjx_time", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_gjx_time"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_login_lock_dateinfo", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_login_lock_dateinfo"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_logn_dateinfo", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_logn_dateinfo"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_longformat_transform", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_longformat_transform"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_longweek", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_longweek"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_nowdate", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_nowdate"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_nowtime", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_nowtime"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_second", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_second"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_set_12_timeformat", restype=_c.c_int)
+        BOUND_FUNCS["kdk_system_set_12_timeformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_set_24_timeformat", restype=_c.c_int)
+        BOUND_FUNCS["kdk_system_set_24_timeformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_set_dateformat", restype=_c.c_int)
+        BOUND_FUNCS["kdk_system_set_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_set_long_dateformat", restype=_c.c_int)
+        BOUND_FUNCS["kdk_system_set_long_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_set_short_dateformat", restype=_c.c_int)
+        BOUND_FUNCS["kdk_system_set_short_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_shortformat_transform", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_shortformat_transform"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_shortweek", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_shortweek"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_timeformat_transform", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_timeformat_transform"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_tran_absolute_date", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_tran_absolute_date"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_tran_absolute_date_longformat", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_system_tran_absolute_date_longformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_date, "kdk_system_tran_dateformat", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_system_tran_dateformat"] = "libkydate"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
 
 _lib_diskinfo = load_library("libkydiskinfo", mock=False)
 if _lib_diskinfo is not None:
@@ -1258,18 +1403,8 @@ if _lib_sysinfo is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
-        declare(_lib_sysinfo, "kdk_system_get_dateformat", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_get_dateformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
         declare(_lib_sysinfo, "kdk_system_get_eUser", restype=_c.c_char_p)
         BOUND_FUNCS["kdk_system_get_eUser"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_eUser_login_time", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_eUser_login_time"] = "libkysysinfo"
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
@@ -1313,16 +1448,6 @@ if _lib_sysinfo is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
-        declare(_lib_sysinfo, "kdk_system_get_longformat", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_longformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_longformat_date", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_longformat_date"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
         declare(_lib_sysinfo, "kdk_system_get_machine_type", restype=_c.c_void_p)
         BOUND_FUNCS["kdk_system_get_machine_type"] = "libkysysinfo"
     except (AttributeError, OSError):
@@ -1335,16 +1460,6 @@ if _lib_sysinfo is not None:
     try:
         declare(_lib_sysinfo, "kdk_system_get_minor_version", restype=_c.c_char_p)
         BOUND_FUNCS["kdk_system_get_minor_version"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_now_dateformat", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_now_dateformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_now_timeformat", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_now_timeformat"] = "libkysysinfo"
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
@@ -1393,28 +1508,8 @@ if _lib_sysinfo is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
-        declare(_lib_sysinfo, "kdk_system_get_shortformat", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_shortformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_shortformat_date", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_get_shortformat_date"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_shutdown_time", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_get_shutdown_time"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
         declare(_lib_sysinfo, "kdk_system_get_startup_takeTime", restype=_c.c_char_p)
         BOUND_FUNCS["kdk_system_get_startup_takeTime"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_get_startup_time", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_get_startup_time"] = "libkysysinfo"
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
@@ -1463,11 +1558,6 @@ if _lib_sysinfo is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
-        declare(_lib_sysinfo, "kdk_system_gjx_time", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_gjx_time"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
         declare(_lib_sysinfo, "kdk_system_is_service_active", restype=_c.c_void_p)
         BOUND_FUNCS["kdk_system_is_service_active"] = "libkysysinfo"
     except (AttributeError, OSError):
@@ -1478,63 +1568,8 @@ if _lib_sysinfo is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
-        declare(_lib_sysinfo, "kdk_system_login_lock_dateinfo", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_login_lock_dateinfo"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_logn_dateinfo", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_logn_dateinfo"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_longformat_transform", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_longformat_transform"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_longweek", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_longweek"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_nowdate", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_nowdate"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_nowtime", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_nowtime"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
         declare(_lib_sysinfo, "kdk_system_register_switch_user_handle", restype=_c.c_int)
         BOUND_FUNCS["kdk_system_register_switch_user_handle"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_second", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_second"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_set_12_timeformat", restype=_c.c_int)
-        BOUND_FUNCS["kdk_system_set_12_timeformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_set_24_timeformat", restype=_c.c_int)
-        BOUND_FUNCS["kdk_system_set_24_timeformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_set_dateformat", restype=_c.c_int)
-        BOUND_FUNCS["kdk_system_set_dateformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_set_long_dateformat", restype=_c.c_int)
-        BOUND_FUNCS["kdk_system_set_long_dateformat"] = "libkysysinfo"
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:
@@ -1555,41 +1590,6 @@ if _lib_sysinfo is not None:
     try:
         declare(_lib_sysinfo, "kdk_system_set_service_startup", restype=_c.c_int)
         BOUND_FUNCS["kdk_system_set_service_startup"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_set_short_dateformat", restype=_c.c_int)
-        BOUND_FUNCS["kdk_system_set_short_dateformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_shortformat_transform", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_shortformat_transform"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_shortweek", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_shortweek"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_timeformat_transform", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_timeformat_transform"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_tran_absolute_date", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_tran_absolute_date"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_tran_absolute_date_longformat", restype=_c.c_char_p)
-        BOUND_FUNCS["kdk_system_tran_absolute_date_longformat"] = "libkysysinfo"
-    except (AttributeError, OSError):
-        pass  # 符号不存在
-    try:
-        declare(_lib_sysinfo, "kdk_system_tran_dateformat", restype=_c.c_void_p)
-        BOUND_FUNCS["kdk_system_tran_dateformat"] = "libkysysinfo"
     except (AttributeError, OSError):
         pass  # 符号不存在
     try:

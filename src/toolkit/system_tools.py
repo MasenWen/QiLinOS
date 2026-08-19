@@ -421,7 +421,21 @@ class DateTimeTool(BaseTool):
     def execute(self, **kwargs) -> ToolResult:
         dt = kwargs.get("datetime", "")
         if not dt:
-            # 查询模式：返回当前系统时间
+            # 查询模式：官方 SDK 优先（kdk_system_nowdate/nowtime/second）
+            try:
+                from src.sdk import official_bind as _ob
+                from src.sdk.base import _safe_cstring_call
+                _ld = _ob.BOUND_LIBS.get("libkydate")
+                if _ld is not None:
+                    _d = _safe_cstring_call(_ld, "kdk_system_nowdate")
+                    _t = _safe_cstring_call(_ld, "kdk_system_nowtime")
+                    _s = _safe_cstring_call(_ld, "kdk_system_second")
+                    if _d and _s:
+                        return self._ok(
+                            f"当前系统时间: {_d} {_s}（官方 SDK）", mode="query")
+            except Exception:
+                pass
+            # 兜底：date 命令
             import subprocess as _sp
             try:
                 r = _sp.run(["date", "+%Y-%m-%d %H:%M:%S"],
