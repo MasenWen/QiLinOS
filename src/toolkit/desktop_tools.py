@@ -76,6 +76,13 @@ class VolumeTool(BaseTool):
     def _set_volume(self, percent: int) -> ToolResult:
         if not (0 <= percent <= 100):
             return self._fail(f"音量值必须在 0-100 之间，收到: {percent}")
+        # 官方 SDK 优先（desktop_dbus.volume_set），失败兜底 pactl
+        try:
+            from src.sdk.desktop_dbus import volume_set
+            if volume_set(percent):
+                return self._ok(f"音量已设置为 {percent}%（官方 SDK）")
+        except Exception:
+            pass
         return self._run_pactl(
             ["set-sink-volume", "@DEFAULT_SINK@", f"{percent}%"],
             f"音量已设置为 {percent}%",
@@ -269,6 +276,17 @@ class BluetoothTool(BaseTool):
                 return self._ok(f"当前蓝牙状态: {bluetooth.get_bluetooth_status()}")
             except Exception as e:
                 return self._fail(f"查询蓝牙状态失败: {e}")
+        # 官方 SDK 优先（enable/disable 内部 SDK→rfkill 兜底）
+        from src.sdk import bluetooth
+        try:
+            if action == "on":
+                ok, msg = bluetooth.enable_bluetooth()
+            else:
+                ok, msg = bluetooth.disable_bluetooth()
+            return self._ok(msg) if ok else self._fail(msg)
+        except Exception as e:
+            return self._fail(f"蓝牙操作失败: {e}")
+        # 原 rfkill 直调（保留为不可达兜底，防止误删）
         cmd = ["rfkill", "unblock" if action == "on" else "block", "bluetooth"]
         label = "打开" if action == "on" else "关闭"
         try:
