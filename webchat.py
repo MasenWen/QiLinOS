@@ -304,14 +304,15 @@ const msgs = document.getElementById('messages');
 const empty = document.getElementById('empty');
 const input = document.getElementById('input');
 const send = document.getElementById('send');
-const KEY = 'aichat_history_v1';
 const SKEY = 'aichat_session_v1';
+// history 按会话隔离（新会话不再显示旧会话消息）
+const histKey = (sid) => `aichat_history_v1_${sid || sessionId}`;
 const hasMD = typeof marked !== 'undefined';
 const hasPurify = typeof DOMPurify !== 'undefined';
 const mdOpts = { breaks: true, gfm: true };
 
 let history = [];
-try { history = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { history = []; }
+try { history = JSON.parse(localStorage.getItem(histKey()) || '[]'); } catch (e) { history = []; }
 let busy = false;
 // token 支持: URL ?token= 或 localStorage，之后所有请求自动携带
 const API_TOKEN = new URLSearchParams(location.search).get('token')
@@ -327,7 +328,7 @@ if (!sessionId) {
 }
 
 function scrollBottom() { msgs.scrollTop = msgs.scrollHeight; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(history)); } catch (e) {} }
+function save() { try { localStorage.setItem(histKey(), JSON.stringify(history)); } catch (e) {} }
 
 function renderMd(el, text) {
   if (hasMD) {
@@ -434,6 +435,26 @@ function restore() {
 restore();
 
 // ---- CODEX 风格：会话侧栏 + 右侧面板 ----
+function renderHistory() {
+  msgs.innerHTML = '';
+  if (!history.length) {
+    const d = document.createElement('div');
+    d.className = 'empty'; d.id = 'empty';
+    d.innerHTML = '<h1>你好，我是麒麟 AI</h1><p>我会记住你的偏好，也能调用服务器上的系统工具。</p><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
+    msgs.appendChild(d);
+  } else {
+    history.forEach(m => addRow(m.role, m.text));
+  }
+  scrollBottom();
+}
+function switchSession(sid) {
+  sessionId = sid;
+  localStorage.setItem(SKEY, sid);
+  history = [];
+  try { history = JSON.parse(localStorage.getItem(histKey(sid)) || '[]'); } catch (e) { history = []; }
+  renderHistory();
+  refreshSessions();
+}
 async function refreshSessions() {
   try {
     const r = await fetch('/api/sessions');
@@ -444,7 +465,7 @@ async function refreshSessions() {
       const el = document.createElement('div');
       el.className = 'sess-item' + (s.session_id === sessionId ? ' active' : '');
       el.textContent = (s.preview || s.session_id.slice(0, 12)) + ` (${s.turns})`;
-      el.onclick = () => { sessionId = s.session_id; location.reload(); };
+      el.onclick = () => { switchSession(s.session_id); };
       list.appendChild(el);
     });
   } catch (e) {}
@@ -509,7 +530,10 @@ refreshSkills();
 document.getElementById('newChat').onclick = () => {
   sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   localStorage.setItem(SKEY, sessionId);
-  location.reload();
+  history = [];
+  renderHistory();          // 清空页面（不整页刷新）
+  refreshSessions();
+  input.focus();
 };
 refreshSessions();
 setInterval(refreshPanels, 4000);
