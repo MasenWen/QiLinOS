@@ -12,10 +12,11 @@ class BatteryInfoTool(BaseTool):
 
     def execute(self, **kwargs) -> ToolResult:
         from src.sdk import battery
-        info = battery.get_battery_info()
         pct = battery.get_battery_percentage()
         charging = battery.is_charging()
         plan = battery.get_power_plan()
+        if (pct is None or pct < 0) and plan in ("unknown", "Unknown", "", None):
+            return self._ok("未检测到电池设备（当前环境可能为虚拟机或台式机，无电池供电）")
         status = "充电中" if charging else ("放电中" if charging is False else "未知")
         return self._ok(f"电池: {pct}% ({status}), 电源计划: {plan}")
 

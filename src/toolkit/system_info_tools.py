@@ -114,10 +114,32 @@ class SystemInfoTool(BaseTool):
         # package 接口需先 init 且返回列表结构，未封装（避免误读内存地址）
         if info_type in ("netspeed", "net_speed"):
             v = _call("libkyrealtime", "kdk_real_get_net_speed")
-            if v is not None:
+            if v is not None and v >= 0:
                 return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
                     tool_name="sysinfo", status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
                     output=f"瞬时网速: {v}（官方 SDK realtime）")
+            # SDK 无有效数据 → /proc/net/dev 两次采样（1s）计算实时网速
+            try:
+                import time
+
+                def _rx_tx():
+                    with open("/proc/net/dev", "r", encoding="utf-8") as f:
+                        for line in f:
+                            if any(k in line for k in ("ens", "eth", "enp")):
+                                p = line.split()
+                                return int(p[1]), int(p[9])
+                    return None
+                a = _rx_tx()
+                time.sleep(1)
+                b = _rx_tx()
+                if a and b:
+                    rx = max(b[0] - a[0], 0) / 1024.0 / 1024.0
+                    tx = max(b[1] - a[1], 0) / 1024.0 / 1024.0
+                    return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
+                        tool_name="sysinfo", status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
+                        output=f"实时网速（/proc/net/dev 1s 采样）: 下载 {rx:.2f} MiB/s, 上传 {tx:.2f} MiB/s")
+            except Exception:
+                pass
         return None
 
     def verify(self, **kwargs) -> bool:
