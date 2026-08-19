@@ -31,7 +31,14 @@ _lib_fan     = load_library("libkyfan", mock=True)            # /usr/lib/x86_64-
 _lib_disk    = load_library("libkydiskinfo", mock=True)       # /usr/lib/x86_64-linux-gnu/libkydiskinfo.so
 _lib_net     = load_library("libkynetinfo", mock=True)        # /usr/lib/x86_64-linux-gnu/libkynetinfo.so
 _lib_location = load_library("libkylocation", mock=True)      # /usr/lib/x86_64-linux-gnu/libkylocation.so
-_lib_rti = load_library("libkyrtinfo", mock=True)          # /usr/lib/x86_64-linux-gnu/libkyrtinfo.so (3.1.5 系统资源信息)
+_lib_rti = load_library("libkyrtinfo", mock=True)
+_lib_hw = load_library("libkyhw", mock=False)  # 硬件信息(3.1.2): bios/board/cpu
+if _lib_hw is not None:
+    declare(_lib_hw, "kdk_cpu_get_arch", restype=ctypes.c_char_p)
+    declare(_lib_hw, "kdk_cpu_get_vendor", restype=ctypes.c_char_p)
+    declare(_lib_hw, "kdk_cpu_get_model", restype=ctypes.c_char_p)
+    declare(_lib_hw, "kdk_cpu_get_freq_MHz", restype=ctypes.c_char_p)
+    declare(_lib_hw, "kdk_cpu_get_corenums", restype=ctypes.c_ulong)          # /usr/lib/x86_64-linux-gnu/libkyrtinfo.so (3.1.5 系统资源信息)
 if _lib_rti is not None:
     declare(_lib_rti, "kdk_rti_get_cpu_current_usage", restype=ctypes.c_float)
     declare(_lib_rti, "kdk_rti_get_mem_res_total_KiB", restype=ctypes.c_ulong)
@@ -370,9 +377,20 @@ def query_system_info(info_type: str) -> str:
 
     if info_type in ("cpu",):
         usage = get_cpu_usage()
+        parts = []
         if usage >= 0:
-            return f"CPU 瞬时使用率: {usage:.1f}%（官方 SDK）"
-        return ""
+            parts.append(f"CPU 瞬时使用率: {usage:.1f}%（官方 SDK）")
+        if _lib_hw is not None:
+            model = _decode_cstring(_lib_hw.kdk_cpu_get_model())
+            arch = _decode_cstring(_lib_hw.kdk_cpu_get_arch())
+            vendor = _decode_cstring(_lib_hw.kdk_cpu_get_vendor())
+            if model:
+                parts.append(f"CPU 型号: {model}")
+            if vendor:
+                parts.append(f"CPU 厂商: {vendor}")
+            if arch:
+                parts.append(f"CPU 架构: {arch}")
+        return chr(10).join(parts) if parts else ""
 
     if info_type in ("memory", "mem"):
         mem = get_mem_summary()
