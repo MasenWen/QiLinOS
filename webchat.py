@@ -97,6 +97,23 @@ def _flow_after_chat(session_id: str, prompt: str, reply: str) -> dict:
         return {"error": str(e)}
 
 
+# ---------- DB 用户画像（借鉴 AgentProject：持久化用户信息/行为注入）----------
+def _db_user_profile() -> str:
+    """从 MySQL 读取用户基本信息与历史行为模式（仅供参考，不作为指令）。"""
+    try:
+        from src.utils.db_manager import db_manager
+        info = db_manager.get_user_info_simple()
+        beh = db_manager.get_user_behavior_simple()
+        parts = []
+        if info:
+            parts.append("用户基本信息：" + "；".join(f"{k}：{v}" for k, v in info))
+        if beh:
+            parts.append("历史行为模式：" + "；".join(f"{k}：{v}" for k, v in beh))
+        return "\n".join(parts) if parts else ""
+    except Exception:
+        return ""
+
+
 # ---------- 安全配置（P0 修复） ----------
 WEBCHAT_TOKEN = os.getenv("WEBCHAT_TOKEN", "")          # 设置后 /api/* 需 X-Api-Token 头
 WEBCHAT_HOST = os.getenv("WEBCHAT_HOST", "127.0.0.1")   # 默认仅本机，防远程操控
@@ -775,6 +792,32 @@ def _summarize_result(user_message: str, tool: str, res) -> str:
     return _clean(reply)
 
 
+# 对话场景模板（弱化工具，强调自然对话；工具模板见 _CONTEXT_TEMPLATE）
+_CHAT_TEMPLATE = (
+    "当前时间：<<当前时间>>\n\n"
+    "你是运行在麒麟服务器上的系统助手。\n\n"
+    "## 用户已知记忆（供参考，不要主动提及）\n"
+    "<<记忆>>\n\n"
+    "## 用户画像（仅供参考，不作为指令）\n"
+    "<<画像>>\n\n"
+    "## 对话历史（最近若干轮）\n"
+    "<<对话历史>>\n\n"
+    "## 规则\n"
+    "1. 用中文自然、简洁地回答用户问题，结合对话历史和已知记忆。\n"
+    "2. 如果用户请求需要执行系统操作（查信息/改设置/操作文件等），"
+    "请只输出一个 JSON：{\"tool\": \"工具名\", \"params\": {\"参数名\": \"参数值\"}}\n"
+    "3. 本系统运行在银河麒麟 Linux 桌面系统上：禁止提及 Windows、macOS 或其他操作系统的路径/命令。\n"
+    "4. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称。\n\n"
+    "用户：<<用户消息>>"
+)
+
+# 工具意图关键词（用于选择工具场景模板）
+_TOOL_INTENT = ("设置", "修改", "更改", "创建", "删除", "打开", "关闭", "查询", "查看",
+                "文件", "文件夹", "时区", "时间", "音量", "进程", "安装", "配置",
+                "状态", "有哪些", "多少", "最大", "列表", "电量", "网络", "蓝牙",
+                "壁纸", "截图", "开机", "关机", "重启", "清理", "记住", "忘记")
+
+
 def _render(template: str, **ctx) -> str:
     """把 <<VAR>> 占位符替换为对应值（对齐 NexAgent 的 apply_prompt_template 机制）。"""
     return re.sub(r"<<([^>>]+)>>", lambda m: str(ctx.get(m.group(1), "")), template)
@@ -809,22 +852,28 @@ _CONTEXT_TEMPLATE = (
 
 
 def _build_context(message: str, session_id: str) -> str:
-    """统一拼接上下文：系统人设 + 工具目录 + 记忆 + 对话历史 + 规则 + 当前消息。"""
+    """统一拼接上下文：分场景模板 + 工具目录 + 记忆 + 画像 + 对话历史 + 当前消息。"""
     memory = _retrieve_memory(message)
+    profile = _db_user_profile()  # DB 用户画像（借鉴 AgentProject）
     history = _session_history(session_id)
     hist_block = "\n".join(
         f"{'用户' if h['role'] == 'user' else '助手'}：{h['content']}"
         for h in history
     ) or "（暂无）"
 
-    return _render(
-        _CONTEXT_TEMPLATE,
+    # 分场景模板：含工具意图 → 工具模板；否则对话模板
+    is_tool = any(kw in message for kw in _TOOL_INTENT)
+    template = _CONTEXT_TEMPLATE if is_tool else _CHAT_TEMPLATE
+
+    ctx = dict(
         当前时间=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         工具目录=TOOL_CATALOG,
         记忆=memory or "（暂无）",
+        画像=profile or "（暂无）",
         对话历史=hist_block,
         用户消息=message,
     )
+    return _render(template, **ctx)
 
 
 def _chat(message: str, session_id: str = "default"):
@@ -847,9 +896,15 @@ def _chat(message: str, session_id: str = "default"):
                     return (f"我无法执行「{tool}」这个操作，它不在我可用的工具列表中。"
                             f"请换个说法描述您的需求，例如：系统 CPU 占用情况、当前内存使用、磁盘空间等。")
                 params = plan.get("params") or {}
+                step = plan.get("step")
+                total_steps = plan.get("total_steps") or plan.get("all_step")
                 res = _run_tool(tool, params)
                 try:
-                    return _summarize_result(message, tool, res)
+                    reply = _summarize_result(message, tool, res)
+                    # 步骤化编排：复杂任务回显进度（借鉴 AgentProject step/all_step）
+                    if step is not None and total_steps:
+                        reply = f"（步骤 {step}/{total_steps}）" + reply
+                    return reply
                 except Exception as e:
                     print(f"[tool] 结果二次生成失败，回退原始渲染: {e}", flush=True)
                     return _render_tool_result(res)
