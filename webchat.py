@@ -65,6 +65,38 @@ def _get_skill_memory():
     return _skill_memory
 
 
+# ---------- 记忆流转（短期→中期→长期 自动）----------
+_flow = None
+
+
+def _get_flow():
+    """惰性获取记忆流转引擎（JSON 持久化到 ~/.nex-agent/memory_flow.json）。"""
+    global _flow
+    if _flow is None:
+        from src.memory_engine.memory_flow import MemoryFlow
+        _flow = MemoryFlow()
+    return _flow
+
+
+def _flow_after_chat(session_id: str, prompt: str, reply: str) -> dict:
+    """每轮对话后：写入短期 → 溢出自动提升中期 → 容量/老化归档长期。"""
+    flow = _get_flow()
+    overflow = []
+    try:
+        # 写入短期（用户消息 + AI 回复）
+        overflow += flow.add_short(prompt, session_id)
+        overflow += flow.add_short(reply, session_id)
+        # 溢出项（重要性达标）自动提升到中期
+        if overflow:
+            flow.promote(session_id, overflow)
+        # 中期容量/老化检查 → 归档长期
+        flow.consolidate(session_id, capacity=50, max_age_days=30)
+        return {"short": len(flow._short), "midterm": flow.midterm_count(session_id),
+                "longterm": flow.longterm_count(), "promoted": len(overflow)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ---------- 安全配置（P0 修复） ----------
 WEBCHAT_TOKEN = os.getenv("WEBCHAT_TOKEN", "")          # 设置后 /api/* 需 X-Api-Token 头
 WEBCHAT_HOST = os.getenv("WEBCHAT_HOST", "127.0.0.1")   # 默认仅本机，防远程操控
@@ -940,6 +972,12 @@ class Handler(BaseHTTPRequestHandler):
         # 记入会话上下文（供下一轮拼接历史）
         _session_append(session_id, "user", prompt)
         _session_append(session_id, "assistant", reply)
+
+        # 记忆流转：短期 → 中期 → 长期（自动）
+        try:
+            _flow_after_chat(session_id, prompt, reply)
+        except Exception:
+            pass
 
         # 异步写入记忆（不阻塞回复）
         threading.Thread(

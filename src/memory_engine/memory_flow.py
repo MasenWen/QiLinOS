@@ -7,6 +7,9 @@ MemoryFlow 编排三档记忆流转：
 """
 from __future__ import annotations
 
+import io
+import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Iterable, Mapping
@@ -56,6 +59,7 @@ class MemoryFlow:
         self,
         short_capacity: int = SHORT_CAPACITY_DEFAULT,
         importance_fn: Callable[[str], float] = default_importance,
+        persist_path: str | None = None,
     ):
         self.short_capacity = short_capacity
         self.importance_fn = importance_fn
@@ -63,6 +67,38 @@ class MemoryFlow:
         self._midterm: dict[str, list[FlowItem]] = {}  # session_id -> 中期记忆
         self._longterm: list[FlowItem] = []       # 长期
         self._flow_log: list[str] = []            # 流转审计
+        self.persist_path = persist_path or os.path.expanduser(
+            "~/.nex-agent/memory_flow.json")
+        self.load()  # 启动恢复
+
+    # ---- 持久化（短期/中期/长期 → JSON）----
+    def save(self) -> None:
+        try:
+            os.makedirs(os.path.dirname(self.persist_path), exist_ok=True)
+            tmp = self.persist_path + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                json.dump({
+                    "short": [it.to_dict() for it in self._short],
+                    "midterm": {k: [it.to_dict() for it in v]
+                                for k, v in self._midterm.items()},
+                    "longterm": [it.to_dict() for it in self._longterm],
+                }, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, self.persist_path)
+        except OSError:
+            pass
+
+    def load(self) -> None:
+        try:
+            with io.open(self.persist_path, encoding="utf-8") as f:
+                data = json.load(f)
+            self._short = [FlowItem(**it) for it in data.get("short", [])]
+            self._midterm = {
+                k: [FlowItem(**it) for it in v]
+                for k, v in data.get("midterm", {}).items()
+            }
+            self._longterm = [FlowItem(**it) for it in data.get("longterm", [])]
+        except (OSError, ValueError, TypeError):
+            pass
 
     # ---- 短期：写入 + 溢出检测 ----
     def add_short(self, content: str, session_id: str = "") -> list[FlowItem]:
@@ -90,6 +126,7 @@ class MemoryFlow:
                 self._midterm.setdefault(session_id, []).append(it)
                 promoted.append(it.content[:40])
         self._flow_log.append(f"promote->midterm({session_id}): {len(promoted)} 项")
+        self.save()
         return promoted
 
     # ---- 中 → 短：按查询注入 ----
@@ -149,6 +186,7 @@ class MemoryFlow:
                 keep.append(it)
         self._midterm[session_id] = keep
         self._flow_log.append(f"consolidate->longterm({session_id}): {len(archived)} 项")
+        self.save()
         return archived
 
     # ---- 查询 ----
