@@ -256,6 +256,15 @@ class BaseTool(ABC):
             metadata=meta,
         )
 
+    def fallback_execute(self, **kwargs):
+        """备用降级执行路径（回退机制）。
+
+        工具在 execute 全部重试失败后，由 executor 调用本方法尝试降级执行
+        （如 SDK 失败 → shell 命令兜底）。默认无降级路径，返回 None。
+        子类实现时返回 ToolResult（状态应为 DEGRADED）。
+        """
+        return None
+
     def _fallback(self, output: str, **meta) -> ToolResult:
         return ToolResult(
             tool_name=self.name,

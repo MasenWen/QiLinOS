@@ -266,7 +266,27 @@ class ClosedLoopExecutor:
                 await asyncio.sleep(1.0 * (attempt + 1))
                 logger.info("[%s] 准备重试 (attempt %d)...", tool_name, attempt + 2)
 
-        # All attempts exhausted
+        # All attempts exhausted → 尝试降级回退（fallback_execute）
+        fallback_result = None
+        try:
+            fb = getattr(tool, "fallback_execute", None)
+            if callable(fb):
+                fallback_result = fb(**kwargs)
+        except Exception as e:
+            logger.error("[%s] fallback 执行异常: %s", tool_name, e)
+
+        if fallback_result is not None:
+            fallback_result.retry_count = self.max_retries + 1
+            trace.final_result = fallback_result
+            trace.finished_at = time.time()
+            trace.severity = Severity.DEGRADED if hasattr(Severity, "DEGRADED") else Severity.WARN
+            self._traces.append(trace)
+            logger.warning(
+                "⚠ [%s] 主路径失败，已降级回退执行（fallback）: %s",
+                tool_name, str(fallback_result.output)[:120],
+            )
+            return fallback_result
+
         trace.final_result = result or ToolResult(
             tool_name=tool_name,
             status=ToolStatus.FAILED,

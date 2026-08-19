@@ -15,6 +15,21 @@ class ProcessListTool(BaseTool):
         procs = process.get_process_list()
         return self._ok(f"共 {len(procs)} 个进程")
 
+    def fallback_execute(self, **kwargs):
+        """SDK 失败 → shell ps 兜底（回退机制示范：SDK→shell 降级）。"""
+        try:
+            import subprocess
+            r = subprocess.run(
+                ["ps", "-eo", "pid,comm", "--no-headers"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0:
+                count = len([l for l in r.stdout.splitlines() if l.strip()])
+                return self._fallback(f"共 {count} 个进程（shell 兜底）", backend="ps")
+        except Exception:
+            pass
+        return None
+
 
 class ProcessKillTool(BaseTool):
     """Process termination."""
