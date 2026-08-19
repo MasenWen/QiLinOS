@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from typing import Any
 
 from .base import BaseTool, ToolResult
@@ -70,6 +71,8 @@ class SystemInfoTool(BaseTool):
                 pass
         return self._fail(f"查询 {info_type} 失败（SDK 与系统命令均无返回）")
 
+    _SDK_EXT_LOCK = threading.Lock()  # libkyedid 等 C 库并发调用 SIGSEGV，全局串行化
+
     @staticmethod
     def _official_ext(info_type: str) -> "ToolResult | None":
         """官方 SDK 扩展查询：显示器(edid)/温度(realtime)/包(package)/网速。"""
@@ -78,15 +81,16 @@ class SystemInfoTool(BaseTool):
         import ctypes
 
         def _call(lib, fn):
-            l = ob.BOUND_LIBS.get(lib)
-            if l and hasattr(l, fn):
-                try:
-                    f = getattr(l, fn)
-                    if f.restype in (ctypes.c_char_p,):
-                        return _safe_cstring_call(l, fn)  # Kylin segfault 规避
-                    return (lambda: f())()  # 数值接口 lambda 上下文
-                except Exception:
-                    return None
+            with SystemInfoTool._SDK_EXT_LOCK:
+                l = ob.BOUND_LIBS.get(lib)
+                if l and hasattr(l, fn):
+                    try:
+                        f = getattr(l, fn)
+                        if f.restype in (ctypes.c_char_p,):
+                            return _safe_cstring_call(l, fn)  # Kylin segfault 规避
+                        return (lambda: f())()  # 数值接口 lambda 上下文
+                    except Exception:
+                        return None
             return None
 
         if info_type in ("edid", "monitor", "display"):
