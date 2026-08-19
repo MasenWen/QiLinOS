@@ -31,6 +31,18 @@ _lib_fan     = load_library("libkyfan", mock=True)            # /usr/lib/x86_64-
 _lib_disk    = load_library("libkydiskinfo", mock=True)       # /usr/lib/x86_64-linux-gnu/libkydiskinfo.so
 _lib_net     = load_library("libkynetinfo", mock=True)        # /usr/lib/x86_64-linux-gnu/libkynetinfo.so
 _lib_location = load_library("libkylocation", mock=True)      # /usr/lib/x86_64-linux-gnu/libkylocation.so
+_lib_rti = load_library("libkyrtinfo", mock=True)          # /usr/lib/x86_64-linux-gnu/libkyrtinfo.so (3.1.5 系统资源信息)
+if _lib_rti is not None:
+    declare(_lib_rti, "kdk_rti_get_cpu_current_usage", restype=ctypes.c_float)
+    declare(_lib_rti, "kdk_rti_get_mem_res_total_KiB", restype=ctypes.c_ulong)
+    declare(_lib_rti, "kdk_rti_get_mem_res_usage_percent", restype=ctypes.c_float)
+    declare(_lib_rti, "kdk_rti_get_mem_res_usage_KiB", restype=ctypes.c_ulong)
+    declare(_lib_rti, "kdk_rti_get_mem_res_available_KiB", restype=ctypes.c_ulong)
+    declare(_lib_rti, "kdk_rti_get_mem_res_free_KiB", restype=ctypes.c_ulong)
+    declare(_lib_rti, "kdk_rti_get_uptime",
+            argtypes=[ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint),
+                      ctypes.POINTER(ctypes.c_uint), ctypes.POINTER(ctypes.c_uint)],
+            restype=ctypes.c_int)
 
 # ---------------------------------------------------------------------------
 # Declare function signatures
@@ -297,6 +309,41 @@ def get_fan_info() -> str:
     return _decode_cstring(_lib_fan.kdk_fan_get_information())
 
 
+# ---- RTI 官方接口封装（3.1.5 系统资源信息，官方 SDK 优先）----
+def get_cpu_usage() -> float:
+    """获取 CPU 瞬时使用率（官方 SDK kdk_rti_get_cpu_current_usage）。"""
+    if _lib_rti is not None and hasattr(_lib_rti, "kdk_rti_get_cpu_current_usage"):
+        return float(_lib_rti.kdk_rti_get_cpu_current_usage())
+    return -1.0
+
+
+def get_mem_summary() -> str:
+    """获取内存概要（官方 SDK kdk_rti_get_mem_res_*）。"""
+    if _lib_rti is None or not hasattr(_lib_rti, "kdk_rti_get_mem_res_total_KiB"):
+        return ""
+    total = int(_lib_rti.kdk_rti_get_mem_res_total_KiB())
+    pct = float(_lib_rti.kdk_rti_get_mem_res_usage_percent())
+    used = int(_lib_rti.kdk_rti_get_mem_res_usage_KiB())
+    avail = int(_lib_rti.kdk_rti_get_mem_res_available_KiB())
+    # 虚拟机 /dev/mem 权限限制时 total 可能为 0 → 用 used+avail 估算
+    if total <= 0:
+        total = used + avail
+    return (f"内存总计 {total / 1024:.1f} MiB，已用 {used / 1024:.1f} MiB"
+            f"（{pct:.1f}%），可用 {avail / 1024:.1f} MiB")
+
+
+def get_uptime_text() -> str:
+    """获取开机时长（官方 SDK kdk_rti_get_uptime）。"""
+    if _lib_rti is None or not hasattr(_lib_rti, "kdk_rti_get_uptime"):
+        return ""
+    d, h, m, s = ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint(), ctypes.c_uint()
+    rc = _lib_rti.kdk_rti_get_uptime(
+        ctypes.byref(d), ctypes.byref(h), ctypes.byref(m), ctypes.byref(s))
+    if rc == 0:
+        return f"已运行 {d.value} 天 {h.value} 小时 {m.value} 分 {s.value} 秒"
+    return ""
+
+
 # ---- Query helpers (match the kylin_server.py DSL categories) ----
 
 def query_system_info(info_type: str) -> str:
@@ -320,6 +367,24 @@ def query_system_info(info_type: str) -> str:
     if info_type in ("basic", "os", "version"):
         d = get_system_info()
         return "\n".join(f"{k}: {v}" for k, v in d.items() if v)
+
+    if info_type in ("cpu",):
+        usage = get_cpu_usage()
+        if usage >= 0:
+            return f"CPU 瞬时使用率: {usage:.1f}%（官方 SDK）"
+        return ""
+
+    if info_type in ("memory", "mem"):
+        mem = get_mem_summary()
+        if mem:
+            return mem
+        return ""
+
+    if info_type in ("load",):
+        up = get_uptime_text()
+        if up:
+            return up
+        return ""
 
     if info_type in ("gpu",):
         return get_gpu_summary()
