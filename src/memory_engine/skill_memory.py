@@ -6,6 +6,9 @@
 """
 from __future__ import annotations
 
+import json
+import os
+import io
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Sequence
@@ -63,17 +66,62 @@ class SkillConflict:
 
 
 class SkillMemory:
-    """SKILL 记忆：配置/常用提示词的长期记忆容器（含冲突版本化）。"""
+    """SKILL 记忆：配置/常用提示词的长期记忆容器（含冲突版本化 + JSON 持久化）。
 
-    def __init__(self, guard: MemoryGuard | None = None):
+    持久化到 ~/.nex-agent/skills.json（类似 Codex AGENTS.md，重启不丢失）。
+    """
+
+    def __init__(self, guard: MemoryGuard | None = None, persist_path: str | None = None):
         self.guard = guard or MemoryGuard()
         self._skills: dict[str, list[Skill]] = {}   # name -> 版本列表（升序）
         self._conflicts: list[SkillConflict] = []
         self._seq = 0
+        self.persist_path = persist_path or os.path.expanduser(
+            "~/.nex-agent/skills.json")
+        self.load()  # 启动时加载持久化配置
 
     def _next_id(self, name: str) -> str:
         self._seq += 1
         return f"skill_{name}_{self._seq}"
+
+    # ---- 持久化 ----
+    def _to_persist(self) -> dict:
+        return {
+            "skills": [
+                s.to_dict()
+                for versions in self._skills.values()
+                for s in versions
+            ],
+            "conflicts": [conf.to_dict() for conf in self._conflicts],
+        }
+
+    def save(self) -> None:
+        """写入持久化文件（原子写）。"""
+        try:
+            os.makedirs(os.path.dirname(self.persist_path), exist_ok=True)
+            tmp = self.persist_path + ".tmp"
+            with io.open(tmp, "w", encoding="utf-8") as f:
+                json.dump(self._to_persist(), f, ensure_ascii=False, indent=2)
+            os.replace(tmp, self.persist_path)
+        except OSError:
+            pass  # 持久化失败不阻塞（内存仍可用）
+
+    def load(self) -> None:
+        """从持久化文件恢复。"""
+        try:
+            with io.open(self.persist_path, encoding="utf-8") as f:
+                data = json.load(f)
+            self._skills = {}
+            self._seq = 0
+            for item in data.get("skills", []):
+                skill = Skill(**item)
+                self._skills.setdefault(skill.name, []).append(skill)
+                self._seq = max(self._seq, int(skill.skill_id.rsplit("_", 1)[-1]) if skill.skill_id.rsplit("_", 1)[-1].isdigit() else self._seq)
+            self._conflicts = [
+                SkillConflict(**item) for item in data.get("conflicts", [])
+            ]
+        except (OSError, ValueError, TypeError):
+            pass
 
     # ---- 写入（走 guard 审查 + 冲突版本化）----
     def add_skill(
@@ -114,6 +162,7 @@ class SkillMemory:
                 new_version=new_version,
                 reason="同名配置更新，版本化替代（冲突已解决）",
             ))
+        self.save()  # 持久化
         return skill
 
     # ---- 读取 ----
@@ -156,6 +205,7 @@ class SkillMemory:
                 self._skills[name] = versions
             else:
                 del self._skills[name]
+        self.save()  # 持久化
         return True
 
     def __len__(self) -> int:

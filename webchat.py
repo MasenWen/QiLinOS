@@ -52,6 +52,19 @@ TOOL_CATALOG = "\n".join(
     for name in REGISTRY.list_all()
 )
 
+# ---------- 配置即长期记忆（类似 Codex AGENTS.md）----------
+_skill_memory = None
+
+
+def _get_skill_memory():
+    """惰性获取配置记忆（SKILL 持久化到 ~/.nex-agent/skills.json）。"""
+    global _skill_memory
+    if _skill_memory is None:
+        from src.memory_engine.skill_memory import SkillMemory
+        _skill_memory = SkillMemory()
+    return _skill_memory
+
+
 # ---------- 安全配置（P0 修复） ----------
 WEBCHAT_TOKEN = os.getenv("WEBCHAT_TOKEN", "")          # 设置后 /api/* 需 X-Api-Token 头
 WEBCHAT_HOST = os.getenv("WEBCHAT_HOST", "127.0.0.1")   # 默认仅本机，防远程操控
@@ -274,6 +287,13 @@ HTML = r"""<!doctype html>
   <aside class="panel">
     <h3>🧠 记忆</h3>
     <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
+    <h3>⚙️ 配置（长期记忆）</h3>
+    <div id="skillInput">
+      <input id="skillName" placeholder="配置名（如：时区规则）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
+      <textarea id="skillContent" rows="2" placeholder="配置内容 / 常用提示词…" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;resize:vertical;"></textarea>
+      <button id="skillAdd" class="icon-btn" style="width:100%;padding:7px;">＋ 存入长期记忆</button>
+    </div>
+    <div id="skillPanel" style="margin-top:8px;"></div>
     <h3>🔧 工具调用</h3>
     <div id="toolPanel"><div class="log-item">（暂无）</div></div>
   </aside>
@@ -449,6 +469,43 @@ async function refreshPanels() {
       : '<div class="log-item">（暂无）</div>';
   } catch (e) {}
 }
+// ---- 配置面板（网页输入 → 长期记忆）----
+async function refreshSkills() {
+  try {
+    const r = await fetch('/api/skills');
+    const d = await r.json();
+    const sp = document.getElementById('skillPanel');
+    sp.innerHTML = (d.skills && d.skills.length)
+      ? d.skills.map(s =>
+          `<div class="mem-item" style="position:relative;">
+             <b>${s.name}</b> <span style="color:var(--muted)">v${s.version}</span>
+             ${(s.tags||[]).map(t=>`<span style="font-size:10px;background:var(--accent);padding:1px 5px;border-radius:4px;margin-left:3px;">${t}</span>`).join('')}
+             <div style="font-size:11px;color:var(--muted);margin-top:3px;">${s.content.slice(0,60)}</div>
+             <span style="position:absolute;top:4px;right:6px;cursor:pointer;color:#ef4444;" onclick="deleteSkill('${s.name}')">✕</span>
+           </div>`).join('')
+      : '<div class="mem-item">（暂无配置，输入后点击存入）</div>';
+  } catch (e) {}
+}
+async function deleteSkill(name) {
+  await fetch('/api/skills', { method: 'POST', headers: apiHeaders,
+    body: JSON.stringify({ action: 'delete', name }) });
+  refreshSkills();
+}
+document.getElementById('skillAdd').onclick = async () => {
+  const name = document.getElementById('skillName').value.trim();
+  const content = document.getElementById('skillContent').value.trim();
+  if (!name || !content) { alert('请输入配置名和内容'); return; }
+  const r = await fetch('/api/skills', { method: 'POST', headers: apiHeaders,
+    body: JSON.stringify({ name, content }) });
+  const d = await r.json();
+  if (d.ok) {
+    document.getElementById('skillName').value = '';
+    document.getElementById('skillContent').value = '';
+    refreshSkills();
+    alert(d.conflict ? `已存入（覆盖旧版本 v${d.skill.version}）` : '已存入长期记忆');
+  } else { alert('失败: ' + (d.error || '')); }
+};
+refreshSkills();
 document.getElementById('newChat').onclick = () => {
   sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   localStorage.setItem(SKEY, sessionId);
@@ -760,6 +817,12 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"sessions": sess})
         elif self.path == "/api/tool_logs":
             self._json(200, {"logs": list(_TOOL_LOGS)})
+        elif self.path == "/api/skills":
+            sm = _get_skill_memory()
+            items = [{"name": s.name, "content": s.content, "tags": s.tags,
+                      "version": s.version, "condition": s.condition}
+                     for s in sm.list_skills()]
+            self._json(200, {"skills": items, "conflicts": len(sm.conflicts())})
         elif self.path == "/api/memories":
             store = _get_mem0()
             items = []
@@ -776,6 +839,30 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/skills":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                data = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                data = {}
+            sm = _get_skill_memory()
+            if data.get("action") == "delete":
+                ok = sm.delete_skill((data.get("name") or "").strip())
+                return self._json(200, {"ok": ok})
+            skill = sm.add_skill(
+                name=(data.get("name") or "").strip(),
+                content=(data.get("content") or "").strip(),
+                tags=data.get("tags") or [],
+                condition=data.get("condition") or "",
+            )
+            if skill is None:
+                return self._json(400, {"error": "配置为空或被安全审查拦截"})
+            return self._json(200, {
+                "ok": True, "skill": skill.to_dict(),
+                "conflict": sm.has_conflict(skill.name),
+                "note": "配置已存入长期记忆（同名更新版本化）",
+            })
+
         if self.path == "/api/mem/clear":
             store = _get_mem0()
             if store is None:
