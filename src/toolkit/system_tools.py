@@ -60,7 +60,8 @@ class TimezoneTool(BaseTool):
 
     name = "timezone"
     description = (
-        "设置系统时区，例如 'Asia/Shanghai', 'Asia/Singapore', 'America/New_York'。"
+        "设置系统时区（需带 timezone 参数，例如 'Asia/Shanghai', 'Asia/Singapore', 'America/New_York'）；"
+        "不带 timezone 参数时，返回当前系统时区（查询模式）。"
         "执行后会验证时区是否确实切换成功。"
     )
     risk = RiskLevel.CONSEQUENTIAL
@@ -75,7 +76,14 @@ class TimezoneTool(BaseTool):
     def execute(self, **kwargs) -> ToolResult:
         target = kwargs.get("timezone", "")
         if not target:
-            return self._fail("缺少参数: timezone")
+            # 查询模式：返回当前系统时区（AI 问"现在时区是多少"时走这里）
+            current = self._get_current_timezone()
+            if current:
+                return self._ok(
+                    f"当前系统时区: {current}（查询模式，未做任何修改）",
+                    timezone=current, mode="query",
+                )
+            return self._fail("无法读取当前系统时区")
 
         # Validate timezone
         valid = self._list_timezones()
@@ -119,7 +127,8 @@ class TimezoneTool(BaseTool):
     def verify(self, **kwargs) -> bool:
         target = kwargs.get("timezone", "")
         if not target:
-            return False
+            # 查询模式：读回成功即视为验证通过
+            return bool(self._get_current_timezone())
         current = self._get_current_timezone()
         return current == target
 
