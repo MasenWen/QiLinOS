@@ -392,6 +392,15 @@ const send = document.getElementById('send');
 const SKEY = 'aichat_session_v1';
 // history 按会话隔离（新会话不再显示旧会话消息）
 const histKey = (sid) => `aichat_history_v1_${sid || sessionId}`;
+const draftKey = (sid) => `aichat_draft_v1_${sid || sessionId}`;
+const saveDraft = () => { try { localStorage.setItem(draftKey(), input.value); } catch (e) {} };
+const clearDraft = () => { try { localStorage.removeItem(draftKey()); } catch (e) {} };
+const loadDraft = (sid) => {
+  const v = localStorage.getItem(draftKey(sid)) || '';
+  input.value = v;
+  input.style.height = 'auto';
+  input.style.height = v ? Math.min(input.scrollHeight, 180) + 'px' : 'auto';
+};
 const RENAME_KEY = 'aichat_rename_v1';
 const getNames = () => { try { return JSON.parse(localStorage.getItem(RENAME_KEY) || '{}'); } catch (e) { return {}; } };
 const saveName = (sid, name) => { const m = getNames(); m[sid] = name; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); };
@@ -414,6 +423,7 @@ if (!sessionId) {
   sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   localStorage.setItem(SKEY, sessionId);
 }
+loadDraft(sessionId);                  // 恢复当前会话草稿
 
 function scrollBottom() { msgs.scrollTop = msgs.scrollHeight; }
 function save() { try { localStorage.setItem(histKey(), JSON.stringify(history)); } catch (e) {} }
@@ -477,6 +487,7 @@ async function submit() {
   send.disabled = true;
   input.value = '';
   input.style.height = 'auto';
+  clearDraft();                        // 已发送，清除草稿
 
   history.push({ role: 'user', text });
   addRow('user', text);
@@ -536,6 +547,7 @@ function renderHistory() {
   scrollBottom();
 }
 function switchSession(sid) {
+  saveDraft();                       // 保存当前会话草稿
   sessionId = sid;
   localStorage.setItem(SKEY, sid);
   history = [];
@@ -553,6 +565,7 @@ function switchSession(sid) {
   }
   renderHistory();
   refreshSessions();
+  loadDraft(sid);                     // 加载目标会话草稿
 }
 async function refreshSessions() {
   try {
@@ -645,6 +658,8 @@ document.getElementById('skillAdd').onclick = async () => {
 };
 refreshSkills();
 document.getElementById('newChat').onclick = () => {
+  saveDraft();
+  input.value = '';
   sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   localStorage.setItem(SKEY, sessionId);
   history = [];
@@ -661,11 +676,14 @@ input.addEventListener('keydown', e => {
 input.addEventListener('input', () => {
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 180) + 'px';
+  saveDraft();                         // 实时保存当前会话草稿
 });
 document.getElementById('clear').onclick = () => {
   if (busy) return;
   history = [];
   save();
+  saveDraft();
+  input.value = '';
   sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
   localStorage.setItem(SKEY, sessionId);
   msgs.innerHTML = '';
