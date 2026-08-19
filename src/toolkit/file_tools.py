@@ -139,15 +139,30 @@ class FileTool(BaseTool):
 
     def verify(self, **kwargs) -> bool:
         action = (kwargs.get("action") or "mkdir").strip().lower()
+        paths = kwargs.get("paths") or []
         raw_path = (kwargs.get("path") or "").strip()
-        if not raw_path:
+        if not raw_path and not paths:
             return False
-        full = self._resolve(raw_path)
-        if action == "mkdir":
-            return os.path.isdir(full)
-        if action == "touch":
-            return os.path.isfile(full)
-        return False
+        try:
+            count = int(kwargs.get("count") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        ext = (kwargs.get("ext") or "md").strip(".")
+        targets = [raw_path] if raw_path else []
+        targets.extend(paths)
+        for t in targets:
+            full = self._resolve(t)
+            if action == "mkdir":
+                if not os.path.isdir(full):
+                    return False
+                if count > 0:
+                    for i in range(1, count + 1):
+                        if not os.path.isfile(os.path.join(full, f"文件{i}.{ext}")):
+                            return False
+            elif action == "touch":
+                if not os.path.isfile(full):
+                    return False
+        return True
 
 
 def register_file_tools(registry=None):
