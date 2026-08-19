@@ -2,7 +2,6 @@ aiohttp
 baidusearch
 browser-use
 chardet
-clock
 decorators
 dotenv
 fastapi
@@ -31,36 +30,27 @@ openpyxl
 pandas
 pdfplumber
 pipmaster
-playwright
 psutil
 python-docx
 python-dotenv
 python-pptx
 pymilvus
-qwen_vl_utils
 readabilipy
-socksio
 sse-starlette
 tenacity
 tiktoken
 trafilatura
 uvicorn
-watchdog
-yfinance
-torch
 dashscope
 xlrd
 PyPDF2
-crewai[tools]
 a2a-sdk[all]==0.3.11
 pydantic
 pillow
 click
-litellm
 asyncclick
 starlette
 httpx-sse
-jwcrypto
 pyjwt
 typing-extensions
 langchain-ollama>=1.1.0
@@ -79,3 +69,6 @@ onnxruntime
 #exit;
 #sudo vim /etc/mysql/mysql.conf.d/mysqld.cnf 修改bind-address = 0.0.0.0
 #sudo systemctl restart mysql
+mem0ai==2.0.18
+milvus-lite
+qdrant-client
