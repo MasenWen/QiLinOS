@@ -307,6 +307,9 @@ const send = document.getElementById('send');
 const SKEY = 'aichat_session_v1';
 // history 按会话隔离（新会话不再显示旧会话消息）
 const histKey = (sid) => `aichat_history_v1_${sid || sessionId}`;
+const RENAME_KEY = 'aichat_rename_v1';
+const getNames = () => { try { return JSON.parse(localStorage.getItem(RENAME_KEY) || '{}'); } catch (e) { return {}; } };
+const saveName = (sid, name) => { const m = getNames(); m[sid] = name; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); };
 const hasMD = typeof marked !== 'undefined';
 const hasPurify = typeof DOMPurify !== 'undefined';
 const mdOpts = { breaks: true, gfm: true };
@@ -465,10 +468,28 @@ async function refreshSessions() {
       const el = document.createElement('div');
       el.className = 'sess-item' + (s.session_id === sessionId ? ' active' : '');
       el.textContent = (s.preview || s.session_id.slice(0, 12)) + ` (${s.turns})`;
+      const names = getNames();
       el.onclick = () => { switchSession(s.session_id); };
+      el.title = '点击切换 · 悬停可重命名';
+      el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${names[s.session_id] || s.preview || s.session_id.slice(0,12)}</span>
+        <span style="display:none;margin-left:4px;color:var(--accent-2);cursor:pointer;" class="renameBtn">✎</span>`;
+      el.style.display = 'flex'; el.style.alignItems = 'center';
+      el.onmouseenter = () => { el.querySelector('.renameBtn').style.display = 'inline'; };
+      el.onmouseleave = () => { el.querySelector('.renameBtn').style.display = 'none'; };
+      el.querySelector('.renameBtn').onclick = (e) => { e.stopPropagation(); renameSession(s.session_id, el); };
       list.appendChild(el);
     });
   } catch (e) {}
+}
+function renameSession(sid, el) {
+  const names = getNames();
+  const cur = names[sid] || '';
+  const name = prompt('会话重命名（留空恢复默认）:', cur);
+  if (name === null) return;  // 取消
+  const trimmed = name.trim();
+  if (trimmed) saveName(sid, trimmed);
+  else { const m = getNames(); delete m[sid]; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); }
+  refreshSessions();
 }
 async function refreshPanels() {
   try {
