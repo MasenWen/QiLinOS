@@ -192,15 +192,15 @@ HTML = r"""<!doctype html>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
   :root {
-    --bg: #0a0d14;
-    --surface: rgba(255,255,255,.045);
-    --surface-2: rgba(255,255,255,.08);
-    --border: rgba(255,255,255,.09);
-    --text: #e7e9ee;
-    --muted: #9aa3b2;
-    --accent: #6366f1;
-    --accent-2: #8b5cf6;
-    --ok: #22c55e;
+    --bg: #ffffff;
+    --surface: rgba(0,0,0,.035);
+    --surface-2: rgba(0,0,0,.07);
+    --border: rgba(0,0,0,.12);
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --accent: #000000;
+    --accent-2: #333333;
+    --ok: #000000;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -210,8 +210,8 @@ HTML = r"""<!doctype html>
                  "Microsoft YaHei", sans-serif;
     color: var(--text);
     background:
-      radial-gradient(1200px 600px at 15% -10%, rgba(99,102,241,.22), transparent 60%),
-      radial-gradient(1000px 500px at 100% 0%, rgba(139,92,246,.18), transparent 55%),
+      radial-gradient(1200px 600px at 15% -10%, rgba(0,0,0,.045), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(0,0,0,.03), transparent 55%),
       var(--bg);
     display: flex;
     flex-direction: column;
@@ -220,7 +220,7 @@ HTML = r"""<!doctype html>
     position: sticky; top: 0; z-index: 10;
     display: flex; align-items: center; gap: 10px;
     padding: 13px 22px;
-    background: rgba(10,13,20,.72);
+    background: rgba(255,255,255,.85);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
   }
@@ -254,9 +254,9 @@ HTML = r"""<!doctype html>
     font-size: 14.5px; line-height: 1.75; word-break: break-word;
   }
   .row.user .bubble {
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    background: linear-gradient(135deg, #2a2a2a, #000000);
     color: #fff; border-bottom-right-radius: 5px;
-    box-shadow: 0 6px 20px -8px rgba(99,102,241,.55);
+    box-shadow: 0 6px 20px -8px rgba(0,0,0,.25);
     white-space: pre-wrap;
   }
   .row.assistant .bubble {
@@ -271,14 +271,14 @@ HTML = r"""<!doctype html>
   .md ul,.md ol { margin: .5em 0; padding-left: 1.4em; }
   .md li { margin: .25em 0; }
   .md code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-             font-size: .88em; background: rgba(255,255,255,.09);
+             font-size: .88em; background: rgba(0,0,0,.06);
              padding: .12em .42em; border-radius: 5px; }
-  .md pre { background: rgba(0,0,0,.35); border: 1px solid var(--border);
+  .md pre { background: #f5f5f5; border: 1px solid var(--border);
             padding: 12px 14px; border-radius: 10px; overflow-x: auto; }
   .md pre code { background: none; padding: 0; }
   .md blockquote { margin: .6em 0; padding: .2em 1em; color: var(--muted);
                    border-left: 3px solid var(--accent); }
-  .md a { color: #93c5fd; }
+  .md a { color: #111111; text-decoration: underline; }
   .md table { border-collapse: collapse; margin: .7em 0; font-size: .92em; }
   .md th,.md td { border: 1px solid var(--border); padding: 6px 11px; }
   .md th { background: var(--surface-2); }
@@ -287,19 +287,19 @@ HTML = r"""<!doctype html>
             animation: blink .9s steps(2, start) infinite; }
   @keyframes blink { to { visibility: hidden; } }
   .layout { display: flex; height: 100vh; }
-  .sidebar { width: 230px; min-width: 230px; background: rgba(10,13,20,.9);
+  .sidebar { width: 230px; min-width: 230px; background: rgba(255,255,255,.95);
              border-right: 1px solid var(--border); display: flex; flex-direction: column; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
-             border-radius: 8px; background: rgba(99,102,241,.12); color: var(--text);
+             border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
              cursor: pointer; font-size: 13px; text-align: center; }
-  .sidebar .newchat:hover { background: rgba(99,102,241,.25); }
+  .sidebar .newchat:hover { background: rgba(0,0,0,.1); }
   .sess-list { flex: 1; overflow-y: auto; padding: 4px; }
   .sess-item { padding: 8px 10px; margin: 2px 4px; border-radius: 6px; font-size: 12.5px;
              color: var(--muted); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sess-item:hover, .sess-item.active { background: var(--surface-2); color: var(--text); }
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .panel { width: 240px; min-width: 240px; background: rgba(10,13,20,.9);
+  .panel { width: 240px; min-width: 240px; background: rgba(255,255,255,.95);
              border-left: 1px solid var(--border); overflow-y: auto; padding: 10px; }
   .panel h3 { font-size: 12px; color: var(--muted); margin: 8px 0 6px; letter-spacing: .5px; }
   .mem-item { font-size: 12px; color: var(--text); padding: 6px 8px; background: var(--surface);
@@ -308,10 +308,10 @@ HTML = r"""<!doctype html>
              background: var(--surface); border: 1px solid var(--border); }
   .log-item .tool { color: var(--accent-2); }
   .log-item.ok { border-left: 3px solid var(--ok); }
-  .log-item.err { border-left: 3px solid #ef4444; }
+  .log-item.err { border-left: 3px solid #000000; background: rgba(0,0,0,.08); }
   footer {
     position: sticky; bottom: 0;
-    background: rgba(10,13,20,.72);
+    background: rgba(255,255,255,.85);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border-top: 1px solid var(--border); padding: 12px 0 16px;
   }
@@ -325,12 +325,12 @@ HTML = r"""<!doctype html>
     transition: border-color .18s, box-shadow .18s;
   }
   textarea:focus { outline: none; border-color: var(--accent);
-                   box-shadow: 0 0 0 3px rgba(99,102,241,.16); }
+                   box-shadow: 0 0 0 3px rgba(0,0,0,.12); }
   button#send {
     border: none; border-radius: 13px; padding: 12px 22px; font-size: 14.5px;
     font-weight: 600; color: #fff; cursor: pointer; flex: none;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    box-shadow: 0 8px 22px -10px rgba(99,102,241,.9); transition: .18s;
+    background: linear-gradient(135deg, #333333, #000000);
+    box-shadow: 0 8px 22px -10px rgba(0,0,0,.35); transition: .18s;
   }
   button#send:hover { transform: translateY(-1px); filter: brightness(1.08); }
   button#send:disabled { opacity: .45; cursor: not-allowed; transform: none; }
@@ -591,7 +591,7 @@ async function refreshPanels() {
       ? t.logs.slice().reverse().map(l =>
           `<div class="log-item ${l.status === 'verified' || l.status === 'success' ? 'ok' : 'err'}">
              <span class="tool">${l.tool}</span> · ${l.status} · ${l.duration_ms}ms
-             ${l.error ? `<br><span style="color:#f87171">${l.error.slice(0, 60)}</span>` : ''}
+             ${l.error ? `<br><span style="color:#111111">${l.error.slice(0, 60)}</span>` : ''}
            </div>`).join('')
       : '<div class="log-item">（暂无）</div>';
   } catch (e) {}
@@ -608,7 +608,7 @@ async function refreshSkills() {
              <b>${s.name}</b> <span style="color:var(--muted)">v${s.version}</span>
              ${(s.tags||[]).map(t=>`<span style="font-size:10px;background:var(--accent);padding:1px 5px;border-radius:4px;margin-left:3px;">${t}</span>`).join('')}
              <div style="font-size:11px;color:var(--muted);margin-top:3px;">${s.content.slice(0,60)}</div>
-             <span style="position:absolute;top:4px;right:6px;cursor:pointer;color:#ef4444;" onclick="deleteSkill('${s.name}')">✕</span>
+             <span style="position:absolute;top:4px;right:6px;cursor:pointer;color:#000000;" onclick="deleteSkill('${s.name}')">✕</span>
            </div>`).join('')
       : '<div class="mem-item">（暂无配置，输入后点击存入）</div>';
   } catch (e) {}
