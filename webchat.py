@@ -129,6 +129,38 @@ MAX_HISTORY_TURNS = 8    # 每会话最多拼接最近 8 轮（16 条消息）
 MAX_TURN_CHARS = 500     # 单条历史消息截断长度，控制 prompt 体积
 SESSIONS: "OrderedDict[str, list]" = OrderedDict()
 _sessions_lock = threading.Lock()
+_SESSIONS_PATH = os.path.join(os.path.expanduser("~"), ".nex-agent", "sessions.json")
+
+
+def _load_sessions():
+    """从 JSON 恢复会话历史（服务重启不丢失）。"""
+    global SESSIONS
+    try:
+        with open(_SESSIONS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            SESSIONS = OrderedDict(
+                (k, v[-MAX_HISTORY_TURNS * 2:]) for k, v in data.items()
+            )
+            while len(SESSIONS) > MAX_SESSIONS:
+                SESSIONS.popitem(last=False)
+            print(f"[session] 已从 {_SESSIONS_PATH} 恢复 {len(SESSIONS)} 个会话")
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f"[session] 会话恢复失败（忽略）: {e}")
+
+
+def _persist_sessions():
+    """将会话历史落盘 JSON（原子写）。"""
+    try:
+        os.makedirs(os.path.dirname(_SESSIONS_PATH), exist_ok=True)
+        tmp = _SESSIONS_PATH + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(SESSIONS, f, ensure_ascii=False)
+        os.replace(tmp, _SESSIONS_PATH)
+    except Exception as e:
+        print(f"[session] 会话持久化失败: {e}")
 
 
 def _session_history(session_id: str):
@@ -145,6 +177,9 @@ def _session_append(session_id: str, role: str, content: str):
         SESSIONS.move_to_end(session_id)
         while len(SESSIONS) > MAX_SESSIONS:
             SESSIONS.popitem(last=False)
+        _persist_sessions()
+
+_load_sessions()
 
 HTML = r"""<!doctype html>
 <html lang="zh-CN">
@@ -1010,7 +1045,7 @@ class Handler(BaseHTTPRequestHandler):
             items = []
             if store is not None:
                 try:
-                    for it in store.search("", top_k=5):
+                    for it in store.list_all(top_k=100):
                         items.append(str(it.get("memory", ""))[:80])
                 except Exception:
                     pass

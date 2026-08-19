@@ -91,6 +91,20 @@ class Mem0Store:
             print(f"[Mem0] search 失败: {e}")
             return []
 
+    def list_all(self, user_id: str = None, top_k: int = 100) -> list:
+        """列出全部记忆（用于记忆面板）。"""
+        try:
+            result = self._memory.get_all(
+                filters={"user_id": user_id or self._default_user},
+                top_k=top_k,
+            )
+            items = result.get("results", []) if isinstance(result, dict) else (result or [])
+            print(f"[Mem0] list_all -> {len(items)} 条")
+            return items
+        except Exception as e:
+            print(f"[Mem0] list_all 失败: {e}")
+            return []
+
     def search_as_prompt(self, query: str, user_id: str = None) -> str:
         results = self.search(query, user_id)
         if not results:

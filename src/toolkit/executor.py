@@ -262,6 +262,12 @@ class ClosedLoopExecutor:
                 result.error or result.output[:150],
             )
 
+            # 环境类失败（无设备/无数据，如无显示器）重试无意义 → 直接跳过
+            _err = result.error or result.output or ""
+            if any(m in _err for m in ("均无返回", "不可用", "未检测到", "无显示器", "无电池")):
+                logger.warning("[%s] 环境类失败（%s），跳过重试", tool_name, _err[:60])
+                break
+
             if attempt < self.max_retries:
                 await asyncio.sleep(1.0 * (attempt + 1))
                 logger.info("[%s] 准备重试 (attempt %d)...", tool_name, attempt + 2)
@@ -302,11 +308,17 @@ class ClosedLoopExecutor:
 
         self._traces.append(trace)
 
-        logger.error(
-            "✗✗✗ [%s] CRITICAL: 所有 %d 次尝试均失败. 最终状态: %s. 请人工介入.",
-            tool_name, self.max_retries + 1,
-            trace.final_result.status.value,
-        )
+        if tool.risk == RiskLevel.CONSEQUENTIAL:
+            logger.critical(
+                "✗✗✗ [%s] CRITICAL: 所有 %d 次尝试均失败. 请人工介入.",
+                tool_name, self.max_retries + 1,
+            )
+        else:
+            logger.warning(
+                "✗ [%s] 所有 %d 次尝试均失败: %s",
+                tool_name, self.max_retries + 1,
+                trace.final_result.error or trace.final_result.status.value,
+            )
         return trace.final_result
 
     async def run_and_confirm(self, tool_name: str, **kwargs) -> ToolResult:
