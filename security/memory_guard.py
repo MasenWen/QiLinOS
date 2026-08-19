@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .threat import get_threat_scanner, ThreatScanner
+from .sensitivity import SensitivityLevel, classify as classify_sensitivity
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,9 @@ class ContentReviewResult:
     pii_redactions: int = 0
     truncated: bool = False
     reason: str = ""
+    # 敏感标注（指令「敏感」：识别、控制、标注）
+    sensitivity: SensitivityLevel = SensitivityLevel.NONE
+    sensitive_types: list[str] = field(default_factory=list)
 
 
 class MemoryGuard:
@@ -97,6 +101,8 @@ class MemoryGuard:
             text = text[:MAX_CONTENT_LENGTH]
             truncated = True
 
+        # 敏感标注：基于原文识别敏感级别（防脱敏后丢失原始标记），供遗忘联动与防泄漏
+        sens = classify_sensitivity(content)
         return ContentReviewResult(
             allowed=True,
             sanitized_text=text,
@@ -104,6 +110,8 @@ class MemoryGuard:
             pii_redactions=pii_count,
             truncated=truncated,
             reason="审查通过" if not threat_result.threat_ids else f"低风险威胁放行: {', '.join(threat_result.threat_ids)}",
+            sensitivity=sens.level,
+            sensitive_types=sens.sensitive_types,
         )
 
 
