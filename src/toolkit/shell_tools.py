@@ -25,6 +25,7 @@ class ShellTool(BaseTool):
         "当其它工具无法完成请求时，用白名单系统命令兜底执行。"
         "可用命令: mkdir, touch, rmdir, ls, pwd, tree, cat, head, tail, wc, grep, "
         "file, stat, sort, uniq, cp, mv, df, du, date, whoami, hostname, uname, uptime, top。"
+        "支持受限管道（如 'du -sh ~/* | sort -rn | head -5'，每段必须在白名单内）。"
         "写类命令(mkdir/touch/cp/mv/rmdir)的路径必须在主目录 ~/ 内。"
         "参数: cmd（完整命令字符串，例如 'mkdir -p ~/桌面/测试文档'）"
     )
@@ -62,13 +63,76 @@ class ShellTool(BaseTool):
             return os.path.join(os.path.expanduser("~"), arg[2:])
         return arg
 
+    def _run_pipeline(self, cmd: str) -> "ToolResult":
+        """受限管道执行：| 分隔的每段独立解析与白名单校验，手动 Popen 串联。
+
+        安全设计：不用 shell 解析（无注入面）；每段首命令必须在白名单；
+        每段参数禁止元字符；管道段数 ≤ 4。
+        """
+        parts = [p.strip() for p in cmd.split("|") if p.strip()]
+        if len(parts) > 4:
+            return self._fail("管道段数超过限制（最多 4 段）")
+        try:
+            parsed = [shlex.split(p) for p in parts]
+        except ValueError as e:
+            return self._fail(f"命令解析失败: {e}")
+        if not parsed or any(not p for p in parsed):
+            return self._fail("空命令")
+        # 逐段校验
+        for argv in parsed:
+            base = os.path.basename(argv[0])
+            if base not in self.ALLOWED:
+                return self._fail(f"管道段命令不在白名单: {base!r}")
+            for ch in (";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
+                if any(ch in a for a in argv):
+                    return self._fail(f"管道段含禁止字符: {ch!r}")
+            # 写类命令禁止入管道
+            if base in self.WRITE_CMDS:
+                return self._fail(f"写类命令不允许用于管道: {base!r}")
+        # 展开 ~
+        parsed = [[self._expand_tilde(a) if i > 0 else a for i, a in enumerate(argv)]
+                  for argv in parsed]
+        home = os.path.abspath(os.path.expanduser("~"))
+        procs = []
+        try:
+            for i, argv in enumerate(parsed):
+                stdin = procs[-1].stdout if procs else None
+                procs.append(subprocess.Popen(
+                    argv, stdin=stdin, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, text=True, cwd=home,
+                ))
+                if stdin is not None:
+                    stdin.close()
+            out, err = procs[-1].communicate(timeout=self.timeout_s)
+            for p in procs[:-1]:
+                try:
+                    p.wait(timeout=5)
+                except Exception:
+                    pass
+            if procs[-1].returncode == 0:
+                return self._ok(out.rstrip()[:2000])
+            return self._fail(f"管道执行失败: {err.strip()[:200]}")
+        except subprocess.TimeoutExpired:
+            for p in procs:
+                try:
+                    p.kill()
+                except Exception:
+                    pass
+            return self._fail("管道执行超时")
+        except Exception as e:
+            return self._fail(f"管道执行异常: {e}")
+
     def execute(self, **kwargs):
         cmd = (kwargs.get("cmd") or kwargs.get("command") or "").strip()
         if not cmd:
             return self._fail("缺少参数: cmd（白名单命令，例如 'mkdir -p ~/桌面/测试文档'）")
 
-        # 1. 拒绝 shell 元字符（命令注入防护）
-        for ch in ("|", ";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
+        # 1. 受限管道支持：| 分隔的每段单独校验（手动 Popen 串联，无 shell 解析）
+        if "|" in cmd:
+            return self._run_pipeline(cmd)
+
+        # 1b. 拒绝其余 shell 元字符（命令注入防护）
+        for ch in (";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
             if ch in cmd:
                 return self._fail(f"命令包含禁止的字符: {ch!r}")
 
