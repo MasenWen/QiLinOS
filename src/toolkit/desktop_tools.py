@@ -61,13 +61,13 @@ class VolumeTool(BaseTool):
             if action == "set":
                 return self._set_volume(int(value))
             elif action == "mute":
-                return self._run_pactl(["set-sink-mute", "@DEFAULT_SINK@", "1"], "已静音")
+                return self._volume_sdk("volume_mute", "已静音", "set-sink-mute @DEFAULT_SINK@ 1")
             elif action == "unmute":
-                return self._run_pactl(["set-sink-mute", "@DEFAULT_SINK@", "0"], "已取消静音")
+                return self._volume_sdk("volume_unmute", "已取消静音", "set-sink-mute @DEFAULT_SINK@ 0")
             elif action == "up":
-                return self._run_pactl(["set-sink-volume", "@DEFAULT_SINK@", "+5%"], "音量已增加")
+                return self._volume_sdk("volume_up", "音量已增加", "set-sink-volume @DEFAULT_SINK@ +5%")
             elif action == "down":
-                return self._run_pactl(["set-sink-volume", "@DEFAULT_SINK@", "-5%"], "音量已降低")
+                return self._volume_sdk("volume_down", "音量已降低", "set-sink-volume @DEFAULT_SINK@ -5%")
             else:
                 return self._fail(f"未知音量操作: '{action}'")
         except Exception as e:
@@ -87,6 +87,19 @@ class VolumeTool(BaseTool):
             ["set-sink-volume", "@DEFAULT_SINK@", f"{percent}%"],
             f"音量已设置为 {percent}%",
         )
+
+    def _volume_sdk(self, sdk_fn: str, ok_msg: str, pactl_fallback: str) -> ToolResult:
+        """官方 SDK 优先（desktop_dbus.volume_*），失败兜底 pactl。"""
+        try:
+            from src.sdk import desktop_dbus
+            fn = getattr(desktop_dbus, sdk_fn, None)
+            if fn is not None:
+                r = fn()
+                if r is True or (isinstance(r, str) and r and "失败" not in r and "error" not in r.lower()):
+                    return self._ok(f"{ok_msg}（官方 SDK）")
+        except Exception:
+            pass
+        return self._run_pactl(pactl_fallback.split(), ok_msg)
 
     def _run_pactl(self, args: List[str], ok_msg: str) -> ToolResult:
         from src.sdk.desktop_dbus import volume_set as sdk_volume_set
