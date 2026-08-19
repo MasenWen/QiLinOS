@@ -29,9 +29,9 @@ class PowerPlanTool(BaseTool):
     timeout_s = 10.0
 
     def execute(self, **kwargs) -> ToolResult:
-        plan = kwargs.get("plan", "")
-        if not plan:
-            # 查询模式：返回当前电源计划
+        plan = (kwargs.get("plan") or "").strip().lower()
+        if not plan or plan in ("get", "query", "查看", "查询", "status"):
+            # 查询模式：返回当前电源计划（支持 plan=get 等显式查询）
             from src.sdk import battery
             try:
                 return self._ok(f"当前电源计划: {battery.get_power_plan()}")
