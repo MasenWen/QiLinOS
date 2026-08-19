@@ -188,6 +188,29 @@ HTML = r"""<!doctype html>
             background: var(--accent-2); vertical-align: -2px;
             animation: blink .9s steps(2, start) infinite; }
   @keyframes blink { to { visibility: hidden; } }
+  .layout { display: flex; height: 100vh; }
+  .sidebar { width: 230px; min-width: 230px; background: rgba(10,13,20,.9);
+             border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
+             border-radius: 8px; background: rgba(99,102,241,.12); color: var(--text);
+             cursor: pointer; font-size: 13px; text-align: center; }
+  .sidebar .newchat:hover { background: rgba(99,102,241,.25); }
+  .sess-list { flex: 1; overflow-y: auto; padding: 4px; }
+  .sess-item { padding: 8px 10px; margin: 2px 4px; border-radius: 6px; font-size: 12.5px;
+             color: var(--muted); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sess-item:hover, .sess-item.active { background: var(--surface-2); color: var(--text); }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .panel { width: 240px; min-width: 240px; background: rgba(10,13,20,.9);
+             border-left: 1px solid var(--border); overflow-y: auto; padding: 10px; }
+  .panel h3 { font-size: 12px; color: var(--muted); margin: 8px 0 6px; letter-spacing: .5px; }
+  .mem-item { font-size: 12px; color: var(--text); padding: 6px 8px; background: var(--surface);
+             border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; line-height: 1.5; }
+  .log-item { font-size: 11.5px; padding: 5px 8px; border-radius: 5px; margin-bottom: 5px;
+             background: var(--surface); border: 1px solid var(--border); }
+  .log-item .tool { color: var(--accent-2); }
+  .log-item.ok { border-left: 3px solid var(--ok); }
+  .log-item.err { border-left: 3px solid #ef4444; }
   footer {
     position: sticky; bottom: 0;
     background: rgba(10,13,20,.72);
@@ -218,30 +241,43 @@ HTML = r"""<!doctype html>
 </style>
 </head>
 <body>
-<header>
-  <span class="dot"></span>
-  <span class="brand">aichat<em> · 麒麟 AI</em></span>
-  <span class="sub">记忆增强 · 系统工具</span>
-  <span class="spacer"></span>
-  <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
-  <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
-</header>
-
-<main><div class="wrap" id="messages">
-  <div class="empty" id="empty">
-    <h1>你好，我是麒麟 AI</h1>
-    <p>我会记住你的偏好，也能调用服务器上的系统工具。</p>
-    <p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">aichat<em> · 麒麟 AI</em></div>
+    <div class="newchat" id="newChat">＋ 新会话</div>
+    <div class="sess-list" id="sessList"></div>
+  </aside>
+  <div class="main">
+    <header>
+      <span class="dot"></span>
+      <span class="brand">aichat<em> · 麒麟 AI</em></span>
+      <span class="sub">记忆增强 · 系统工具</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
+      <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
+    </header>
+    <main><div class="wrap" id="messages">
+      <div class="empty" id="empty">
+        <h1>你好，我是麒麟 AI</h1>
+        <p>我会记住你的偏好，也能调用服务器上的系统工具。</p>
+        <p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>
+      </div>
+    </div></main>
+    <footer>
+      <div class="inputbar">
+        <textarea id="input" rows="1" placeholder="输入消息…（可让我改时区、查系统信息等）"></textarea>
+        <button id="send">发送</button>
+      </div>
+      <div class="hint">Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆</div>
+    </footer>
   </div>
-</div></main>
-
-<footer>
-  <div class="inputbar">
-    <textarea id="input" rows="1" placeholder="输入消息…（可让我改时区、查系统信息等）"></textarea>
-    <button id="send">发送</button>
-  </div>
-  <div class="hint">Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆</div>
-</footer>
+  <aside class="panel">
+    <h3>🧠 记忆</h3>
+    <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
+    <h3>🔧 工具调用</h3>
+    <div id="toolPanel"><div class="log-item">（暂无）</div></div>
+  </aside>
+</div>
 
 <script>
 const msgs = document.getElementById('messages');
@@ -377,6 +413,49 @@ function restore() {
 }
 restore();
 
+// ---- CODEX 风格：会话侧栏 + 右侧面板 ----
+async function refreshSessions() {
+  try {
+    const r = await fetch('/api/sessions');
+    const d = await r.json();
+    const list = document.getElementById('sessList');
+    list.innerHTML = '';
+    (d.sessions || []).forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'sess-item' + (s.session_id === sessionId ? ' active' : '');
+      el.textContent = (s.preview || s.session_id.slice(0, 12)) + ` (${s.turns})`;
+      el.onclick = () => { sessionId = s.session_id; location.reload(); };
+      list.appendChild(el);
+    });
+  } catch (e) {}
+}
+async function refreshPanels() {
+  try {
+    const [m, t] = await Promise.all([
+      fetch('/api/memories').then(r => r.json()),
+      fetch('/api/tool_logs').then(r => r.json()),
+    ]);
+    const mp = document.getElementById('memPanel');
+    mp.innerHTML = (m.memories && m.memories.length)
+      ? m.memories.map(x => `<div class="mem-item">${x}</div>`).join('')
+      : '<div class="mem-item">（暂无记忆）</div>';
+    const tp = document.getElementById('toolPanel');
+    tp.innerHTML = (t.logs && t.logs.length)
+      ? t.logs.slice().reverse().map(l =>
+          `<div class="log-item ${l.status === 'verified' || l.status === 'success' ? 'ok' : 'err'}">
+             <span class="tool">${l.tool}</span> · ${l.status} · ${l.duration_ms}ms
+             ${l.error ? `<br><span style="color:#f87171">${l.error.slice(0, 60)}</span>` : ''}
+           </div>`).join('')
+      : '<div class="log-item">（暂无）</div>';
+  } catch (e) {}
+}
+document.getElementById('newChat').onclick = () => {
+  sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem(SKEY, sessionId);
+  location.reload();
+};
+refreshSessions();
+setInterval(refreshPanels, 4000);
 send.onclick = submit;
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
@@ -451,10 +530,26 @@ def _remember(messages):
         print(f"[mem] 写入失败: {e}", flush=True)
 
 
+_TOOL_LOGS: list = []  # 工具调用日志（前端面板展示）
+_MAX_TOOL_LOGS = 50
+
+
+def _log_tool(tool_name: str, status: str, duration_ms: float, error: str = ""):
+    _TOOL_LOGS.append({
+        "tool": tool_name, "status": status,
+        "duration_ms": round(duration_ms, 1), "error": error or "",
+        "ts": datetime.now().strftime("%H:%M:%S"),
+    })
+    del _TOOL_LOGS[: max(0, len(_TOOL_LOGS) - _MAX_TOOL_LOGS)]
+
+
 def _run_tool(tool_name: str, params: dict):
+    import time as _t
+    _t0 = _t.time()
     # P0 修复：网页端禁止不可逆/中断类系统操作，仅可 SSH 人工执行
     if tool_name in WEB_DISALLOWED_TOOLS:
         print(f"[tool] 已拦截网页端危险工具: {tool_name} {params}", flush=True)
+        _log_tool(tool_name, "rejected", 0)
         return ToolResult(
             tool_name=tool_name,
             status=ToolStatus.REJECTED,
@@ -463,7 +558,10 @@ def _run_tool(tool_name: str, params: dict):
     with _tool_lock:
         async def _run():
             return await EXECUTOR.run(tool_name, confirmed=True, **params)
-        return asyncio.run(_run())
+        res = asyncio.run(_run())
+    _log_tool(tool_name, res.status.value, (_t.time() - _t0) * 1000,
+              getattr(res, "error", "") or "")
+    return res
 
 
 _STATUS_LABEL = {
@@ -646,6 +744,26 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path in ("/", "/index.html"):
             self._send(200, HTML.encode("utf-8"), "text/html; charset=utf-8")
+        elif self.path == "/api/sessions":
+            with _sessions_lock:
+                sess = [
+                    {"session_id": sid, "turns": len(hist),
+                     "preview": (hist[-1]["content"][:24] if hist else "")}
+                    for sid, hist in SESSIONS.items()
+                ]
+            self._json(200, {"sessions": sess})
+        elif self.path == "/api/tool_logs":
+            self._json(200, {"logs": list(_TOOL_LOGS)})
+        elif self.path == "/api/memories":
+            store = _get_mem0()
+            items = []
+            if store is not None:
+                try:
+                    for it in store.search("", top_k=5):
+                        items.append(str(it.get("memory", ""))[:80])
+                except Exception:
+                    pass
+            self._json(200, {"memories": items})
         else:
             self._send(404, b"not found", "text/plain; charset=utf-8")
 
