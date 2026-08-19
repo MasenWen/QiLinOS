@@ -411,7 +411,14 @@ class DateTimeTool(BaseTool):
     def execute(self, **kwargs) -> ToolResult:
         dt = kwargs.get("datetime", "")
         if not dt:
-            return self._fail("缺少参数: datetime (格式: 'YYYY-MM-DD HH:MM:SS')")
+            # 查询模式：返回当前系统时间
+            import subprocess as _sp
+            try:
+                r = _sp.run(["date", "+%Y-%m-%d %H:%M:%S"],
+                            capture_output=True, text=True, timeout=5)
+                return self._ok(f"当前系统时间: {r.stdout.strip()}（查询模式，未修改）")
+            except Exception as e:
+                return self._fail(f"读取当前时间失败: {e}")
 
         # Disable NTP temporarily
         subprocess.run(

@@ -45,8 +45,17 @@ class VolumeTool(BaseTool):
     timeout_s = 10.0
 
     def execute(self, **kwargs) -> ToolResult:
-        action = kwargs.get("action", "set")
+        action = kwargs.get("action", "").strip().lower() or "get"
         value = kwargs.get("value", 50)
+        if action == "get":
+            # 查询模式：返回当前音量（修复：缺 action 时不再默认 set 50）
+            try:
+                import subprocess as _sp
+                r = _sp.run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"],
+                            capture_output=True, text=True, timeout=5)
+                return self._ok(f"当前音量: {r.stdout.strip()}")
+            except Exception as e:
+                return self._fail(f"查询音量失败: {e}")
 
         try:
             if action == "set":
@@ -253,6 +262,13 @@ class BluetoothTool(BaseTool):
 
     def execute(self, **kwargs) -> ToolResult:
         action = kwargs.get("action", "").strip().lower()
+        if not action:
+            # 查询模式：返回蓝牙状态（修复：缺 action 时不再默认 block）
+            from src.sdk import bluetooth
+            try:
+                return self._ok(f"当前蓝牙状态: {bluetooth.get_bluetooth_status()}")
+            except Exception as e:
+                return self._fail(f"查询蓝牙状态失败: {e}")
         cmd = ["rfkill", "unblock" if action == "on" else "block", "bluetooth"]
         label = "打开" if action == "on" else "关闭"
         try:

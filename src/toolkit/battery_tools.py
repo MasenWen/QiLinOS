@@ -30,7 +30,13 @@ class PowerPlanTool(BaseTool):
 
     def execute(self, **kwargs) -> ToolResult:
         plan = kwargs.get("plan", "")
-        if not plan: return self._fail("缺少plan参数")
+        if not plan:
+            # 查询模式：返回当前电源计划
+            from src.sdk import battery
+            try:
+                return self._ok(f"当前电源计划: {battery.get_power_plan()}")
+            except Exception as e:
+                return self._fail(f"查询电源计划失败: {e}")
         from src.sdk import battery
         ok, msg = battery.set_power_plan(plan)
         return self._ok(msg) if ok else self._fail(msg)
