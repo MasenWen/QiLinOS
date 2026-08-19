@@ -540,17 +540,6 @@ function switchSession(sid) {
   localStorage.setItem(SKEY, sid);
   history = [];
   try { history = JSON.parse(localStorage.getItem(histKey(sid)) || '[]'); } catch (e) { history = []; }
-  if (!history.length) {
-    // localStorage 无本地历史（如重启后服务端恢复的会话）→ 从服务端拉取
-    fetch('/api/history?session_id=' + encodeURIComponent(sid))
-      .then(r => r.json()).then(d => {
-        if (d.messages && d.messages.length) {
-          history = d.messages;
-          renderHistory();
-          refreshSessions();
-        }
-      }).catch(() => {});
-  }
   renderHistory();
   refreshSessions();
 }
@@ -1051,14 +1040,6 @@ class Handler(BaseHTTPRequestHandler):
                     for sid, hist in SESSIONS.items()
                 ]
             self._json(200, {"sessions": sess})
-        elif self.path.startswith("/api/history"):
-            from urllib.parse import urlparse, parse_qs
-            qs = parse_qs(urlparse(self.path).query)
-            sid = (qs.get("session_id") or [""])[0]
-            hist = _session_history(sid)
-            self._json(200, {"messages": [
-                {"role": h["role"], "text": h["content"]} for h in hist
-            ]})
         elif self.path == "/api/tool_logs":
             self._json(200, {"logs": list(_TOOL_LOGS)})
         elif self.path == "/api/skills":
