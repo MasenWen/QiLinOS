@@ -41,6 +41,7 @@ def _get_mem0():
 from src.toolkit.init_tools import init_all_tools  # noqa: E402
 from src.toolkit.base import get_registry, ToolResult, ToolStatus  # noqa: E402
 from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
+from src.memory import log_reader  # noqa: E402 日志驱动记忆
 
 # ---------- 初始化工具 ----------
 init_all_tools()
@@ -942,6 +943,7 @@ def _build_context(message: str, session_id: str) -> str:
 
 def _chat(message: str, session_id: str = "default"):
     """统一上下文 → 让 AI 编排 → 执行工具 / 直接回答。"""
+    log_reader.append_record("user", message)
     prompt = _build_context(message, session_id)
 
     with ai_text.TextSession() as t:
@@ -963,6 +965,12 @@ def _chat(message: str, session_id: str = "default"):
                 step = plan.get("step")
                 total_steps = plan.get("total_steps") or plan.get("all_step")
                 res = _run_tool(tool, params)
+                try:
+                    log_reader.append_record("tool", "", tool=tool,
+                                             status=res.status.value,
+                                             summary=str(getattr(res, "output", ""))[:200])
+                except Exception:
+                    pass
                 try:
                     reply = _summarize_result(message, tool, res)
                     # 步骤化编排：复杂任务回显进度（借鉴 AgentProject step/all_step）
@@ -1137,9 +1145,27 @@ class Handler(BaseHTTPRequestHandler):
         print(f"[webchat] {self.address_string()} {fmt % args}", flush=True)
 
 
+def _log_reader_loop():
+    """后台线程：定期扫描 conversation.log，把动作类事件写入长期记忆。"""
+    import time
+    while True:
+        try:
+            events, more = log_reader.scan_events(top_n=10)
+            if events:
+                store = _get_mem0()
+                if store is not None:
+                    for e in events:
+                        store.add([{"role": "user", "content": e["text"]}])
+                    print(f"[log_reader] 已从日志写入 {len(events)} 条记忆")
+        except Exception as e:
+            print(f"[log_reader] 扫描异常: {e}")
+        time.sleep(180)
+
+
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
     print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
     print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
     print(f"记忆模式: {'无记忆(--no-memory)' if _NO_MEMORY else '启用(mem0 持久化)'}", flush=True)
+    threading.Thread(target=_log_reader_loop, daemon=True).start()
     ThreadingHTTPServer((WEBCHAT_HOST, port), Handler).serve_forever()
