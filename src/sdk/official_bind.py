@@ -353,6 +353,35 @@ if _lib_fan is not None:
     except (AttributeError, OSError):
         pass  # 符号不存在
 
+_lib_global = load_library("libkyglobal", mock=False)
+if _lib_global is not None:
+    BOUND_LIBS["libkyglobal"] = _lib_global
+    try:
+        declare(_lib_global, "kdk_global_get_raw_offset", restype=_c.c_int)
+        BOUND_FUNCS["kdk_global_get_raw_offset"] = "libkyglobal"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_global, "kdk_global_get_region_match_language", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_global_get_region_match_language"] = "libkyglobal"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_global, "kdk_global_get_rtl", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_global_get_rtl"] = "libkyglobal"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_global, "kdk_global_get_system_language", restype=_c.c_char_p)
+        BOUND_FUNCS["kdk_global_get_system_language"] = "libkyglobal"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+    try:
+        declare(_lib_global, "kdk_global_get_system_support_language", restype=_c.c_void_p)
+        BOUND_FUNCS["kdk_global_get_system_support_language"] = "libkyglobal"
+    except (AttributeError, OSError):
+        pass  # 符号不存在
+
 _lib_hw = load_library("libkyhw", mock=False)
 if _lib_hw is not None:
     BOUND_LIBS["libkyhw"] = _lib_hw

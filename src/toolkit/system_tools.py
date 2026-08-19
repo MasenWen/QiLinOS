@@ -76,11 +76,21 @@ class TimezoneTool(BaseTool):
     def execute(self, **kwargs) -> ToolResult:
         target = kwargs.get("timezone", "")
         if not target:
-            # 查询模式：返回当前系统时区（AI 问"现在时区是多少"时走这里）
+            # 查询模式：返回当前系统时区（官方 SDK 偏移 + 时区名）
             current = self._get_current_timezone()
+            offset_text = ""
+            try:
+                from src.sdk import official_bind as _ob
+                _lg = _ob.BOUND_LIBS.get("libkyglobal")
+                if _lg is not None and hasattr(_lg, "kdk_global_get_raw_offset"):
+                    off = int(_lg.kdk_global_get_raw_offset())
+                    sign = "+" if off >= 0 else "-"
+                    offset_text = f"（官方 SDK UTC{sign}{abs(off)}）"
+            except Exception:
+                offset_text = ""
             if current:
                 return self._ok(
-                    f"当前系统时区: {current}（查询模式，未做任何修改）",
+                    f"当前系统时区: {current} {offset_text}".strip() + "（查询模式，未做任何修改）",
                     timezone=current, mode="query",
                 )
             return self._fail("无法读取当前系统时区")
