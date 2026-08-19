@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import logging
-import threading
 from typing import Any
 
 from .base import BaseTool, ToolResult
@@ -71,54 +70,42 @@ class SystemInfoTool(BaseTool):
                 pass
         return self._fail(f"查询 {info_type} 失败（SDK 与系统命令均无返回）")
 
-    _SDK_EXT_LOCK = threading.Lock()  # libkyedid 等 C 库并发调用 SIGSEGV，全局串行化
-
     @staticmethod
     def _official_ext(info_type: str) -> "ToolResult | None":
-        """官方 SDK 扩展查询：显示器(edid)/温度(realtime)/包(package)/网速。"""
-        from src.sdk import official_bind as ob
-        from src.sdk.base import _safe_cstring_call, _decode_cstring
-        import ctypes
+        """官方 SDK 扩展查询：显示器(edid)/温度(realtime)/网速。
 
-        def _call(lib, fn):
-            with SystemInfoTool._SDK_EXT_LOCK:
-                l = ob.BOUND_LIBS.get(lib)
-                if l and hasattr(l, fn):
-                    try:
-                        f = getattr(l, fn)
-                        if f.restype in (ctypes.c_char_p,):
-                            return _safe_cstring_call(l, fn)  # Kylin segfault 规避
-                        return (lambda: f())()  # 数值接口 lambda 上下文
-                    except Exception:
-                        return None
+        ⚠️ libkyedid / libkyrealtime 的 C 函数在 webchat 主进程内调用会 SIGSEGV
+        （并发或特定环境下崩溃、直接杀死进程）。因此所有 C 调用隔离到子进程
+        （src/sdk/query_ext.py），子进程崩溃不影响主进程。
+        """
+        import json as _json
+        import os as _os
+        import subprocess as _sp
+        import sys as _sys
+
+        base = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))  # .../src
+        helper = _os.path.join(base, "sdk", "query_ext.py")
+        if not _os.path.exists(helper):
             return None
+        try:
+            r = _sp.run(
+                [_sys.executable, helper, info_type],
+                capture_output=True, text=True, timeout=10,
+                cwd=_os.path.dirname(base),  # 项目根，保证 import src.*
+            )
+            out = (r.stdout or "").strip()
+            if out:
+                data = _json.loads(out.splitlines()[-1])
+                if data.get("ok"):
+                    return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
+                        tool_name="sysinfo",
+                        status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
+                        output=data["ok"])
+        except Exception as e:
+            print(f"[sysinfo] 子进程 SDK 查询失败({info_type}): {e}", flush=True)
 
-        if info_type in ("edid", "monitor", "display"):
-            parts = []
-            # 仅封装已验证安全的接口（kdk_edid_get_interface 在 Kylin 上 segfault，跳过）
-            for label, fn in (("厂商", "kdk_edid_get_manufacturer"), ("型号", "kdk_edid_get_model"),
-                              ("最大分辨率", "kdk_edid_get_max_resolution")):
-                v = _call("libkyedid", fn)
-                if v:
-                    parts.append(f"{label}: {v}")
-            if parts:
-                return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
-                    tool_name="sysinfo", status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
-                    output="显示器信息（官方 SDK edid）\n" + "\n".join(parts))
-        if info_type in ("temp", "temperature"):
-            v = _call("libkyrealtime", "kdk_real_get_cpu_temperature")
-            if v is not None:
-                return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
-                    tool_name="sysinfo", status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
-                    output=f"CPU 温度: {v}（官方 SDK realtime）")
-        # package 接口需先 init 且返回列表结构，未封装（避免误读内存地址）
+        # netspeed：SDK 无有效数据 → /proc/net/dev 两次采样（1s）计算实时网速（纯 Python，安全）
         if info_type in ("netspeed", "net_speed"):
-            v = _call("libkyrealtime", "kdk_real_get_net_speed")
-            if v is not None and v >= 0:
-                return __import__("src.toolkit.base", fromlist=["ToolResult"]).ToolResult(
-                    tool_name="sysinfo", status=__import__("src.toolkit.base", fromlist=["ToolStatus"]).ToolStatus.SUCCESS,
-                    output=f"瞬时网速: {v}（官方 SDK realtime）")
-            # SDK 无有效数据 → /proc/net/dev 两次采样（1s）计算实时网速
             try:
                 import time
 
