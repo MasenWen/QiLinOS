@@ -434,7 +434,7 @@ class DirectoryTool(BaseTool):
     """Open special directories in file manager."""
 
     name = "directory"
-    description = "打开系统目录。dir: home, desktop, documents, downloads, music, videos, pictures, temp, root, public, templates"
+    description = "打开系统目录（action=open，默认）或列出目录内容（action=list）。dir: home, desktop, documents, downloads, music, videos, pictures, temp, root, public, templates；例如查询「桌面有哪些文件」用 action=list, dir=desktop"
     risk = RiskLevel.LOW
     timeout_s = 10.0
 
@@ -445,12 +445,33 @@ class DirectoryTool(BaseTool):
         "public": "公共目录", "templates": "模板",
     }
 
+    _PATH_MAP = {
+        "home": "~", "desktop": "~/桌面", "documents": "~/文档",
+        "downloads": "~/下载", "music": "~/音乐", "videos": "~/视频",
+        "pictures": "~/图片", "temp": "/tmp", "root": "/",
+        "public": "~/公共", "templates": "~/模板",
+    }
+
     def execute(self, **kwargs) -> ToolResult:
         d = kwargs.get("dir", "").strip().lower()
+        action = kwargs.get("action", "open").strip().lower()
         if d not in self._DIR_MAP:
             return self._fail(f"未知目录: '{d}'。可用: {', '.join(self._DIR_MAP)}")
 
         label = self._DIR_MAP[d]
+        if action == "list":
+            # 查询模式：列出目录内容
+            target = os.path.expanduser(self._PATH_MAP.get(d, "~"))
+            try:
+                r = subprocess.run(
+                    ["ls", "-A", target],
+                    capture_output=True, text=True, timeout=5,
+                )
+                if r.returncode == 0:
+                    return self._ok(f"{label}目录内容:\n{r.stdout.strip()}")
+                return self._fail(f"列出{label}失败: {r.stderr.strip()}")
+            except Exception as e:
+                return self._fail(f"列出{label}失败: {e}")
         try:
             r = subprocess.run(
                 ["kylin-actuator", f"{{open {d}dir}}"],
