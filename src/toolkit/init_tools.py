@@ -63,6 +63,10 @@ def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     from .ocr_tools import register_ocr_tools
     register_ocr_tools(registry)
 
+    # Knowledge base tool (LightRAG)
+    from .kb_tools import register_kb_tools
+    register_kb_tools(registry)
+
     # File tools (create folder/file within home dir)
     from .file_tools import register_file_tools
     register_file_tools(registry)

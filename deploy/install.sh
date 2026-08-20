@@ -28,6 +28,12 @@ echo "--- 安装依赖 requirements.txt ---"
 echo "--- 安装记忆系统依赖 ---"
 .venv/bin/pip install mem0ai==2.0.18 milvus-lite qdrant-client -i https://pypi.tuna.tsinghua.edu.cn/simple --timeout 30 --retries 2
 
+# 4.5 知识库依赖（LightRAG 需要 spacy 模型；GitHub 下载较慢）
+echo "--- 安装 spacy 中文模型（知识库 RAG 用）---"
+.venv/bin/pip install en-core-web-sm 2>/dev/null || \
+  curl -sL -o /tmp/en_core_web_sm.whl https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl && \
+  .venv/bin/pip install /tmp/en_core_web_sm.whl || echo "⚠ spacy 模型未装（知识库功能不可用，可稍后手动装）"
+
 # 5. 冒烟自检
 echo "--- 冒烟自检 ---"
 .venv/bin/python -c "import webchat; print('✅ webchat import OK')"
