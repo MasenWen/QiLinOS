@@ -60,6 +60,18 @@ class ShellTool(BaseTool):
         return full == home or full.startswith(home + os.sep)
 
     @staticmethod
+    def _validate_find_args(argv) -> str | None:
+        """find 参数级白名单：只允许只读选项，拦截 -exec/-delete 等。"""
+        if os.path.basename(argv[0]) != "find":
+            return None
+        for a in argv[1:]:
+            if a.startswith("-"):
+                opt = a.split("=")[0]
+                if opt in ShellTool.FIND_BLOCKED_OPTS:
+                    return f"find 参数不在只读白名单: {opt!r}"
+        return None
+
+    @staticmethod
     def _expand_tilde(arg: str) -> str:
         """手动展开 ~ 前缀（shell=False 时 subprocess 不做 tilde 展开）。"""
         if arg == "~":
@@ -92,12 +104,9 @@ class ShellTool(BaseTool):
                 if any(ch in a for a in argv):
                     return self._fail(f"管道段含禁止字符: {ch!r}")
             # find 参数级白名单：只允许只读选项
-            if base == "find":
-                for a in argv[1:]:
-                    if a.startswith("-"):
-                        opt = a.split("=")[0]
-                        if opt in self.FIND_BLOCKED_OPTS:
-                            return self._fail(f"find 参数不在只读白名单: {opt!r}")
+            find_err = self._validate_find_args(argv)
+            if find_err:
+                return self._fail(find_err)
             # 写类命令禁止入管道
             if base in self.WRITE_CMDS:
                 return self._fail(f"写类命令不允许用于管道: {base!r}")
@@ -159,6 +168,10 @@ class ShellTool(BaseTool):
         base = os.path.basename(argv[0])
         if base not in self.ALLOWED:
             return self._fail(f"命令不在白名单: {base!r}")
+        # find 参数级校验（P0：无管道单命令同样拦截 -exec/-delete）
+        find_err = self._validate_find_args(argv)
+        if find_err:
+            return self._fail(find_err)
 
         # 2.5 展开参数里的 ~（shell=False 不会自动展开）
         argv[1:] = [self._expand_tilde(a) for a in argv[1:]]
