@@ -977,7 +977,7 @@ _CONTEXT_TEMPLATE = (
     "常见查询映射：IP地址→netstatus；显示器/屏幕→sysinfo(info_type=display)；"
     "系统负载→sysinfo(info_type=load)；CPU占用→sysinfo(info_type=cpu)；"
     "内存→sysinfo(info_type=memory)；磁盘→sysinfo(info_type=disk)；"
-    "电池→battery；进程→process_list；网速→sysinfo(info_type=netspeed)；温度→sysinfo(info_type=temp)。\n"
+    "电池→battery；进程→process_list；网速→sysinfo(info_type=netspeed)；温度→sysinfo(info_type=temp)；识别图片/文字→ocr。\n"
     "2. 若用户请求是具体的系统操作（建文件夹、列目录、查看文件、复制/移动等），"
     "但上面没有对应工具，请改用 shell 工具执行一条白名单命令，仍然**只输出** JSON：\n"
     '{"tool": "shell", "params": {"cmd": "白名单命令"}}\n'

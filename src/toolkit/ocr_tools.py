@@ -18,13 +18,21 @@ class OcrTool(BaseTool):
     """OCR 文字识别（官方 SDK libkyocr，子进程隔离）。"""
     name = "ocr"
     description = ("OCR文字识别：识别图片中的文字。"
-                   "action=recognize + path=图片路径（如 ~/图片/截图.png）")
+                   "action=recognize + path=图片完整路径（任意路径均可，"
+                   "如 /tmp/截图.png 或 ~/图片/截图.png）")
     risk = RiskLevel.LOW
     timeout_s = 90.0
 
     def execute(self, **kwargs) -> ToolResult:
         action = (kwargs.get("action") or "recognize").strip().lower()
-        path = (kwargs.get("path") or "").strip()
+        # 兼容多个参数名（AI 可能用 path/image/file/图片 等）
+        path = ""
+        for key in ("path", "image_path", "img_path", "file_path", "image", "file",
+                   "img", "图片", "图片路径", "文件"):
+            v = kwargs.get(key)
+            if v:
+                path = str(v).strip()
+                break
         if action != "recognize":
             return self._fail(f"未知操作: '{action}'。可用: recognize")
         if not path:
