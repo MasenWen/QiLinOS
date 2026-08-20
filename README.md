@@ -1,273 +1,180 @@
-# NexAgent
+# NexAgent（QiLinOS）
 
-NexAgent-基于意图识别与动态规划的通用系统操作多智能体
+**麒麟 OS Agent**：运行在银河麒麟桌面系统上的智能助手，通过网页对话执行系统操作，并具备多层级记忆体系。
 
+单进程 Python 服务（`webchat.py`），内置 27 个系统工具、4 层记忆存储、可切换的 LLM（麒麟 SDK / OpenAI 兼容 API）。
 
-## 目录
-- [快速开始](#快速开始)
-- [架构](#架构)
-- [功能特性](#功能特性)
-- [安装及配置](#安装及配置)
-    - [前置要求](#前置要求)
-    - [安装步骤](#安装步骤)
-    - [安装依赖](#安装依赖)
-    - [配置](#配置)
-- [使用方法](#使用方法)
-    - [基本执行](#基本执行)
-    - [API服务器](#API服务器)
-    - [高级配置](#高级配置)
-    - [智能体提示系统](#智能体提示系统)
-- [贡献](#贡献)
-- [许可证](#许可证)
-- [致谢](#致谢)
-
-## 快速开始
-
-```bash
-# 克隆仓库
-git clone 
-cd nex-agent
-
-# 用uv创建并激活虚拟环境
-uv python install 3.12
-uv venv --python 3.12
-
-source .venv/bin/activate  # Windows系统使用: .venv\Scripts\activate
-
-# 安装依赖
-uv sync
-
-# 配置环境
-cp .env.example .env
-# 编辑 .env 文件，填入你的 API 密钥
-
-# 运行项目
-uv run main.py
-```
-
-## 架构
-
-基于意图识别与动态规划的通用系统操作多智能体，对于用户的输入，首先通过意图识别确定任务类别（如问答、知识库操作、简单系统操作、智能填表、ppt生成、复杂任务及系统操作），路由到下一级相关智能体，其中通用复杂任务由规划智能体生成计划，然后由主管智能体协调专门的智能体来完成复杂任务。任务过程中，用户可通过交互修改计划或执行细节，并动态生成新的规划。
-
-
-系统由以下智能体协同工作：
-
-1. **协调员（Coordinator）**：工作流程的入口点，处理意图识别并路由任务
-2. **知识管理员（konwledge manager）**：处理添加文本、链接以及文件到知识库的任务
-3. **系统操作员（System Operator）**：处理单一的系统操作任务，复杂任务可通过多次调用系统操作执行者实现
-4. **填表员（Form filler）**：处理文档中的智能填表任务
-5. **PPT制作专家（PPT Generator）**：处理ppt相关设计和制作
-6. **规划员（Planner）**：分析任务并制定执行策略
-7. **主管（Supervisor）**：监督和管理其他智能体的执行
-8. **研究员（Researcher）**：收集和分析信息
-9. **程序员（Coder）**：负责代码生成和修改
-10. **浏览器（Browser）**：执行网页浏览和信息检索
-11. **汇报员（Reporter）**：生成工作流结果的报告和总结
+---
 
 ## 功能特性
 
-### 核心能力
+- **网页聊天**（三栏界面：会话列表 / 对话区 / 记忆与配置面板，黑白主题）
+- **27 个系统工具**：文件、Shell（受限白名单）、系统信息（CPU/内存/磁盘/网络/负载）、时区、日期、进程、电池、蓝牙、音量、WiFi、壁纸、截图、电源计划等
+- **工具调用闭环**：AI 输出 JSON → 工具执行 → 验证 → 回滚 → 重试 → 降级兜底
+- **麒麟 SDK 优先**：系统信息/硬件查询优先走官方 SDK（libky*），SDK 无数据时自动兜底系统命令
+- **SDK C 库崩溃隔离**：所有 C 库调用放入子进程执行（`src/sdk/query_ext.py`），主进程永不因 SIGSEGV 崩溃
+- **多层级记忆**：
+  - 长期记忆（mem0 向量库，语义检索，上限 200 条自动淘汰）
+  - 记忆流转（短期 → 中期 → 长期，JSON 持久化）
+  - 配置记忆（SKILL，网页输入 → 长期记忆）
+  - 日志驱动记忆（对话日志增量扫描，自动提炼动作事件）
+  - 记忆防爆炸：同类快照自动裁剪、精确/语义去重
+- **LLM 可配置**：默认麒麟 SDK，网页一键切换 OpenAI 兼容 API（DeepSeek/OpenAI 等，模型 + Key 可改）
+- **会话管理**：多会话、会话重命名、会话历史服务端持久化、每个会话独立草稿
+- **安全设计**：仅绑定 `127.0.0.1`、Shell 命令白名单（含参数级校验）、危险工具（重启/关机/睡眠）拦截、可配置访问令牌
 
-- 多智能体协同，理解和识别用户意图，规划决策，并支持用户协作，动态生成规划
-- 直观的多角色对话方式，详细的执行过程展示
-- 多任务并行
-- 任务暂停/恢复，断点/恢复
-- 功能集成：网络搜索、神经搜索、高级内容提取、知识库管理、智能填表、PPT制作、OCR
-- 记忆：用户画像、行为模式、短期会话记忆、长期记忆（通过用户输入信息、及任务执行情况获取，决策时应用）
-- MCP服务拓展及配置：系统操作、地图导航、文件管理等。且规划时能根据MCP服务在线情况动态拓展团队成员及能力
-- A2A：其它智能体交互协作，适配Crawl AI架构智能体，实现文生图能力
-- 文件处理，并支持文件拖拽上传
-- 兼容OpenAI、Ollama、vllm等大模型 API 接口，支持云端/本地大模型，例如Qwen、DeepSeek、llama.cpp等
-- 兼容麒麟AI SDK，调用OCR接口，实现文本识别能力
-- 多类型 LLM 配置，适配不同任务场景，如通用、推理、多模态大模型
+---
 
-## 安装及配置
+## 快速开始
 
 ### 前置要求
 
-- [uv](https://github.com/astral-sh/uv) 包管理器
+- 银河麒麟 V11 桌面系统（x86_64）
+- Python 3.12
+- 麒麟 AI SDK（`/usr/lib/x86_64-linux-gnu/libky*.so`）
 
-安装uv
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-### 安装步骤
-
-NexAgent 使用 [uv](https://github.com/astral-sh/uv) 作为包管理器以简化依赖管理。
-按照以下步骤设置虚拟环境并安装必要的依赖：
+### 安装
 
 ```bash
-# 步骤 1：用uv创建并激活虚拟环境
-uv python install 3.12
-uv venv --python 3.12
+# 1. 克隆仓库
+git clone git@github.com:MasenWen/QiLinOS.git
+cd QiLinOS
+git checkout dev1
 
-source .venv/bin/activate
+# 2. 创建虚拟环境并安装依赖
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 步骤 2：安装项目依赖
-uv sync
+# 3.（可选）安装 mem0 本地向量库（记忆必需）
+.venv/bin/pip install mem0ai==2.0.18 milvus-lite qdrant-client
+
+# 4. 启动
+.venv/bin/python webchat.py 8080
 ```
 
-
-### 安装依赖
-基础数据库服务
-```bash
-sudo apt install mysql-server
-sudo mysql -u root -p
-ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '12345678';
-FLUSH PRIVILEGES;
-exit;
-```
-
-系统操作相关功能需安装 `kylin-actuator`， 仓库地址 [kylin-actuator](https://gitee.com/openkylin/kylin-actuator.git)
-```bash
-git clone https://gitee.com/openkylin/kylin-actuator.git
-cd kylin-actuator
-./tools/install.sh
-```
-A2A相关功能需要启动 `A2A` 服务:
-```bash
-uv run a2a_host.py
-```
-
-MCP相关功能需要启动 `MCP` 服务:
-```bash
-uv run mcp_host.py
-```
-
-OCR（文本识别）基于麒麟AI SDK，openKylin SP2桌面环境
-```bash
-sudo apt install libkysdk-coreai-vision-dev libglib2.0-dev
-cd ocr_tool
-mkdir build
-cd build
-cmake ..
-make
-sudo make install
-```
-
-### 配置
-
-NexAgent 使用三层 LLM 系统，分别用于推理、基础任务和视觉语言任务。在项目根目录创建 `.env` 文件并配置以下环境变量：
-
-```ini
-# 推理 LLM 配置（用于复杂推理任务）
-REASONING_MODEL=your_reasoning_model
-REASONING_API_KEY=your_reasoning_api_key
-REASONING_BASE_URL=your_custom_base_url  # 可选
-
-# 基础 LLM 配置（用于简单任务）
-BASIC_MODEL=your_basic_model
-BASIC_API_KEY=your_basic_api_key
-BASIC_BASE_URL=your_custom_base_url  # 可选
-
-# 视觉语言 LLM 配置（用于涉及图像的任务）
-VL_MODEL=your_vl_model
-VL_API_KEY=your_vl_api_key
-VL_BASE_URL=your_custom_base_url  # 可选
-
-# 工具 API 密钥  # 可选
-TAVILY_API_KEY=your_tavily_api_key
-JINA_API_KEY=your_jina_api_key  
-
-# 浏览器配置
-CHROME_INSTANCE_PATH=  # 可选，Chrome 可执行文件路径
-```
-
-> **注意：**
->
-> - 系统对不同类型的任务使用不同的模型：
->     - 推理 LLM 用于复杂的决策和分析
->     - 基础 LLM 用于简单的文本任务
->     - 视觉语言 LLM 用于涉及图像理解的任务
-> - 所有 LLM 的基础 URL 都可以独立自定义
-> - 每个 LLM 可以使用不同的 API 密钥
-> - Jina API 密钥是可选的，提供自己的密钥可以获得更高的速率限制（你可以在 [jina.ai](https://jina.ai/) 获该密钥）
-> - Tavily 搜索默认配置为最多返回 5 个结果（你可以在 [app.tavily.com](https://app.tavily.com/) 获取该密钥）
-
-您可以复制 `env_example` 文件作为模板开始：
+### systemd 守护（推荐）
 
 ```bash
-cp env_example .env
+sudo cp deploy/webchat.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now webchat
+# 自动拉起 + 崩溃重启（Restart=always）
 ```
 
-## 使用方法
+### 远程访问
 
-### 基本执行
-
-使用默认设置运行 NexAgent：
+服务只监听 `127.0.0.1`，从其他机器访问需 SSH 隧道：
 
 ```bash
-uv run main.py
+ssh -N -L 8080:127.0.0.1:8080 kylin
+# 浏览器打开 http://127.0.0.1:8080
 ```
 
-### API服务器
+---
 
-NexAgent 提供基于 FastAPI 的 API 服务器，支持流式响应：
+## 架构
 
-或直接运行
-```bash
-uv run app.py
+```
+┌─────────────────────────────────────────────┐
+│             浏览器（前端三栏界面）              │
+│  会话列表 │ 对话区 │ 记忆/配置面板（模型/技能）  │
+└──────────────────┬──────────────────────────┘
+                   │ HTTP (127.0.0.1:8080)
+┌──────────────────▼──────────────────────────┐
+│              webchat.py（主服务）              │
+│  · 系统提示词（分场景模板：工具/对话）           │
+│  · AI 编排 → JSON 工具调用 → 执行 → 总结        │
+│  · 会话持久化 / 草稿 / 日志驱动 / LLM 配置       │
+└───────┬──────────────┬──────────────┬────────┘
+        │              │              │
+┌───────▼───────┐ ┌────▼─────┐ ┌─────▼──────┐
+│  src/toolkit  │ │  src/sdk │ │   记忆系统   │
+│  27 个工具     │ │  麒麟 SDK │ │ mem0(向量)  │
+│  Executor     │ │  绑定     │ │ MemoryFlow │
+│  白名单/闭环   │ │ 子进程隔离 │ │ SkillMemory│
+│  验证/回滚     │ │ query_ext│ │ log_reader │
+└───────────────┘ └──────────┘ └────────────┘
 ```
 
-### 高级配置
+### 分层说明
 
-可以通过 `src/config` 目录中的各种配置文件进行自定义：
-- `env.py`：配置 LLM 模型、API 密钥和基础 URL
-- `tools.py`：调整工具特定设置（如 Tavily 搜索结果限制）
-- `agents.py`：修改团队组成和智能体系统提示
+| 层 | 位置 | 职责 |
+|---|---|---|
+| 服务层 | `webchat.py`（1218 行） | HTTP 服务、提示词模板、AI 编排、前端 HTML/JS、记忆接线 |
+| 工具层 | `src/toolkit/` | 27 个工具 + 执行器（execute→verify→rollback→retry→fallback） |
+| SDK 层 | `src/sdk/` | 麒麟官方 SDK 绑定（16 库）、C 调用子进程隔离、LLM 客户端 |
+| 记忆层 | `src/memory/`、`src/memory_engine/` | mem0 封装、记忆流转、SKILL、遗忘、敏感度 |
+| 安全层 | `src/security/` | 威胁扫描、权限规则、审计 |
 
-### 智能体提示系统
+---
 
-NexAgent 在 `src/prompts` 目录中使用复杂的提示系统来定义智能体的行为和职责：
+## 工具列表（27 个）
 
-#### 核心智能体角色
+`app` `battery` `bluetooth` `datetime` `directory` `diskinfo` `dns` `file` `music` `netstatus` `notify` `power` `power_idle` `power_plan` `process_kill` `process_list` `proxy` `screensaver` `screenshot` `shell` `sleep` `sysinfo` `timezone` `touchpad` `volume` `wallpaper` `wifi`
 
-- **协调员（[`src/prompts/coordinator_zh.md`](src/prompts/coordinator_zh.md)）**：专注于意图识别与任务分发，将任务转交给专业的团队成员处理。
+- `sysinfo` 支持：cpu / memory / load / disk / network / basic / hostname / uptime / arch / display(EDID) / temp / netspeed
+- `shell` 受限管道：命令白名单（ls/du/df/top/cat/find 等）+ 参数级校验（禁止 `;`、`&`、`>`、`<` 及 find 的 `-exec/-delete`）
 
-- **操作员（由MCP封装的kylin-server实现）**：负责处理openkylin系统环境的应用调用、桌面交互、系统设置等系统操作相关能力。
+---
 
-- **知识管理员（[`src/prompts/src/prompts/knowledge_manager_zh.md.md`](src/prompts/knowledge_manager_zh.md)）**：负责将文本内容、网页链接、文件添加到知识库。
+## 记忆系统
 
-- **填表员（[`src/prompts/form_filler_zh.md`](src/prompts/form_filler_zh.md)）**：专注于智能填表，通过解析文档，并根据输入、上下文及知识库的信息，分析和确定要填入的信息，自动填入到表格。
+| 存储 | 位置 | 内容 |
+|---|---|---|
+| 长期记忆 | `~/.nex-agent/mem0_vectordb.db` | 事实/偏好，向量检索，上限 200 条 |
+| 记忆流转 | `~/.nex-agent/memory_flow.json` | 短期→中期→长期 |
+| 配置记忆 | `~/.nex-agent/skills.json` | 网页输入的 SKILL |
+| 会话历史 | `~/.nex-agent/sessions.json` | 多会话持久化 |
+| 日志驱动 | `~/.nex-agent/conversation.log` | 对话事件，增量扫描入记忆 |
 
-- **PPT制作专家（[`src/prompts/ppt_generator_zh.md`](src/prompts/ppt_generator_zh.md)）**：分析用户需求，并使用可用模板和内容资源创建高质量的PPT演示文稿。
+> **全部运行时数据都在 `~/.nex-agent/`，与代码目录分离**——重装/迁移代码不影响记忆数据。
 
-- **规划员（[`src/prompts/planner_zh.md`](src/prompts/planner_zh.md)）**：协调团队成员来完成给定的需求，创建一个详细的计划，明确所需的步骤以及每个步骤负责的成员智能体。
+---
 
-- **主管（[`src/prompts/supervisor_zh.md`](src/prompts/supervisor_zh.md)）**：通过分析请求并确定由哪个专家处理来协调团队并分配任务。负责决定任务完成情况和工作流转换。
+## LLM 配置
 
-- **研究员（[`src/prompts/researcher_zh.md`](src/prompts/researcher_zh.md)）**：专门通过网络搜索和数据收集来收集信息。使用 Tavily 搜索和网络爬取功能，避免数学计算或文件操作。
+默认使用麒麟 SDK；网页右侧"模型配置"可切换 OpenAI 兼容 API：
 
-- **程序员（[`src/prompts/coder_zh.md`](src/prompts/coder_zh.md)）**：专业软件工程师角色，专注于 Python 和 bash 脚本。处理：
-    - Python 代码执行和分析
-    - Shell 命令执行
-    - 技术问题解决和实现
+```json
+// ~/.nex-agent/llm_config.json
+{
+  "provider": "sdk",                      // 或 "api"
+  "base_url": "https://api.deepseek.com/v1",
+  "api_key": "",
+  "model": "deepseek-chat"
+}
+```
 
-- **浏览器（[`src/prompts/browser_zh.md`](src/prompts/browser_zh.md)）**：网络交互专家，处理：
-    - 网站导航
-    - 页面交互（点击、输入、滚动）
-    - 从网页提取内容
+统一入口 `src/llm_client.py`：`sdk` → 麒麟 SDK；`api` → OpenAI 兼容接口。
 
-- **汇报员（[`src/prompts/reporter_zh.md`](src/prompts/reporter_zh.md)）**：基于所提供的信息和可验证的事实，负责撰写清晰、全面的报告。
-#### 提示系统架构
+---
 
-提示系统使用模板引擎（[`src/prompts/template.py`](src/prompts/template.py)）来：
-- 加载特定角色的 markdown 模板
-- 处理变量替换（如当前时间、团队成员信息）
-- 为每个智能体格式化系统提示
+## 目录结构
 
-每个智能体的提示都在单独的 markdown 文件中定义，这样无需更改底层代码就可以轻松修改行为和职责。
+```
+webchat.py              # 主服务（HTTP + 前端 + AI 编排 + 记忆接线）
+src/
+├── toolkit/            # 27 个系统工具 + 执行器
+├── sdk/                # 麒麟 SDK 绑定 + query_ext.py(子进程) + ai_text + llm_client.py
+├── memory/             # mem0 封装、log_reader(日志驱动)
+├── memory_engine/      # 记忆流转/遗忘/敏感度/向量检索
+├── security/           # 威胁扫描/权限/审计
+└── utils/              # DB/日志等
+deploy/webchat.service  # systemd 服务单元
+docs/                   # 依赖瘦身记录等
+```
 
-## 贡献
+---
 
-我们欢迎各种形式的贡献！无论是修复错别字、改进文档，还是添加新功能，您的帮助都将备受感激。
+## 部署与运维
 
+- **启动**：`sudo systemctl start webchat`
+- **日志**：`project_dev1/webchat.log`（服务日志）、`logs/security_audit.jsonl`（安全审计）
+- **重启**：`sudo systemctl restart webchat`
+- **数据备份**：`~/.nex-agent/`（记忆/会话/配置）+ 代码仓库（git）
+
+---
 
 ## 许可证
 
-本项目是开源的，基于 [GPL-3.0+ 许可证](LICENSE)。
-
-## 致谢
-
-特别感谢所有让 NexAgent 成为可能的开源项目和贡献者。我们站在巨人的肩膀上。
-特别感谢开源项目：LangGraph、麒麟AI SDK、AutoFill
+见 [LICENSE](LICENSE)
