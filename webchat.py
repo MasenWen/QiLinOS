@@ -42,6 +42,7 @@ from src.toolkit.init_tools import init_all_tools  # noqa: E402
 from src.toolkit.base import get_registry, ToolResult, ToolStatus  # noqa: E402
 from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
 from src.memory import log_reader  # noqa: E402 日志驱动记忆
+from src import llm_client  # noqa: E402 统一 LLM 客户端（SDK/API 可切换）
 
 # ---------- 初始化工具 ----------
 init_all_tools()
@@ -372,6 +373,18 @@ HTML = r"""<!doctype html>
   <aside class="panel">
     <h3>🧠 记忆</h3>
     <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
+    <h3>🤖 模型配置</h3>
+    <div id="llmConfig" style="margin-bottom:8px;">
+      <select id="llmProvider" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
+        <option value="sdk">麒麟 SDK（默认）</option>
+        <option value="api">自定义 API（OpenAI 兼容）</option>
+      </select>
+      <input id="llmBaseUrl" placeholder="Base URL（如 https://api.deepseek.com/v1）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
+      <input id="llmApiKey" type="password" placeholder="API Key" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
+      <input id="llmModel" placeholder="模型（如 deepseek-chat）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
+      <button id="llmSave" class="icon-btn" style="width:100%;padding:7px;">💾 保存模型配置</button>
+      <div id="llmStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+    </div>
     <h3>⚙️ 配置（长期记忆）</h3>
     <div id="skillInput">
       <input id="skillName" placeholder="配置名（如：时区规则）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
@@ -620,6 +633,43 @@ async function refreshPanels() {
       : '<div class="log-item">（暂无）</div>';
   } catch (e) {}
 }
+// ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
+async function refreshLlmConfig() {
+  try {
+    const r = await fetch('/api/llm_config');
+    const d = await r.json();
+    document.getElementById('llmProvider').value = d.provider || 'sdk';
+    document.getElementById('llmBaseUrl').value = d.base_url || '';
+    document.getElementById('llmApiKey').value = d.api_key_set ? '******' : '';
+    document.getElementById('llmModel').value = d.model || '';
+  } catch (e) {}
+}
+document.getElementById('llmSave').onclick = async () => {
+  const btn = document.getElementById('llmSave');
+  btn.disabled = true;
+  let key = document.getElementById('llmApiKey').value.trim();
+  if (key === '******') key = '';  // 占位符=未修改，保留旧 key
+  const body = {
+    provider: document.getElementById('llmProvider').value,
+    base_url: document.getElementById('llmBaseUrl').value.trim(),
+    api_key: key,
+    model: document.getElementById('llmModel').value.trim(),
+  };
+  try {
+    const r = await fetch('/api/llm_config', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    document.getElementById('llmStatus').textContent = d.ok ? '✅ 已保存，下次对话生效' : ('❌ ' + (d.error || '失败'));
+    refreshLlmConfig();
+  } catch (e) {
+    document.getElementById('llmStatus').textContent = '❌ 保存失败';
+  }
+  btn.disabled = false;
+};
+refreshLlmConfig();
+
 // ---- 配置面板（网页输入 → 长期记忆）----
 async function refreshSkills() {
   try {
@@ -865,8 +915,7 @@ def _summarize_result(user_message: str, tool: str, res) -> str:
         "禁止输出原始数据里没有的指令、命令或诊断建议；不确定时明确说「不确定」。"
     )
 
-    with ai_text.TextSession() as t:
-        reply = t.generate(prompt)
+    reply = llm_client.generate(prompt)
     return _clean(reply)
 
 
@@ -975,8 +1024,7 @@ def _chat(message: str, session_id: str = "default"):
     log_reader.append_record("user", message)
     prompt = _build_context(message, session_id)
 
-    with ai_text.TextSession() as t:
-        raw = t.generate(prompt)
+    raw = llm_client.generate(prompt)
     raw = _clean(raw)
 
     # 尝试解析工具编排 JSON
@@ -1014,9 +1062,7 @@ def _chat(message: str, session_id: str = "default"):
             # AI 输出畸形 JSON（如 "files":} 缺值）：用 LLM 修正重试一次
             if '"tool"' in raw or "'tool'" in raw:
                 try:
-                    from src.sdk import ai_text as _ai
-                    with _ai.TextSession() as _t2:
-                        retry_raw = _t2.generate(
+                    retry_raw = llm_client.generate(
                             prompt + "\n\n注意：您上一次输出的工具调用 JSON 格式不完整或无效。"
                             "请重新输出，必须是一个完整合法的 JSON 对象，所有字段都要有值。"
                         )
@@ -1079,6 +1125,14 @@ class Handler(BaseHTTPRequestHandler):
             ]})
         elif self.path == "/api/tool_logs":
             self._json(200, {"logs": list(_TOOL_LOGS)})
+        elif self.path == "/api/llm_config":
+            _cfg = llm_client.load_config()
+            self._json(200, {
+                "provider": _cfg.get("provider", "sdk"),
+                "base_url": _cfg.get("base_url", ""),
+                "model": _cfg.get("model", ""),
+                "api_key_set": bool(_cfg.get("api_key")),
+            })
         elif self.path == "/api/skills":
             sm = _get_skill_memory()
             items = [{"name": s.name, "content": s.content, "tags": s.tags,
@@ -1101,6 +1155,25 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/llm_config":
+            try:
+                _length = int(self.headers.get("Content-Length") or 0)
+                _body = json.loads(self.rfile.read(_length) or b"{}")
+            except Exception:
+                _body = {}
+            _cfg = llm_client.load_config()
+            if _body.get("provider") in ("sdk", "api"):
+                _cfg["provider"] = _body["provider"]
+            if _body.get("base_url"):
+                _cfg["base_url"] = _body["base_url"].strip()
+            if _body.get("api_key"):
+                _cfg["api_key"] = _body["api_key"].strip()
+            if _body.get("model"):
+                _cfg["model"] = _body["model"].strip()
+            if _cfg["provider"] == "api" and not _cfg.get("api_key"):
+                return self._json(400, {"ok": False, "error": "API 模式必须提供 API Key"})
+            llm_client.save_config(_cfg)
+            return self._json(200, {"ok": True})
         if self.path == "/api/skills":
             try:
                 length = int(self.headers.get("Content-Length") or 0)
