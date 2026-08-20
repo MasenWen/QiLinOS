@@ -126,8 +126,16 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 | 配置记忆 | `~/.nex-agent/skills.json` | 网页输入的 SKILL |
 | 会话历史 | `~/.nex-agent/sessions.json` | 多会话持久化 |
 | 日志驱动 | `~/.nex-agent/conversation.log` | 对话事件，增量扫描入记忆 |
+| 知识图谱 | `~/.nex-agent/memory_kg.json` | 记忆节点/边（KG），重复事实自动强化 |
 
 > **全部运行时数据都在 `~/.nex-agent/`，与代码目录分离**——重装/迁移代码不影响记忆数据。
+
+### 记忆引擎能力（`src/memory_engine/`，技术报告第 5/6/9/10 章）
+
+- **四主标签**：`tag_pipeline.py`——condition/obj/preferences/lastingtime 抽取，`remember_fact` 时写入证据（`extractor.tag_pipeline_v1`）
+- **MATCHED 六字段输出**：`matched.py`——`MemoryEngine.retrieve_matched()` 返回 KEY/CONDITION/OBJ/PREFERENCE/LASTTIME/TEXT INPUT 结构化结果
+- **知识图谱记忆**：`knowledge_graph.py`——节点+边（AYES 强化/DENIES 衰减）、强弱记忆、强相关节点群；`remember_fact` 同步入库，JSON 持久化
+- **遗忘曲线**：`forgetting_curve.py`——幂律衰减（艾宾浩斯形态），记忆强度随时间衰减，`reinforce` 强化
 
 ---
 

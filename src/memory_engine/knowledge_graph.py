@@ -148,5 +148,47 @@ class KnowledgeGraph:
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
 
+    def save(self, path: str) -> None:
+        """持久化知识图谱到 JSON 文件（原子写）。"""
+        import os as _os
+        _os.makedirs(_os.path.dirname(path) or ".", exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(self.to_json())
+        _os.replace(tmp, path)
+
+    @classmethod
+    def load(cls, path: str) -> "KnowledgeGraph":
+        """从 JSON 恢复知识图谱；文件缺失或损坏时返回空图。"""
+        kg = cls()
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            nodes = data.get("nodes", []) if isinstance(data, dict) else []
+            edges = data.get("edges", []) if isinstance(data, dict) else []
+            for nd in nodes:
+                nid = nd.get("id", "")
+                if not nid:
+                    continue
+                kg._nodes[nid] = KGNode(
+                    id=nid,
+                    label=nd.get("label", ""),
+                    text=nd.get("text", ""),
+                    strength=float(nd.get("strength", 0.5)),
+                    created_at=nd.get("created_at", ""),
+                    updated_at=nd.get("updated_at", ""),
+                )
+            for ed in edges:
+                kg._edges.append(KGEdge(
+                    source=ed.get("source", ""),
+                    target=ed.get("target", ""),
+                    type=ed.get("type", EdgeType.AYES),
+                    weight=float(ed.get("weight", 0.5)),
+                    last_updated=ed.get("last_updated", ""),
+                ))
+        except Exception:
+            pass
+        return kg
+
     def __len__(self) -> int:
         return len(self._nodes)

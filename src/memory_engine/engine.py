@@ -14,7 +14,12 @@ from .models import RetrievalContext, RetrievalResponse
 from .normalizers import dialogue_to_observation, observation_from_event
 from .retrieval import SearchBackend, StructuredHybridRetriever
 from .store import MemoryEngineStore
+from dataclasses import replace
 from .updater import apply_evidence
+from .tag_pipeline import TagClassifier
+from .knowledge_graph import KnowledgeGraph, EdgeType
+from .matched import Matched, _stable_key
+from .forgetting_curve import ForgettingCurve, ForgettingCurveConfig
 
 
 class MemoryEngine:
@@ -33,6 +38,11 @@ class MemoryEngine:
         search_backend = search_backend or (lambda _query, _user_id, _limit: [])
         self.retriever = StructuredHybridRetriever(search_backend, candidate_top_k=candidate_top_k)
         self.store = store
+        # 文档未激活组件（第 5/6/9/10 章）：惰性初始化
+        self._tag_classifier = TagClassifier()
+        self._forgetting_curve = ForgettingCurve(ForgettingCurveConfig())
+        self._kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
+        self._kg = None
 
     def ingest_event(
         self,
@@ -185,6 +195,44 @@ class MemoryEngine:
             current = RetrievalContext.from_mapping(query, context, user_id=user_id)
         return self.retriever.retrieve(current, top_k=top_k)
 
+    def retrieve_matched(
+        self,
+        query: str,
+        context: Mapping[str, Any] | RetrievalContext | None = None,
+        top_k: int = 5,
+        user_id: str | None = None,
+    ) -> list[Matched]:
+        """检索并生成 MATCHED 六字段结构化结果（技术报告第 6 章）。"""
+        resp = self.retrieve(query, context, top_k=top_k, user_id=user_id)
+        matched: list[Matched] = []
+        for item in resp.items:
+            text = str(item.get("text") or item.get("memory")
+                       or item.get("content") or item.get("semantic_value") or "")
+            if not text:
+                continue
+            try:
+                tags = self._tag_classifier.classify(text)
+            except Exception:
+                tags = {}
+            label_scores = {k: len(v) for k, v in tags.items() if isinstance(v, (list, tuple))}
+            matched.append(Matched(
+                key=_stable_key(text),
+                condition="、".join(tags.get("condition", [])),
+                obj="、".join(tags.get("obj", [])),
+                preference="、".join(tags.get("preferences", [])),
+                lasttime="、".join(tags.get("lastingtime", [])),
+                text_input=text,
+                matched_rate=float(item.get("score", item.get("matched_rate", 0.0)) or 0.0),
+                label_scores=label_scores,
+            ))
+        return matched
+
+    def _get_kg(self) -> KnowledgeGraph:
+        """惰性加载知识图谱（JSON 持久化）。"""
+        if self._kg is None:
+            self._kg = KnowledgeGraph.load(self._kg_path)
+        return self._kg
+
     def remember_fact(
         self,
         fact: str,
@@ -234,6 +282,16 @@ class MemoryEngine:
         if observation_created:
             episode, _ = EpisodeManager(store).attach(observation)
         evidence = explicit_fact_to_evidence(observation, fact)
+        # --- 四主标签标注（技术报告 5.2）---
+        try:
+            tags = self._tag_classifier.classify(fact)
+            if tags:
+                extractor = dict(evidence.extractor)
+                extractor["tag_pipeline_v1"] = {"labels": tags}
+                # Evidence 是 frozen dataclass，须用 replace 重建
+                evidence = replace(evidence, extractor=extractor)
+        except Exception:
+            pass
         evidence_created = store.put_evidence(evidence)
         memory = store.find_memory(evidence.user_id, evidence.claim_slot, evidence.claim_value)
         if evidence_created or memory is None:
@@ -246,6 +304,22 @@ class MemoryEngine:
                 "action": "NOOP",
                 "reason_code": "duplicate_source_event",
             }
+
+        # --- 知识图谱同步（技术报告 9 章）+ 遗忘强度（10.2 章）---
+        kg_info = {}
+        try:
+            kg = self._get_kg()
+            strength = self._forgetting_curve.reinforce(1.0)
+            before = len(kg._nodes)
+            node = kg.add_node(label=memory.memory_family, text=fact, strength=strength)
+            if len(kg._nodes) == before:
+                # 节点已存在（重复事实）→ AYES 强化边
+                kg.add_edge(node.id, node.id, EdgeType.AYES, weight=strength)
+            kg.save(self._kg_path)
+            kg_info = {"nodes": len(kg._nodes), "edges": len(kg._edges),
+                       "strength": round(strength, 3)}
+        except Exception:
+            pass
 
         indexed_ids: list[str] = []
         if index and mem0_store_obj is not None and not store.get_index_refs(memory.memory_id):
@@ -286,6 +360,8 @@ class MemoryEngine:
             "memory_status": memory.status,
             "indexed_ids": indexed_ids,
             "store_counts": store.counts(),
+            "tags": dict(evidence.extractor.get("tag_pipeline_v1", {})) if evidence else {},
+            "kg": kg_info,
         }
 
     def forget(
