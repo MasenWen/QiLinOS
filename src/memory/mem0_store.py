@@ -113,6 +113,59 @@ class Mem0Store:
             f"- {r['memory']}" for r in results
         )
 
+    MAX_MEMORIES = 200  # 长期记忆上限，超出自动淘汰最旧（防存储爆炸）
+    # 快照类关键词: 同类只保留最新 N 条（治语义重复膨胀）
+    SNAPSHOT_CATS = {
+        "桌面": 3, "CPU": 3, "负载": 3, "内存": 3, "进程": 3,
+        "网络": 4, "时区": 3, "磁盘": 3, "存储": 3, "电池": 2, "时间": 2,
+    }
+
+    def _created_key(self, it):
+        return str(it.get("created_at") or it.get("id") or "")
+
+    def _enforce_cap(self, user_id=None):
+        """记忆条数上限：超过 MAX_MEMORIES 删除最旧的。"""
+        try:
+            items = self.list_all(user_id=user_id, top_k=self.MAX_MEMORIES + 100)
+            if len(items) > self.MAX_MEMORIES:
+                items_sorted = sorted(items, key=self._created_key)
+                over = items_sorted[: len(items) - self.MAX_MEMORIES]
+                for it in over:
+                    m_id = it.get("id")
+                    if m_id:
+                        try:
+                            self._memory.delete(memory_id=m_id)
+                        except Exception:
+                            pass
+                print(f"[Mem0] 上限控制: 从 {len(items)} 裁剪到 {self.MAX_MEMORIES}")
+        except Exception as e:
+            print(f"[Mem0] 上限控制失败: {e}")
+
+    def dedupe_categories(self, user_id=None):
+        """同类快照记忆只保留最新 N 条，防止语义重复膨胀。"""
+        try:
+            items = self.list_all(user_id=user_id, top_k=500)
+            items_sorted = sorted(items, key=self._created_key)
+            to_delete = set()
+            for cat, keep in self.SNAPSHOT_CATS.items():
+                hits = [it for it in items_sorted
+                        if cat in (it.get("memory") or "")]
+                for it in hits[:-keep]:
+                    m_id = it.get("id")
+                    if m_id:
+                        to_delete.add(m_id)
+            for m_id in to_delete:
+                try:
+                    self._memory.delete(memory_id=m_id)
+                except Exception:
+                    pass
+            if to_delete:
+                print(f"[Mem0] 快照裁剪: 删除 {len(to_delete)} 条")
+            return len(to_delete)
+        except Exception as e:
+            print(f"[Mem0] 快照裁剪失败: {e}")
+            return 0
+
     def add(self, messages: list[dict], user_id: str = None):
         try:
             # 去重：检查是否已有高度相似的记忆
@@ -136,6 +189,7 @@ class Mem0Store:
                        "不要记录系统的猜测、推荐、提醒或临时任务。",
             )
             print(f"[Mem0] add 成功: {len(result) if result else 0} 条记忆")
+            self._enforce_cap(user_id)
         except Exception as e:
             print(f"[Mem0] add 失败: {e}")
 

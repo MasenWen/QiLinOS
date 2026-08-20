@@ -1196,6 +1196,16 @@ def _log_reader_loop():
                     print(f"[log_reader] 已从日志写入 {len(events)} 条记忆")
         except Exception as e:
             print(f"[log_reader] 扫描异常: {e}")
+        # 定期快照裁剪（约每 30 轮 ≈ 90 分钟）：治语义重复膨胀
+        _rounds = globals().get("_log_reader_rounds", 0) + 1
+        globals()["_log_reader_rounds"] = _rounds
+        if _rounds % 30 == 0:
+            try:
+                store = _get_mem0()
+                if store is not None:
+                    store.dedupe_categories()
+            except Exception as e:
+                print(f"[log_reader] 快照裁剪异常: {e}")
         time.sleep(180)
 
 
