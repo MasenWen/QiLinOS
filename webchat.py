@@ -1209,7 +1209,20 @@ def _log_reader_loop():
         time.sleep(180)
 
 
+def _dump_modules(signum, frame):
+    """调试: SIGUSR1 时把已加载模块写盘（分析运行时依赖用）。"""
+    import signal as _sig
+    try:
+        with open("/tmp/webchat_modules_dump.txt", "w", encoding="utf-8") as f:
+            f.write("\n".join(sorted(sys.modules.keys())))
+        print("[debug] 模块快照已写 /tmp/webchat_modules_dump.txt", flush=True)
+    except Exception as e:
+        print(f"[debug] dump 失败: {e}", flush=True)
+
+
 if __name__ == "__main__":
+    import signal as _sig2
+    _sig2.signal(_sig2.SIGUSR1, _dump_modules)
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
     print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
     print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
