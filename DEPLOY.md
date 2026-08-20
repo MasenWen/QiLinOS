@@ -108,6 +108,56 @@ sudo systemctl enable --now webchat
 | 文件 | "在桌面建文件夹放5个md文件" | 5 个文件 ✅ |
 | 危险拦截 | "关机" | 被拦截（power 禁用）✅ |
 
+## 六、代码更新体系（推 GitHub 即上线）
+
+### 工具清单（deploy/ 下）
+
+| 工具 | 用途 |
+|---|---|
+| `install.sh` | 首次安装（venv + 依赖 + systemd） |
+| `update.sh` | 一键更新：git pull → 检测依赖变更重装 → 重启 webchat |
+| `webhook_server.py` | GitHub Webhook 监听（推送 dev1 即自动 update.sh） |
+| `rollback.sh` | 回滚到上一版本/指定提交并重启 |
+
+### 三种更新方式
+
+**① 手动更新**（任何时候可跑）
+```bash
+bash deploy/update.sh
+```
+
+**② Webhook 全自动**（推送即上线，需公网）
+```bash
+# 1. 启动监听器（systemd 托管建议）
+WEBHOOK_SECRET=你的密钥 nohup .venv/bin/python deploy/webhook_server.py 9000 &
+
+# 2. GitHub → 仓库 Settings → Webhooks → Add webhook
+#    Payload URL: http://<公网IP>:9000/github-webhook
+#    Content type: application/json
+#    Secret: 你的密钥（HMAC-SHA256 校验）
+#    Events: 勾选 Push
+
+# 3. 之后每次 git push dev1 → 服务器自动更新并重启
+#    安全: 签名错误 3 次自动封禁 IP 10 分钟；日志 logs/webhook.log
+```
+
+**③ crontab 兜底**（无需公网，定期检查）
+```bash
+crontab -e
+# 每 10 分钟检查一次，有更新自动部署
+*/10 * * * * cd /path/to/QiLinOS && git fetch origin dev1 -q && \
+  [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/dev1)" ] && \
+  bash deploy/update.sh >> logs/auto_update.log 2>&1
+```
+
+**回滚**（更新出问题时）
+```bash
+bash deploy/rollback.sh          # 回退到上一版本
+bash deploy/rollback.sh abc1234  # 回退到指定提交
+```
+
+> 建议组合：**② 实时 + ③ 兜底**双保险；出问题立即 ④ 回滚。
+
 ## 七、常见问题
 
 | 现象 | 原因 | 处理 |
