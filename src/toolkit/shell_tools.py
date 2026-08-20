@@ -36,7 +36,12 @@ class ShellTool(BaseTool):
     READONLY_CMDS = {
         "ls", "pwd", "tree", "cat", "head", "tail", "wc", "grep",
         "file", "stat", "sort", "uniq", "df", "du", "date",
-        "whoami", "hostname", "uname", "uptime", "top",
+        "whoami", "hostname", "uname", "uptime", "top", "find",
+    }
+    # find 只读参数白名单：命令名级校验拦不住 -exec/-delete，需参数级特判
+    FIND_BLOCKED_OPTS = {
+        "-exec", "-execdir", "-ok", "-okdir", "-delete",
+        "-fprint", "-fprintf", "-fls", "-fprint0", "-quit",
     }
     # 写类命令：路径必须限定在主目录内
     WRITE_CMDS = {"mkdir", "touch", "rmdir", "cp", "mv"}
@@ -86,6 +91,13 @@ class ShellTool(BaseTool):
             for ch in (";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
                 if any(ch in a for a in argv):
                     return self._fail(f"管道段含禁止字符: {ch!r}")
+            # find 参数级白名单：只允许只读选项
+            if base == "find":
+                for a in argv[1:]:
+                    if a.startswith("-"):
+                        opt = a.split("=")[0]
+                        if opt in self.FIND_BLOCKED_OPTS:
+                            return self._fail(f"find 参数不在只读白名单: {opt!r}")
             # 写类命令禁止入管道
             if base in self.WRITE_CMDS:
                 return self._fail(f"写类命令不允许用于管道: {base!r}")
