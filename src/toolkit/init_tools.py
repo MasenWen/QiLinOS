@@ -59,6 +59,10 @@ def init_all_tools(registry: ToolRegistry = None) -> ToolRegistry:
     from .system_info_tools import register_system_info_tools
     register_system_info_tools(registry)
 
+    # OCR tool (text recognition via libkyocr, subprocess-isolated)
+    from .ocr_tools import register_ocr_tools
+    register_ocr_tools(registry)
+
     # File tools (create folder/file within home dir)
     from .file_tools import register_file_tools
     register_file_tools(registry)
