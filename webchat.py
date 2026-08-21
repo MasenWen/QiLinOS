@@ -28,6 +28,7 @@ from src.sdk import ai_text  # noqa: E402
 # mem0 惰性初始化：--no-memory 启动时完全不加载（P1-2）
 _NO_MEMORY = "--no-memory" in sys.argv
 _mem0 = None
+_forget_flow = None
 
 def _get_mem0():
     """惰性获取 mem0 单例；--no-memory 模式返回 None。"""
@@ -38,11 +39,19 @@ def _get_mem0():
         from src.memory.mem0_store import mem0_store
         _mem0 = mem0_store
     return _mem0
+
+def _get_forget_flow():
+    """惰性获取 ForgetFlow 单例。"""
+    global _forget_flow
+    if _forget_flow is None:
+        _forget_flow = ForgetFlow()
+    return _forget_flow
 from src.toolkit.init_tools import init_all_tools  # noqa: E402
 from src.toolkit.base import get_registry, ToolResult, ToolStatus  # noqa: E402
 from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
 from src.memory import log_reader  # noqa: E402 日志驱动记忆
 from src import llm_client  # noqa: E402 统一 LLM 客户端（SDK/API 可切换）
+from src.memory.forget_flow import ForgetFlow  # noqa: E402 精准遗忘交互流程
 
 # ---------- 初始化工具 ----------
 init_all_tools()
@@ -1021,6 +1030,15 @@ def _build_context(message: str, session_id: str) -> str:
 
 def _chat(message: str, session_id: str = "default"):
     """统一上下文 → 让 AI 编排 → 执行工具 / 直接回答。"""
+    # ---- 精准遗忘流程（coordinator_node → forget_node）----
+    # 命中遗忘交互时不再走 LLM 编排：确认/取消/展示候选都由 ForgetFlow 处理
+    try:
+        _f_reply, _f_handled = _get_forget_flow().handle(message, session_id)
+        if _f_handled:
+            log_reader.append_record("user", message)
+            return _f_reply
+    except Exception as _f_e:
+        print(f"[forget] 遗忘流程异常，回退正常对话: {_f_e}", flush=True)
     log_reader.append_record("user", message)
     prompt = _build_context(message, session_id)
 
