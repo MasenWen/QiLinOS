@@ -596,6 +596,8 @@ HTML = r"""<!doctype html>
   </aside>
 </div>
 
+<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/技能）">⚙</button>
+
 <script>
 const msgs = document.getElementById('messages');
 const empty = document.getElementById('empty');
@@ -1198,7 +1200,6 @@ document.getElementById('clearMem').onclick = async () => {
   }
 };
 </script>
-<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/技能）">⚙</button>
 </body>
 </html>
 """
