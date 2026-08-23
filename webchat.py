@@ -555,22 +555,6 @@ let busy = false;
 const API_TOKEN = new URLSearchParams(location.search).get('token')
   || localStorage.getItem('aichat_token_v1') || '';
 if (API_TOKEN) localStorage.setItem('aichat_token_v1', API_TOKEN);
-// ---- 令牌登录：无 token 时弹出输入框 ----
-if (!API_TOKEN) {
-  document.getElementById('tokenModal').style.display = 'flex';
-  document.getElementById('tokenSave').onclick = () => {
-    const t = document.getElementById('tokenInput').value.trim();
-    if (!t) {
-      document.getElementById('tokenHint').style.display = '';
-      return;
-    }
-    localStorage.setItem('aichat_token_v1', t);
-    location.reload();
-  };
-  document.getElementById('tokenCancel').onclick = () => {
-    document.getElementById('tokenModal').style.display = 'none';
-  };
-}
 const apiHeaders = { 'Content-Type': 'application/json' };
 if (API_TOKEN) apiHeaders['X-Api-Token'] = API_TOKEN;
 
@@ -1003,19 +987,6 @@ document.getElementById('clearMem').onclick = async () => {
   }
 };
 </script>
-<div class="banner-modal" id="tokenModal">
-  <div class="banner-modal-box" style="width:320px;">
-    <h3>🔑 需要访问令牌</h3>
-    <p style="font-size:12px;color:#666;margin:6px 0 10px;">请输入 webchat 访问令牌（Token），只需输入一次。</p>
-    <input type="password" id="tokenInput" placeholder="输入 Token"
-           style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;">
-    <div class="btns">
-      <button id="tokenCancel">取消</button>
-      <button class="save" id="tokenSave">进入</button>
-    </div>
-    <div id="tokenHint" style="font-size:11px;color:#c0392b;margin-top:6px;display:none;">令牌不能为空</div>
-  </div>
-</div>
 </body>
 </html>
 """
