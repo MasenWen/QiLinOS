@@ -526,15 +526,41 @@ async function submit() {
   md.appendChild(cursor);
 
   try {
-    const r = await fetch('/api/chat', {
+    // ---- SSE 流式回复 ----
+    const r = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: apiHeaders,
       body: JSON.stringify({ message: text, session_id: sessionId })
     });
-    const data = await r.json();
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let reply = '';
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const events = buf.split('\n\n');
+      buf = events.pop() || '';
+      for (const ev of events) {
+        if (!ev.startsWith('data: ')) continue;
+        const payload = ev.slice(6);
+        if (payload === '[DONE]') continue;
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.done) continue;
+          if (obj.chunk) {
+            reply += obj.chunk;
+            md.textContent = reply + '▌';
+            scrollBottom();
+          }
+        } catch (e2) {}
+      }
+    }
     cursor.remove();
-    const reply = data.reply || '(无回复)';
-    await streamInto(md, reply);
+    if (!reply) reply = '(无回复)';
+    renderMd(md, reply);
     history.push({ role: 'assistant', text: reply });
     save();
   } catch (e) {
@@ -1031,6 +1057,98 @@ def _build_context(message: str, session_id: str) -> str:
     return _render(template, **ctx)
 
 
+# ================= 文件上传/下载 =================
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
+# 允许的文件类型（按扩展名白名单）
+ALLOWED_EXT = {
+    ".txt", ".md", ".pdf", ".docx", ".xlsx", ".csv", ".json", ".log",
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".py", ".xml", ".yaml", ".yml", ".toml",
+}
+
+def _safe_filename(name: str) -> str:
+    """文件名消毒：只保留 basename + 去危险字符（防路径穿越/注入）。"""
+    import re as _re
+    base = os.path.basename((name or "").replace("\\", "/"))
+    # 去控制字符/路径分隔/引号等危险字符，保留中文/字母数字/._-
+    safe = _re.sub(r"[^\w.\u4e00-\u9fa5\-]", "_", base)
+    safe = safe.strip("._ ")
+    return safe[:120] or "file"
+
+def _handle_upload(self) -> None:
+    """POST /api/upload：multipart 单文件上传，保存到 uploads/。"""
+    try:
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0:
+            return self._json(400, {"ok": False, "error": "空请求"})
+        if length > MAX_UPLOAD_SIZE:
+            return self._json(413, {"ok": False, "error": "文件过大（上限 50MB）"})
+        import cgi
+        form = cgi.FieldStorage(
+            fp=self.rfile, headers=self.headers,
+            environ={"REQUEST_METHOD": "POST", "CONTENT_TYPE": self.headers.get("Content-Type", "")},
+        )
+        f = form["file"]
+        if f is None or not getattr(f, "filename", None):
+            return self._json(400, {"ok": False, "error": "缺少文件字段 file"})
+        raw_name = f.filename
+        ext = os.path.splitext(raw_name)[1].lower()
+        if ext not in ALLOWED_EXT:
+            return self._json(400, {"ok": False, "error": f"不支持的文件类型 {ext or '(无扩展名)'}"})
+        data = f.file.read()
+        if len(data) > MAX_UPLOAD_SIZE:
+            return self._json(413, {"ok": False, "error": "文件过大（上限 50MB）"})
+        fname = _safe_filename(raw_name)
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as out:
+            out.write(data)
+        size_kb = round(len(data) / 1024, 1)
+        print(f"[upload] 已保存: {fname} ({size_kb} KB)", flush=True)
+        return self._json(200, {"ok": True, "filename": fname, "size_kb": size_kb,
+                                "note": f"已上传 {fname}（{size_kb} KB），可在对话中让我分析它"})
+    except Exception as e:
+        print(f"[upload] 失败: {e}", flush=True)
+        return self._json(500, {"ok": False, "error": f"上传失败: {e}"})
+
+def _handle_download(self, filename: str) -> None:
+    """GET /api/download/<filename>：下载 uploads/ 下的文件（防路径穿越）。"""
+    try:
+        safe = _safe_filename(filename)
+        path = os.path.join(UPLOAD_DIR, safe)
+        if not os.path.isfile(path):
+            return self._json(404, {"ok": False, "error": "文件不存在"})
+        with open(path, "rb") as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Disposition", f"attachment; filename=\"{safe}\"")
+        self.end_headers()
+        self.wfile.write(data)
+    except Exception as e:
+        print(f"[download] 失败: {e}", flush=True)
+        return self._json(500, {"ok": False, "error": f"下载失败: {e}"})
+
+
+def _stream_chunks(text: str, size: int = 4):
+    """把完整回复切成 SSE 小块：优先按标点边界，再按固定大小。"""
+    if not text:
+        return [""]
+    # 先按句末标点切分
+    parts = re.split(r"(?<=[。！？；\n，,.!?;])", text)
+    chunks: list[str] = []
+    buf = ""
+    for part in parts:
+        buf += part
+        if len(buf) >= size or buf.rstrip().endswith(("。", "！", "？", "；", "\n")):
+            chunks.append(buf)
+            buf = ""
+    if buf:
+        chunks.append(buf)
+    return chunks or [text]
+
+
 def _chat(message: str, session_id: str = "default"):
     """统一上下文 → 让 AI 编排 → 执行工具 / 直接回答。"""
     # ---- 精准遗忘流程（coordinator_node → forget_node）----
@@ -1122,6 +1240,74 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _json(self, code, obj):
+        try:
+            body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+            self._send(code, body, "application/json; charset=utf-8")
+        except Exception as e:
+            print(f"[webchat] json 输出失败: {e}", flush=True)
+            self._send(500, b'{"error":"internal"}', "application/json; charset=utf-8")
+
+    def _handle_chat_stream(self):
+        """POST /api/chat/stream：SSE 流式对话回复。"""
+        import time as _t
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            data = json.loads(self.rfile.read(length) or b"{}")
+        except Exception:
+            data = {}
+        prompt = (data.get("message") or "").strip()
+        if not prompt:
+            return self._json(200, {"reply": "(空消息)"})
+        session_id = (data.get("session_id") or "default").strip() or "default"
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+
+        def _emit(obj: dict):
+            try:
+                self.wfile.write(("data: " + json.dumps(obj, ensure_ascii=False) + "\n\n").encode("utf-8"))
+                self.wfile.flush()
+            except Exception:
+                pass
+
+        try:
+            reply = _chat(prompt, session_id)
+        except Exception as e:
+            reply = f"(SDK 调用失败: {e})"
+
+        # 流式发送回复块（打字机效果）
+        for chunk in _stream_chunks(reply):
+            _emit({"chunk": chunk})
+            _t.sleep(0.02)
+        _emit({"done": True})
+        try:
+            self.wfile.write(b"data: [DONE]\n\n")
+            self.wfile.flush()
+        except Exception:
+            pass
+
+        # 与 /api/chat 一致：会话记录 + 记忆流转 + 异步写记忆
+        try:
+            _session_append(session_id, "user", prompt)
+            _session_append(session_id, "assistant", reply)
+        except Exception:
+            pass
+        try:
+            _flow_after_chat(session_id, prompt, reply)
+        except Exception:
+            pass
+        try:
+            threading.Thread(
+                target=_remember,
+                args=([{"role": "user", "content": prompt},
+                       {"role": "assistant", "content": reply}],),
+                daemon=True,
+            ).start()
+        except Exception:
+            pass
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self._send(code, body, "application/json; charset=utf-8")
 
@@ -1160,6 +1346,10 @@ class Handler(BaseHTTPRequestHandler):
                       "version": s.version, "condition": s.condition}
                      for s in sm.list_skills()]
             self._json(200, {"skills": items, "conflicts": len(sm.conflicts())})
+        elif self.path.startswith("/api/download/"):
+            from urllib.parse import unquote
+            fname = unquote(self.path[len("/api/download/"):])
+            return _handle_download(self, fname)
         elif self.path == "/api/memories":
             store = _get_mem0()
             items = []
@@ -1182,6 +1372,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/chat/stream":
+            return self._handle_chat_stream()
+        if self.path == "/api/upload":
+            return _handle_upload(self)
         if self.path == "/api/llm_config":
             try:
                 _length = int(self.headers.get("Content-Length") or 0)
