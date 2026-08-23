@@ -26,7 +26,7 @@ _DENY_IMPORTS = (
 
 # 预置的安全内建别名（exec 前注入）
 _SAFE_PREAMBLE = r'''
-import math, json, re, datetime, statistics
+import math, json, re, datetime, time, statistics
 import pandas as pd
 import numpy as np
 import builtins as _b
@@ -51,9 +51,10 @@ class PythonExecTool(BaseTool):
     """受控 Python 代码执行。适合数据分析/计算（pandas/numpy/math 可用）。"""
     name = "python_exec"
     description = ("受控Python代码执行。参数 code=要执行的Python代码（必填）。"
-                   "预置 pandas/numpy/math/json/re/datetime；结果需用 print() 输出。"
-                   "⚠️ 沙箱限制：禁止文件读写、网络、系统命令、导入危险模块，超时30秒。"
-                   "适合数据分析、计算、格式转换等任务。")
+                   "预置 pandas/numpy/math/json/re/datetime/time；结果需用 print() 输出。"
+                   "⚠️ 沙箱限制：禁止文件系统读写、网络、系统命令、导入危险模块，超时30秒。"
+                   "适合数据分析、计算、格式转换等任务。"
+                   "文件/磁盘大小、最大文件等查询一律用 shell 工具管道（du/find | sort | head），不要用本工具。")
     risk = RiskLevel.MEDIUM
     requires_approval = True   # 网页端执行需确认（代码执行属于敏感操作）
     timeout_s = 40.0

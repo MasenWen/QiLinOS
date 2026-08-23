@@ -1609,9 +1609,12 @@ _TOOL_RULES = (
     "记忆中的内容可能已过期，查询类问题一律以工具实时返回为准，不得用记忆数据冒充当前查询结果。\n"
     "8. 路径必须是用户原话或工具返回的精确路径，禁止自行拼接、添加或修改修饰词"
     "（如用户提到「测试文件夹」，路径只能用用户提供的原词；目录名与路径不要混入「文件夹」等描述词）。\n"
-    "9. 查询最大文件/目录必须用受限管道（禁止重定向 >）："
-    "如 du -sh 路径/* | sort -rn | head -N 或 find 路径 -type f -printf '%s %p\\n' | sort -rn | head -N；"
-    "shell 管道允许 2>/dev/null 丢弃错误输出。\n\n"
+    "9. 查询最大文件/目录、文件大小、磁盘占用排名等，**必须调用 shell 工具执行管道命令**"
+    "（禁止用 file list 代替，禁止只凭记忆回答，禁止重定向 >）："
+    "du -sh 路径/* | sort -rn | head -N 或 find 路径 -type f -printf '%s %p\\n' | sort -rn | head -N；"
+    "shell 管道允许 2>/dev/null 丢弃错误输出。注意：桌面路径是 ~/桌面（中文，不是 ~/Desktop）。\n"
+    "10. 调用工具后必须把工具返回的具体结果转述给用户（文件名、数值、列表等），"
+    "禁止只回答「已成功/已执行」而不给出结果内容；若工具未返回结果请如实说明并换一种方式重试。\n\n"
     
 )
 
@@ -1677,6 +1680,14 @@ def _build_context(message: str, session_id: str) -> str:
         sections.append("## 可用系统工具（含参数）\n" + TOOL_CATALOG)
     sections.append("## 对话历史（早期摘要 + 最近轮次）\n" + hist_block)
     sections.append("## 规则\n" + rules)
+    # 大小/排名类查询的强制指令（模型可能忽略规则，此处就近用户消息强约束）
+    _size_words = ("最大文件", "最大的文件", "最大", "最小", "大小", "占用", "排名",
+                   "largest", "biggest", "size", "space", "top")
+    if any(w in message.lower() for w in _size_words):
+        sections.append("【强制】本条请求涉及文件/磁盘大小或排名查询："
+                        "必须调用 shell 工具执行受限管道命令（如 du -sh 路径/* | sort -rn | head -N），"
+                        "路径必须用中文（桌面是 ~/桌面，不是 ~/Desktop）；"
+                        "执行后必须把工具返回的具体文件名和大小数值转述给用户，禁止凭记忆回答、禁止只说已成功。")
     sections.append("用户：" + message)
     return "\n\n".join(sections)
 
