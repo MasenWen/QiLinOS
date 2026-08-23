@@ -462,12 +462,17 @@ HTML = r"""<!doctype html>
             <option value="sdk">麒麟 SDK（默认，零 Key）</option>
             <option value="api">自定义 API（OpenAI 兼容）</option>
           </select>
-          <label>Base URL</label>
-          <input type="text" id="llmBaseUrl" placeholder="https://api.deepseek.com/v1">
-          <label>API Key</label>
-          <input type="password" id="llmApiKey" placeholder="留空则使用 SDK">
-          <label>模型名</label>
-          <input type="text" id="llmModel" placeholder="deepseek-chat">
+          <div id="llmSdkHint" style="font-size:12px;color:#888;margin:8px 0;padding:8px;background:#f5f5f5;border-radius:6px;">
+            ✅ 麒麟 SDK 零 Key，无需填写模型与 API Key，保存即可使用
+          </div>
+          <div id="llmApiFields">
+            <label>Base URL</label>
+            <input type="text" id="llmBaseUrl" placeholder="https://api.deepseek.com/v1">
+            <label>API Key</label>
+            <input type="password" id="llmApiKey" placeholder="填写 API Key">
+            <label>模型名</label>
+            <input type="text" id="llmModel" placeholder="deepseek-chat">
+          </div>
           <div class="btns">
             <button id="llmClose">关闭</button>
             <button class="save" id="llmSave">💾 保存模型配置</button>
@@ -790,6 +795,11 @@ async function refreshPanels() {
   } catch (e) {}
 }
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
+function toggleLlmFields() {
+  const isSdk = document.getElementById('llmProvider').value === 'sdk';
+  document.getElementById('llmSdkHint').style.display = isSdk ? '' : 'none';
+  document.getElementById('llmApiFields').style.display = isSdk ? 'none' : '';
+}
 async function refreshLlmConfig() {
   try {
     const r = await fetch('/api/llm_config', { headers: apiHeaders });
@@ -798,8 +808,10 @@ async function refreshLlmConfig() {
     document.getElementById('llmBaseUrl').value = d.base_url || '';
     document.getElementById('llmApiKey').value = d.api_key_set ? '******' : '';
     document.getElementById('llmModel').value = d.model || '';
+    toggleLlmFields();
   } catch (e) {}
 }
+document.getElementById('llmProvider').onchange = toggleLlmFields;
 document.getElementById('llmSave').onclick = async () => {
   const btn = document.getElementById('llmSave');
   btn.disabled = true;
