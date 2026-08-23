@@ -630,7 +630,10 @@ async function refreshPanels() {
     ]);
     const mp = document.getElementById('memPanel');
     mp.innerHTML = (m.memories && m.memories.length)
-      ? m.memories.map(x => `<div class="mem-item">${x}</div>`).join('')
+      ? m.memories.map(x => {
+          const icon = x.level === 'high' ? '🔴' : x.level === 'medium' ? '🟡' : '⚪';
+          return `<div class="mem-item">${icon} ${x.text}</div>`;
+        }).join('')
       : '<div class="mem-item">（暂无记忆）</div>';
     const tp = document.getElementById('toolPanel');
     tp.innerHTML = (t.logs && t.logs.length)
