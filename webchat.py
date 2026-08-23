@@ -325,6 +325,11 @@ HTML = r"""<!doctype html>
                       cursor: pointer; font-size: 13px; }
   .banner-modal-box .btns .save { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
   .banner-modal-box .chk { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: #444; }
+  .tabbar { display: flex; gap: 4px; border-bottom: 1px solid #eee; margin-bottom: 12px; }
+  .tabbar .tab { flex: 1; padding: 7px 4px; border: none; background: none; cursor: pointer;
+                 font-size: 13px; color: #666; border-bottom: 2px solid transparent; }
+  .tabbar .tab.active { color: #1a1a1a; font-weight: 600; border-bottom-color: #1a1a1a; }
+  .banner-modal-box .field-hint { font-size: 11px; color: #999; margin-top: 2px; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -383,7 +388,10 @@ HTML = r"""<!doctype html>
         <div class="banner-title" id="bannerTitle">麒麟 AI</div>
         <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
       </div>
-      <button class="banner-edit" id="bannerEditBtn" title="配置 Banner">⚙</button>
+      <div style="display:flex;gap:3px;flex:none;">
+        <button class="banner-edit" id="llmBtn" title="模型配置 / LLM API 选择">🤖</button>
+        <button class="banner-edit" id="settingsBtn" title="设置（外观/模型/技能）">⚙</button>
+      </div>
     </div>
     <div class="banner-modal" id="bannerModal">
       <div class="banner-modal-box">
@@ -414,6 +422,69 @@ HTML = r"""<!doctype html>
         <div class="btns">
           <button id="bCfgCancel">取消</button>
           <button class="save" id="bCfgSave">保存</button>
+        </div>
+      </div>
+    </div>
+    <div class="banner-modal" id="settingsModal">
+      <div class="banner-modal-box" style="width:360px;">
+        <h3>设置</h3>
+        <div class="tabbar">
+          <button class="tab active" data-tab="appearance">🎨 外观</button>
+          <button class="tab" data-tab="model">🤖 模型</button>
+          <button class="tab" data-tab="skills">⚙️ 技能</button>
+        </div>
+        <div class="tabpane" id="tab-appearance">
+          <label>图标（Emoji）</label>
+          <input type="text" id="bCfgIcon2" maxlength="8" placeholder="🤖">
+          <label>标题</label>
+          <input type="text" id="bCfgTitle2" maxlength="20" placeholder="麒麟 AI">
+          <label>副标题</label>
+          <input type="text" id="bCfgSub2" maxlength="30" placeholder="记忆增强 · 系统工具">
+          <div class="row">
+            <div>
+              <label>背景（色值/渐变）</label>
+              <input type="text" id="bCfgBg2" maxlength="80">
+            </div>
+            <div>
+              <label>文字颜色</label>
+              <input type="text" id="bCfgText2" maxlength="20">
+            </div>
+          </div>
+          <label class="chk"><input type="checkbox" id="bCfgEnabled2"> 启用 Banner</label>
+          <div class="btns">
+            <button id="bCfgCancel2">关闭</button>
+            <button class="save" id="bCfgSave2">保存外观</button>
+          </div>
+        </div>
+        <div class="tabpane" id="tab-model" style="display:none;">
+          <label>模型提供方</label>
+          <select id="llmProvider" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
+            <option value="sdk">麒麟 SDK（默认，零 Key）</option>
+            <option value="api">自定义 API（OpenAI 兼容）</option>
+          </select>
+          <label>Base URL</label>
+          <input type="text" id="llmBaseUrl" placeholder="https://api.deepseek.com/v1">
+          <label>API Key</label>
+          <input type="password" id="llmApiKey" placeholder="留空则使用 SDK">
+          <label>模型名</label>
+          <input type="text" id="llmModel" placeholder="deepseek-chat">
+          <div class="btns">
+            <button id="llmClose">关闭</button>
+            <button class="save" id="llmSave">💾 保存模型配置</button>
+          </div>
+          <div id="llmStatus" style="font-size:12px;color:#666;margin-top:6px;"></div>
+        </div>
+        <div class="tabpane" id="tab-skills" style="display:none;">
+          <label>配置名（如：时区规则）</label>
+          <input type="text" id="skillName" placeholder="配置名">
+          <label>配置内容 / 常用提示词</label>
+          <textarea id="skillContent" rows="3" placeholder="配置内容…" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+          <div class="btns">
+            <button id="skillClose">关闭</button>
+            <button class="save" id="skillAdd">＋ 存入长期记忆</button>
+          </div>
+          <div class="field-hint">同名配置自动版本化覆盖</div>
+          <div id="skillPanel" style="margin-top:8px;"></div>
         </div>
       </div>
     </div>
@@ -448,25 +519,6 @@ HTML = r"""<!doctype html>
   <aside class="panel">
     <h3>🧠 记忆</h3>
     <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
-    <h3>🤖 模型配置</h3>
-    <div id="llmConfig" style="margin-bottom:8px;">
-      <select id="llmProvider" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
-        <option value="sdk">麒麟 SDK（默认）</option>
-        <option value="api">自定义 API（OpenAI 兼容）</option>
-      </select>
-      <input id="llmBaseUrl" placeholder="Base URL（如 https://api.deepseek.com/v1）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
-      <input id="llmApiKey" type="password" placeholder="API Key" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
-      <input id="llmModel" placeholder="模型（如 deepseek-chat）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
-      <button id="llmSave" class="icon-btn" style="width:100%;padding:7px;">💾 保存模型配置</button>
-      <div id="llmStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
-    </div>
-    <h3>⚙️ 配置（长期记忆）</h3>
-    <div id="skillInput">
-      <input id="skillName" placeholder="配置名（如：时区规则）" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;">
-      <textarea id="skillContent" rows="2" placeholder="配置内容 / 常用提示词…" style="width:100%;margin-bottom:5px;padding:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;font-size:12px;resize:vertical;"></textarea>
-      <button id="skillAdd" class="icon-btn" style="width:100%;padding:7px;">＋ 存入长期记忆</button>
-    </div>
-    <div id="skillPanel" style="margin-top:8px;"></div>
     <h3>🔧 工具调用</h3>
     <div id="toolPanel"><div class="log-item">（暂无）</div></div>
   </aside>
@@ -838,31 +890,56 @@ async function loadBanner() {
     document.getElementById('bannerSub').textContent = cfg.subtitle || '';
   } catch (e) {}
 }
-document.getElementById('bannerEditBtn').onclick = () => {
+// ---- 设置弹窗（外观 / 模型 / 技能 三 tab）----
+function showTab(tab) {
+  document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  ['appearance', 'model', 'skills'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = (t === tab) ? '' : 'none';
+  });
+}
+function openSettings(tab) {
   const cfg = window._bannerCfg || {};
-  document.getElementById('bCfgIcon').value = cfg.icon || '🤖';
-  document.getElementById('bCfgTitle').value = cfg.title || '';
-  document.getElementById('bCfgSub').value = cfg.subtitle || '';
-  document.getElementById('bCfgBg').value = cfg.bg || '';
-  document.getElementById('bCfgText').value = cfg.text_color || '';
-  document.getElementById('bCfgEnabled').checked = cfg.enabled !== false;
-  document.getElementById('bannerModal').style.display = 'flex';
+  document.getElementById('bCfgIcon2').value = cfg.icon || '🤖';
+  document.getElementById('bCfgTitle2').value = cfg.title || '';
+  document.getElementById('bCfgSub2').value = cfg.subtitle || '';
+  document.getElementById('bCfgBg2').value = cfg.bg || '';
+  document.getElementById('bCfgText2').value = cfg.text_color || '';
+  document.getElementById('bCfgEnabled2').checked = cfg.enabled !== false;
+  showTab(tab || 'appearance');
+  document.getElementById('settingsModal').style.display = 'flex';
+  if (tab === 'model') refreshLlmConfig();
+  if (tab === 'skills') refreshSkills();
+}
+document.querySelectorAll('.tabbar .tab').forEach(t => {
+  t.onclick = () => {
+    showTab(t.dataset.tab);
+    if (t.dataset.tab === 'model') refreshLlmConfig();
+    if (t.dataset.tab === 'skills') refreshSkills();
+  };
+});
+document.getElementById('settingsBtn').onclick = () => openSettings('appearance');
+document.getElementById('llmBtn').onclick = () => openSettings('model');
+document.getElementById('settingsModal').onclick = (e) => {
+  if (e.target === document.getElementById('settingsModal'))
+    document.getElementById('settingsModal').style.display = 'none';
 };
-document.getElementById('bCfgCancel').onclick = () => {
-  document.getElementById('bannerModal').style.display = 'none';
+document.getElementById('bCfgCancel2').onclick = () => {
+  document.getElementById('settingsModal').style.display = 'none';
 };
-document.getElementById('bannerModal').onclick = (e) => {
-  if (e.target === document.getElementById('bannerModal'))
-    document.getElementById('bannerModal').style.display = 'none';
+document.getElementById('llmClose').onclick = () => {
+  document.getElementById('settingsModal').style.display = 'none';
 };
-document.getElementById('bCfgSave').onclick = async () => {
+document.getElementById('skillClose').onclick = () => {
+  document.getElementById('settingsModal').style.display = 'none';
+};
+document.getElementById('bCfgSave2').onclick = async () => {
   const body = {
-    enabled: document.getElementById('bCfgEnabled').checked,
-    icon: document.getElementById('bCfgIcon').value.trim(),
-    title: document.getElementById('bCfgTitle').value.trim(),
-    subtitle: document.getElementById('bCfgSub').value.trim(),
-    bg: document.getElementById('bCfgBg').value.trim(),
-    text_color: document.getElementById('bCfgText').value.trim(),
+    enabled: document.getElementById('bCfgEnabled2').checked,
+    icon: document.getElementById('bCfgIcon2').value.trim(),
+    title: document.getElementById('bCfgTitle2').value.trim(),
+    subtitle: document.getElementById('bCfgSub2').value.trim(),
+    bg: document.getElementById('bCfgBg2').value.trim(),
+    text_color: document.getElementById('bCfgText2').value.trim(),
   };
   try {
     const r = await fetch('/api/banner', {
@@ -870,7 +947,7 @@ document.getElementById('bCfgSave').onclick = async () => {
       body: JSON.stringify(body),
     });
     await r.json();
-    document.getElementById('bannerModal').style.display = 'none';
+    document.getElementById('settingsModal').style.display = 'none';
     loadBanner();
   } catch (e) { alert('保存失败: ' + e); }
 };
