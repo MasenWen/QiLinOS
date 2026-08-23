@@ -136,7 +136,10 @@ class ShellTool(BaseTool):
                 except Exception:
                     pass
             if procs[-1].returncode == 0:
-                return self._ok(out.rstrip()[:2000])
+                out = (out or "").rstrip()
+                if not out.strip():
+                    return self._ok("（管道命令执行成功，但没有输出内容——请检查路径/命令是否有效）")
+                return self._ok(out[:2000])
             return self._fail(f"管道执行失败: {err.strip()[:200]}")
         except subprocess.TimeoutExpired:
             for p in procs:
