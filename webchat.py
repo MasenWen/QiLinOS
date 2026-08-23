@@ -18,6 +18,7 @@ os.environ["MEM0_TELEMETRY"] = "False"
 import re
 import sys
 import threading
+import time
 from collections import OrderedDict
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -491,6 +492,17 @@ HTML = r"""<!doctype html>
                         font-size: 12px; padding: 2px 6px; border-radius: 5px; }
   .msg-actions button:hover { background: var(--surface-2); color: var(--text); }
   .msg-actions .voted { color: #4cd964; }
+  .confirm-box { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+                 background: var(--surface); margin-top: 4px; }
+  .confirm-title { font-weight: 650; font-size: 13.5px; margin-bottom: 8px; }
+  .confirm-tool { font-size: 12.5px; color: var(--text); margin-bottom: 4px; }
+  .confirm-params pre { background: var(--surface-2); padding: 8px; border-radius: 6px;
+                        font-size: 11.5px; margin: 6px 0; overflow-x: auto; color: var(--text); }
+  .confirm-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .confirm-btns button { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border);
+                         cursor: pointer; font-size: 13px; background: var(--surface-2); color: var(--text); }
+  .confirm-btns .confirm-yes { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  [data-theme="dark"] .confirm-btns .confirm-yes { background: #fff; color: #1c1c1e; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -788,6 +800,48 @@ function addRow(role, text) {
   return row;
 }
 
+function renderConfirmCard(md, req, originalText) {
+  md.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'confirm-box';
+  box.innerHTML =
+    '<div class="confirm-title">⚠️ 该操作需要您确认</div>' +
+    '<div class="confirm-tool">工具：<b>' + req.tool + '</b></div>' +
+    '<div class="confirm-params">参数：<pre>' +
+      JSON.stringify(req.params || {}, null, 2).replace(/</g, '&lt;') +
+    '</pre></div>' +
+    '<div class="confirm-btns">' +
+      '<button class="confirm-yes">✓ 确认执行</button>' +
+      '<button class="confirm-no">✕ 拒绝</button>' +
+    '</div>';
+  md.appendChild(box);
+  const finish = (msg) => {
+    renderMd(md, msg);
+    history.push({ role: 'assistant', text: msg });
+    save();
+  };
+  box.querySelector('.confirm-yes').onclick = async () => {
+    box.innerHTML = '<div class="confirm-title">⏳ 执行中…</div>';
+    try {
+      const r = await fetch('/api/tool/confirm', {
+        method: 'POST', headers: apiHeaders,
+        body: JSON.stringify({ token: req.token, action: 'approve' }),
+      });
+      const d = await r.json();
+      finish(d.ok ? d.reply : ('执行失败: ' + (d.error || '')));
+    } catch (e) { finish('请求失败: ' + e); }
+  };
+  box.querySelector('.confirm-no').onclick = async () => {
+    try {
+      await fetch('/api/tool/confirm', {
+        method: 'POST', headers: apiHeaders,
+        body: JSON.stringify({ token: req.token, action: 'reject' }),
+      });
+    } catch (e) {}
+    finish('已取消该操作。');
+  };
+}
+
 function streamInto(md, text) {
   return new Promise(resolve => {
     let i = 0;
@@ -864,6 +918,17 @@ async function submit() {
     }
     cursor.remove();
     if (!reply) reply = '(无回复)';
+    // ---- 工具确认卡片（dsh ask 模式）----
+    const cm = reply.match(/\[TOOL_CONFIRM\] (\{.*\})/);
+    if (cm) {
+      try {
+        const req = JSON.parse(cm[1]);
+        renderConfirmCard(md, req, reply);
+        history.push({ role: 'assistant', text: '⚠️ 请求确认执行工具 ' + req.tool });
+        save();
+        return;
+      } catch (e2) {}
+    }
     renderMd(md, reply);
     history.push({ role: 'assistant', text: reply });
     save();
@@ -1319,6 +1384,78 @@ def _log_tool(tool_name: str, status: str, duration_ms: float, error: str = ""):
     del _TOOL_LOGS[: max(0, len(_TOOL_LOGS) - _MAX_TOOL_LOGS)]
 
 
+# ---------- 工具确认（dsh ask 模式）：requires_approval 的工具先请求用户确认 ----------
+PENDING_TOOLS: dict = {}          # token -> {tool, params, session_id, ts}
+_pending_lock = threading.Lock()
+_PENDING_TTL = 300                # 确认请求 5 分钟有效
+_pending_seq = 0
+
+
+def _new_pending_token() -> str:
+    global _pending_seq
+    with _pending_lock:
+        _pending_seq += 1
+        return f"t{int(time.time())}{_pending_seq}"
+
+
+def _request_tool_confirm(tool: str, params: dict, session_id: str) -> str:
+    """登记待确认工具调用，返回给前端的标记文本。"""
+    token = _new_pending_token()
+    with _pending_lock:
+        PENDING_TOOLS[token] = {"tool": tool, "params": params,
+                                "session_id": session_id, "ts": time.time()}
+    payload = {"token": token, "tool": tool, "params": params}
+    return "[TOOL_CONFIRM] " + json.dumps(payload, ensure_ascii=False)
+
+
+def _pop_pending(token: str) -> dict | None:
+    with _pending_lock:
+        item = PENDING_TOOLS.pop(token, None)
+        if item and time.time() - item.get("ts", 0) > _PENDING_TTL:
+            return None
+        return item
+
+
+def _handle_tool_confirm(self) -> None:
+    """POST /api/tool/confirm：用户批准/拒绝待执行工具。"""
+    try:
+        length = int(self.headers.get("Content-Length") or 0)
+        body = json.loads(self.rfile.read(length) or b"{}")
+    except Exception:
+        body = {}
+    token = (body.get("token") or "").strip()
+    action = (body.get("action") or "").strip().lower()
+    item = _pop_pending(token)
+    if not item:
+        return self._json(404, {"ok": False, "error": "确认请求不存在或已过期"})
+    tool, params = item.get("tool"), item.get("params") or {}
+    session_id = item.get("session_id") or "default"
+    if action == "reject":
+        try:
+            log_reader.append_record("tool", "", tool=tool, status="rejected",
+                                     summary="用户拒绝执行")
+        except Exception:
+            pass
+        return self._json(200, {"ok": True, "reply": f"已取消执行「{tool}」操作。"})
+    if action != "approve":
+        return self._json(400, {"ok": False, "error": "action 必须是 approve 或 reject"})
+    # 批准：执行工具（confirmed=True）
+    try:
+        res = _run_tool(tool, params)
+        try:
+            log_reader.append_record("tool", "", tool=tool, status=res.status.value,
+                                     summary=str(getattr(res, "output", ""))[:200])
+        except Exception:
+            pass
+        try:
+            reply = _summarize_result(session_id, tool, res)
+        except Exception:
+            reply = _render_tool_result(res)
+        return self._json(200, {"ok": True, "reply": reply})
+    except Exception as e:
+        return self._json(500, {"ok": False, "error": f"执行失败: {e}"})
+
+
 def _run_tool(tool_name: str, params: dict):
     import time as _t
     _t0 = _t.time()
@@ -1384,7 +1521,7 @@ def _render_tool_result(res) -> str:
     return "\n".join(lines)
 
 
-def _summarize_result(user_message: str, tool: str, res) -> str:
+def _summarize_result(user_message: str, tool: str, res, _session_hint: str = "") -> str:
     """把工具原始结果再喂给 LLM，转成可读、准确的自然语言答复。"""
     status = res.status.value
     label = _STATUS_LABEL.get(status, status)
@@ -1708,6 +1845,19 @@ def _chat(message: str, session_id: str = "default"):
                 params = plan.get("params") or {}
                 step = plan.get("step")
                 total_steps = plan.get("total_steps") or plan.get("all_step")
+                # ---- dsh ask 模式：requires_approval 的工具先请求用户确认 ----
+                _td = REGISTRY.get(tool)
+                if _td is not None and getattr(_td, "requires_approval", False):
+                    confirm_text = _request_tool_confirm(tool, params, session_id)
+                    try:
+                        log_reader.append_record("tool", "", tool=tool, status="pending",
+                                                 summary="等待用户确认")
+                    except Exception:
+                        pass
+                    return (f"⚠️ 该操作需要您确认：\n"
+                            f"**工具**：{tool}\n"
+                            f"**参数**：{json.dumps(params, ensure_ascii=False)}\n"
+                            f"\n{confirm_text}")
                 res = _run_tool(tool, params)
                 try:
                     log_reader.append_record("tool", "", tool=tool,
@@ -1940,6 +2090,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = {}
             saved = _save_banner(body)
             return self._json(200, {"ok": True, **saved})
+        if self.path == "/api/tool/confirm":
+            return _handle_tool_confirm(self)
         if self.path == "/api/chat/stream":
             return self._handle_chat_stream()
         if self.path == "/api/upload":
