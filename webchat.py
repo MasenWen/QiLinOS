@@ -237,6 +237,31 @@ def _session_history(session_id: str):
         return list(SESSIONS.get(session_id, []))
 
 
+def _delete_session(session_id: str) -> bool:
+    """删除整个会话（历史 + meta + 持久化）。"""
+    with _sessions_lock:
+        existed = SESSIONS.pop(session_id, None) is not None
+        SESSIONS_META.pop(session_id, None)
+        if existed:
+            _persist_sessions()
+    print(f"[session] 已删除会话: {session_id[:12]}", flush=True)
+    return existed
+
+
+def _clear_session(session_id: str) -> bool:
+    """清空会话对话内容（保留会话与标题，清历史 + 摘要）。"""
+    with _sessions_lock:
+        if session_id not in SESSIONS:
+            return False
+        SESSIONS[session_id] = []
+        meta = SESSIONS_META.get(session_id)
+        if meta:
+            meta["summary"] = ""
+        _persist_sessions()
+    print(f"[session] 已清空会话: {session_id[:12]}", flush=True)
+    return True
+
+
 def _compact_async(session_id: str, old_msgs: list):
     """异步：用 LLM 把早期对话总结成摘要，追加到会话 meta.summary。"""
     try:
@@ -998,15 +1023,55 @@ async function refreshSessions() {
       el.onclick = () => { switchSession(s.session_id); };
       el.title = '点击切换 · 悬停可重命名';
       el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${names[s.session_id] || s.preview || s.session_id.slice(0,12)}</span>
-        <span style="display:none;margin-left:4px;color:var(--accent-2);cursor:pointer;" class="renameBtn">✎</span>`;
+        <span style="display:none;margin-left:4px;color:var(--accent-2);cursor:pointer;" class="renameBtn">✎</span>
+        <span style="display:none;margin-left:4px;color:#c0392b;cursor:pointer;" class="delBtn">🗑</span>`;
       el.style.display = 'flex'; el.style.alignItems = 'center';
-      el.onmouseenter = () => { el.querySelector('.renameBtn').style.display = 'inline'; };
-      el.onmouseleave = () => { el.querySelector('.renameBtn').style.display = 'none'; };
+      el.onmouseenter = () => { el.querySelector('.renameBtn').style.display = 'inline'; el.querySelector('.delBtn').style.display = 'inline'; };
+      el.onmouseleave = () => { el.querySelector('.renameBtn').style.display = 'none'; el.querySelector('.delBtn').style.display = 'none'; };
       el.querySelector('.renameBtn').onclick = (e) => { e.stopPropagation(); renameSession(s.session_id, el); };
+      el.querySelector('.delBtn').onclick = (e) => { e.stopPropagation(); deleteSession(s.session_id); };
       list.appendChild(el);
     });
   } catch (e) {}
 }
+async function deleteSession(sid) {
+  if (!confirm('确定删除该会话？此操作不可恢复。')) return;
+  try {
+    const r = await fetch('/api/sessions/delete', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({ session_id: sid }),
+    });
+    const d = await r.json();
+    if (d.ok && sid === sessionId) {
+      // 删除的是当前会话 → 新建空会话
+      saveDraft();
+      sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(SKEY, sessionId);
+      history = [];
+      msgs.innerHTML = '';
+      renderEmptyMsg();
+    }
+    refreshSessions();
+  } catch (e) { alert('删除失败: ' + e); }
+}
+
+async function clearCurrentSession() {
+  if (!confirm('确定清空当前对话内容？历史将清空，会话保留。')) return;
+  try {
+    const r = await fetch('/api/sessions/clear', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      history = [];
+      msgs.innerHTML = '';
+      renderEmptyMsg();
+      refreshSessions();
+    } else { alert(d.note || '清空失败'); }
+  } catch (e) { alert('清空失败: ' + e); }
+}
+
 function renameSession(sid, el) {
   const names = getNames();
   const cur = names[sid] || '';
@@ -2134,6 +2199,30 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_chat_stream()
         if self.path == "/api/upload":
             return _handle_upload(self)
+        if self.path == "/api/sessions/delete":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            sid = (body.get("session_id") or "").strip()
+            if not sid:
+                return self._json(400, {"ok": False, "error": "缺少 session_id"})
+            ok = _delete_session(sid)
+            return self._json(200, {"ok": ok, "note": "会话已删除" if ok else "会话不存在"})
+
+        if self.path == "/api/sessions/clear":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            sid = (body.get("session_id") or "").strip()
+            if not sid:
+                return self._json(400, {"ok": False, "error": "缺少 session_id"})
+            ok = _clear_session(sid)
+            return self._json(200, {"ok": ok, "note": "对话已清空" if ok else "会话不存在"})
+
         if self.path == "/api/llm_config":
             try:
                 _length = int(self.headers.get("Content-Length") or 0)
