@@ -30,17 +30,28 @@ def get_kylin_embedder():
 
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
-    """异步 Embedding 函数 — 兼容 LightRAG EmbeddingFunc 接口（768 维）。"""
+    """异步 Embedding — 三级降级链（融入 QiLinOS ONNX 直载系统模型）:
+        ① 麒麟 SDK（GTE-base 768 维）
+        ② ONNX Runtime 直载系统模型（kylin-ai-abstract-models，SDK 不可用时）
+        ③ 零向量兜底（保证流程不中断）
+    """
     loop = asyncio.get_event_loop()
+    # ① SDK
     try:
-        # embed_batch 是同步 C 调用，放线程池避免阻塞事件循环
         arr = await loop.run_in_executor(None, lambda: np.asarray(
             get_kylin_embedder().embed_batch([t[:500] for t in texts])))
         return np.asarray(arr, dtype=np.float32)
     except Exception as e:
-        logger.error("embedding 失败: %s", e)
-        # 回退：零向量（dim=768），保证流程不中断
-        return np.zeros((len(texts), 768), dtype=np.float32)
+        logger.warning("SDK 嵌入失败，尝试 ONNX 直载系统模型: %s", e)
+    # ② ONNX 直载系统模型（零新增依赖，服务器预装 kylin-ai-abstract-models）
+    try:
+        from src.memory.embedding_onnx import kylin_onnx_embedding_func
+        arr = await kylin_onnx_embedding_func([t[:500] for t in texts])
+        return np.asarray(arr, dtype=np.float32)
+    except Exception as e2:
+        logger.error("ONNX 嵌入失败: %s", e2)
+    # ③ 零向量兜底
+    return np.zeros((len(texts), 768), dtype=np.float32)
 
 
 # ---------- LLM（复用本项目 llm_client）----------
