@@ -1542,6 +1542,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(code, body, "application/json; charset=utf-8")
 
     def do_GET(self):
+        # P0 加固：GET /api/* 同样需要 token（否则记忆等敏感数据可被匿名读取）
+        if self.path.startswith("/api/") and not self._auth_ok():
+            return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
         if self.path in ("/", "/index.html"):
             self._send(200, HTML.encode("utf-8"), "text/html; charset=utf-8")
         elif self.path == "/api/sessions":
