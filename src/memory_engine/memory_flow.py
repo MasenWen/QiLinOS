@@ -108,10 +108,11 @@ class MemoryFlow:
         self._short.append(item)
         overflow: list[FlowItem] = []
         if len(self._short) > self.short_capacity:
-            # 溢出：按重要性升序取最不重要的移除
-            self._short.sort(key=lambda x: x.importance)
-            overflow = self._short[: len(self._short) - self.short_capacity]
-            self._short = self._short[len(self._short) - self.short_capacity:]
+            # 溢出：按重要性【降序】取容量外的项返回（重要项也参与 promote 分流）
+            # 修复前按升序取"最不重要"的作 overflow → promote(>=0.45) 永远不通过 → 流转中断
+            self._short.sort(key=lambda x: x.importance, reverse=True)
+            overflow = self._short[self.short_capacity:]
+            self._short = self._short[: self.short_capacity]
         return overflow
 
     # ---- 短 → 中：提升 ----

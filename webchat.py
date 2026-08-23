@@ -122,6 +122,21 @@ def _get_skill_memory():
     if _skill_memory is None:
         from src.memory_engine.skill_memory import SkillMemory
         _skill_memory = SkillMemory()
+        try:
+            # ③ 清理幽灵冲突（skills 空但 conflicts 有历史残留）
+            if not _skill_memory.list_skills() and _skill_memory.conflicts():
+                import os as _os
+                _p = _os.path.expanduser("~/.nex-agent/skills.json")
+                if _os.path.exists(_p):
+                    import json as _json
+                    with open(_p, "r", encoding="utf-8") as _f:
+                        _d = _json.load(_f)
+                    _d["conflicts"] = []
+                    with open(_p, "w", encoding="utf-8") as _f:
+                        _json.dump(_d, _f, ensure_ascii=False, indent=2)
+                    print("[skill] 已清理幽灵冲突记录", flush=True)
+        except Exception:
+            pass
     return _skill_memory
 
 
@@ -143,9 +158,11 @@ def _flow_after_chat(session_id: str, prompt: str, reply: str) -> dict:
     flow = _get_flow()
     overflow = []
     try:
-        # 写入短期（用户消息 + AI 回复）
+        # 写入短期（用户消息；AI 回复若为工具结果/快照则不流转，避免快照泛滥）
         overflow += flow.add_short(prompt, session_id)
-        overflow += flow.add_short(reply, session_id)
+        _SNAP = ("✅ 工具", "❌", "状态：", "**输出**")
+        if not any(m in reply for m in _SNAP):
+            overflow += flow.add_short(reply, session_id)
         # 溢出项（重要性达标）自动提升到中期
         if overflow:
             flow.promote(session_id, overflow)
