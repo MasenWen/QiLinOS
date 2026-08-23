@@ -9,6 +9,7 @@
   - query_preferences(keyword=None): 从 mem0 检索偏好（可选关键词过滤）
 """
 from __future__ import annotations
+import re
 
 from typing import Any, Optional
 
