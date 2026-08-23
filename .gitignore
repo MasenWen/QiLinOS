@@ -20,3 +20,9 @@ _benchmark/processed_data/query_set.csv
 *.bak
 ._*
 uploads/
+# 评测大数据不进入代码仓库（.ndjson.gz/.csv 数据文件）
+_benchmark/test_subset_dev/
+_benchmark/test_subset_v55/
+_benchmark/source_data/
+_benchmark/evidence/
+_benchmark/processed_data/
