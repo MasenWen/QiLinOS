@@ -313,11 +313,15 @@ def _session_append(session_id: str, role: str, content: str):
         if role == "user" and len(hist) == 1 and not meta.get("title"):
             threading.Thread(target=_gen_title_async,
                              args=(session_id, content or ""), daemon=True).start()
-        # ① 历史压缩：超过阈值 → 移出早期轮次，异步 LLM 总结（dsh compaction）
-        if len(hist) > COMPACT_THRESHOLD * 2:
-            keep = COMPACT_KEEP * 2
-            old_msgs = hist[: len(hist) - keep]
-            del hist[: len(hist) - keep]
+        # ① 历史压缩（dsh compaction）：按累计消息数触发
+        #   hist 被拼接窗口截断在 MAX_HISTORY_TURNS*2 条，无法用 len(hist) 判断，
+        #   因此用 meta.total_msgs 累计；每满 COMPACT_THRESHOLD*2 条压缩一次，
+        #   把当前保留历史中最早的 COMPACT_KEEP*2 条总结成摘要。
+        meta["total_msgs"] = int(meta.get("total_msgs") or 0) + 1
+        if meta["total_msgs"] >= COMPACT_THRESHOLD * 2 and len(hist) > COMPACT_KEEP * 2:
+            old_msgs = hist[: COMPACT_KEEP * 2]
+            del hist[: COMPACT_KEEP * 2]
+            meta["total_msgs"] = 0
             threading.Thread(target=_compact_async,
                              args=(session_id, old_msgs), daemon=True).start()
         # 拼接窗口：最多保留 MAX_HISTORY_TURNS 轮
