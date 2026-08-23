@@ -330,6 +330,12 @@ HTML = r"""<!doctype html>
                  font-size: 13px; color: #666; border-bottom: 2px solid transparent; }
   .tabbar .tab.active { color: #1a1a1a; font-weight: 600; border-bottom-color: #1a1a1a; }
   .banner-modal-box .field-hint { font-size: 11px; color: #999; margin-top: 2px; }
+  .floating-settings { position: fixed; right: 18px; bottom: 18px; width: 48px; height: 48px;
+                       border-radius: 50%; background: linear-gradient(135deg,#333,#000);
+                       color: #fff; border: none; font-size: 21px; cursor: pointer;
+                       box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 50;
+                       transition: transform .15s; }
+  .floating-settings:hover { transform: scale(1.08); }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -388,10 +394,7 @@ HTML = r"""<!doctype html>
         <div class="banner-title" id="bannerTitle">麒麟 AI</div>
         <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
       </div>
-      <div style="display:flex;gap:3px;flex:none;">
-        <button class="banner-edit" id="llmBtn" title="模型配置 / LLM API 选择">🤖</button>
-        <button class="banner-edit" id="settingsBtn" title="设置（外观/模型/技能）">⚙</button>
-      </div>
+
     </div>
     <div class="banner-modal" id="bannerModal">
       <div class="banner-modal-box">
@@ -929,12 +932,8 @@ document.querySelectorAll('.tabbar .tab').forEach(t => {
     if (t.dataset.tab === 'skills') refreshSkills();
   };
 });
-document.getElementById('settingsBtn').onclick = () => openSettings('appearance');
-document.getElementById('llmBtn').onclick = () => openSettings('model');
-document.getElementById('settingsModal').onclick = (e) => {
-  if (e.target === document.getElementById('settingsModal'))
-    document.getElementById('settingsModal').style.display = 'none';
-};
+document.getElementById('floatingSettings').onclick = () => openSettings('appearance');
+// 遮罩点击不关闭（防止误关设置）；仅通过关闭按钮关闭
 document.getElementById('bCfgCancel2').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
 };
@@ -999,6 +998,7 @@ document.getElementById('clearMem').onclick = async () => {
   }
 };
 </script>
+<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/技能）">⚙</button>
 </body>
 </html>
 """
