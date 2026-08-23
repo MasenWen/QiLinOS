@@ -24,6 +24,9 @@ _PII_PATTERNS = [
     (re.compile(r'(?:password|passwd|pwd)\s*[=:：]\s*\S+', re.IGNORECASE), '[SECRET]'),
     # Token/secret assignments
     (re.compile(r'(?:api[_-]?key|token|secret|密钥)\s*[=:：]\s*\S+', re.IGNORECASE), '[API_KEY]'),
+    # 中文赋值格式：密码是xxx / 密钥为xxx / token为xxx
+    (re.compile(r'(?:密码|口令)\s*(?:是|为|[:：=])\s*\S+', re.IGNORECASE), '[SECRET]'),
+    (re.compile(r'(?:密钥|token|令牌|secret)\s*(?:是|为|[:：=])\s*\S+', re.IGNORECASE), '[API_KEY]'),
 ]
 
 # Control characters and null bytes

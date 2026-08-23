@@ -6,7 +6,7 @@ from mem0 import Memory
 from mem0.configs.base import MemoryConfig
 
 import src.memory  # noqa: F401
-from src.memory.threat_patterns import is_safe
+from security.memory_guard import get_memory_guard
 import logging
 
 MEM0_DIR = os.path.expanduser("~/.nex-agent/mem0")
@@ -168,18 +168,34 @@ class Mem0Store:
 
     def add(self, messages: list[dict], user_id: str = None):
         try:
+            # --- 敏感信息识别 + 威胁扫描 (MemoryGuard 四层审查，对每条消息) ---
+            # 1 威胁扫描(注入/密钥/隐藏字符) 2 PII脱敏(手机号/邮箱/密钥/密码)
+            # 3 结构化清理 4 长度限制 + 敏感标注
+            # 注意：mem0 会从 user 与 assistant 两条消息共同提取记忆，必须全部审查
+            guarded: list[dict] = []
+            for m in messages or []:
+                content = str(m.get("content") or "").strip()
+                if not content:
+                    continue
+                review = get_memory_guard().review(content, category="memory", source="webchat")
+                if not review.allowed:
+                    print(f"[Mem0] ⚠ 拦截威胁内容: {content[:30]}...")
+                    logger.warning("[Mem0] 拦截威胁内容: %s (%s)", content[:60], review.reason)
+                    return
+                if review.sanitized_text != content:
+                    print(f"[Mem0] 敏感信息脱敏 {review.pii_redactions} 处(敏感级={review.sensitivity}): "
+                          f"{review.sanitized_text[:50]}...")
+                    logger.info("[Mem0] PII 脱敏 %d 处, 敏感级=%s, 类型=%s",
+                                review.pii_redactions, review.sensitivity, review.sensitive_types)
+                guarded.append(dict(m, content=review.sanitized_text))
+            messages = guarded
+
             # 去重：检查是否已有高度相似的记忆
             user_msg = messages[0]["content"] if messages else ""
             if user_msg:
                 existing = self.search(user_msg, user_id=user_id, top_k=2)
                 if existing and existing[0].get("score", 0) > 0.87:
                     print(f"[Mem0] 跳过重复: {user_msg[:30]}...")
-                    return
-
-                # --- 新增：威胁扫描 (写入前扫描)---
-                if not is_safe(user_msg):
-                    print(f"[Mem0] ⚠ 跳过不安全内容: {user_msg[:30]}...")
-                    logger.warning("[Mem0] 拦截威胁内容: %s", user_msg[:60])
                     return
 
             result = self._memory.add(
@@ -194,6 +210,14 @@ class Mem0Store:
             print(f"[Mem0] add 失败: {e}")
 
     def add_fact(self, fact: str, user_id: str = None):
+        fact = (fact or "").strip()
+        if not fact:
+            return
+        review = get_memory_guard().review(fact, category="memory", source="add_fact")
+        if not review.allowed:
+            print(f"[Mem0] ⚠ 拦截威胁内容: {fact[:30]}...")
+            return
+        fact = review.sanitized_text
         self._memory.add(fact, user_id=user_id or self._default_user)
 
     def delete_all(self, user_id: str = None):
