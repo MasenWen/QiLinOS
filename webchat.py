@@ -299,6 +299,32 @@ HTML = r"""<!doctype html>
   .layout { display: flex; height: 100vh; }
   .sidebar { width: 230px; min-width: 230px; background: rgba(255,255,255,.95);
              border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .banner { display: flex; align-items: center; gap: 10px; padding: 14px 14px;
+             border-bottom: 1px solid var(--border); position: relative; }
+  .banner-icon { font-size: 26px; flex: none; }
+  .banner-text { flex: 1; min-width: 0; }
+  .banner-title { font-size: 15px; font-weight: 700; letter-spacing: .3px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .banner-sub { font-size: 11px; opacity: .75; margin-top: 2px;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .banner-edit { background: none; border: none; color: inherit; opacity: .45;
+                 cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+  .banner-edit:hover { opacity: 1; background: rgba(255,255,255,.15); }
+  .banner-modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99;
+                  display: none; align-items: center; justify-content: center; }
+  .banner-modal-box { background: #fff; color: #1a1a1a; border-radius: 12px; padding: 18px 20px;
+                      width: 320px; box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+  .banner-modal-box h3 { margin: 0 0 12px; font-size: 15px; }
+  .banner-modal-box label { display: block; font-size: 12px; color: #666; margin: 8px 0 3px; }
+  .banner-modal-box input[type=text] { width: 100%; padding: 6px 8px; border: 1px solid #ddd;
+                      border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+  .banner-modal-box .row { display: flex; gap: 8px; }
+  .banner-modal-box .row > div { flex: 1; }
+  .banner-modal-box .btns { display: flex; gap: 8px; margin-top: 14px; }
+  .banner-modal-box .btns button { flex: 1; padding: 7px; border-radius: 6px; border: 1px solid #ccc;
+                      cursor: pointer; font-size: 13px; }
+  .banner-modal-box .btns .save { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .banner-modal-box .chk { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: #444; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -351,6 +377,46 @@ HTML = r"""<!doctype html>
 <body>
 <div class="layout">
   <aside class="sidebar">
+    <div class="banner" id="banner">
+      <div class="banner-icon" id="bannerIcon">🤖</div>
+      <div class="banner-text">
+        <div class="banner-title" id="bannerTitle">麒麟 AI</div>
+        <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
+      </div>
+      <button class="banner-edit" id="bannerEditBtn" title="配置 Banner">⚙</button>
+    </div>
+    <div class="banner-modal" id="bannerModal">
+      <div class="banner-modal-box">
+        <h3>Banner 配置</h3>
+        <label>图标（Emoji）</label>
+        <input type="text" id="bCfgIcon" maxlength="8" placeholder="🤖">
+        <div class="row">
+          <div>
+            <label>标题</label>
+            <input type="text" id="bCfgTitle" maxlength="20" placeholder="麒麟 AI">
+          </div>
+          <div>
+            <label>副标题</label>
+            <input type="text" id="bCfgSub" maxlength="30" placeholder="记忆增强 · 系统工具">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>背景（色值/渐变）</label>
+            <input type="text" id="bCfgBg" maxlength="80" placeholder="linear-gradient(135deg,#1a1a1a,#333)">
+          </div>
+          <div>
+            <label>文字颜色</label>
+            <input type="text" id="bCfgText" maxlength="20" placeholder="#ffffff">
+          </div>
+        </div>
+        <label class="chk"><input type="checkbox" id="bCfgEnabled"> 启用 Banner</label>
+        <div class="btns">
+          <button id="bCfgCancel">取消</button>
+          <button class="save" id="bCfgSave">保存</button>
+        </div>
+      </div>
+    </div>
     <div class="brand">aichat<em> · 麒麟 AI</em></div>
     <div class="newchat" id="newChat">＋ 新会话</div>
     <div class="sess-list" id="sessList"></div>
@@ -756,6 +822,59 @@ document.getElementById('newChat').onclick = () => {
   input.focus();
 };
 refreshSessions();
+// ---- Banner 加载与配置 ----
+async function loadBanner() {
+  try {
+    const r = await fetch('/api/banner');
+    const cfg = await r.json();
+    window._bannerCfg = cfg;
+    const b = document.getElementById('banner');
+    if (!cfg.enabled) { b.style.display = 'none'; return; }
+    b.style.display = 'flex';
+    b.style.background = cfg.bg || '#1a1a1a';
+    b.style.color = cfg.text_color || '#ffffff';
+    document.getElementById('bannerIcon').textContent = cfg.icon || '🤖';
+    document.getElementById('bannerTitle').textContent = cfg.title || '';
+    document.getElementById('bannerSub').textContent = cfg.subtitle || '';
+  } catch (e) {}
+}
+document.getElementById('bannerEditBtn').onclick = () => {
+  const cfg = window._bannerCfg || {};
+  document.getElementById('bCfgIcon').value = cfg.icon || '🤖';
+  document.getElementById('bCfgTitle').value = cfg.title || '';
+  document.getElementById('bCfgSub').value = cfg.subtitle || '';
+  document.getElementById('bCfgBg').value = cfg.bg || '';
+  document.getElementById('bCfgText').value = cfg.text_color || '';
+  document.getElementById('bCfgEnabled').checked = cfg.enabled !== false;
+  document.getElementById('bannerModal').style.display = 'flex';
+};
+document.getElementById('bCfgCancel').onclick = () => {
+  document.getElementById('bannerModal').style.display = 'none';
+};
+document.getElementById('bannerModal').onclick = (e) => {
+  if (e.target === document.getElementById('bannerModal'))
+    document.getElementById('bannerModal').style.display = 'none';
+};
+document.getElementById('bCfgSave').onclick = async () => {
+  const body = {
+    enabled: document.getElementById('bCfgEnabled').checked,
+    icon: document.getElementById('bCfgIcon').value.trim(),
+    title: document.getElementById('bCfgTitle').value.trim(),
+    subtitle: document.getElementById('bCfgSub').value.trim(),
+    bg: document.getElementById('bCfgBg').value.trim(),
+    text_color: document.getElementById('bCfgText').value.trim(),
+  };
+  try {
+    const r = await fetch('/api/banner', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify(body),
+    });
+    await r.json();
+    document.getElementById('bannerModal').style.display = 'none';
+    loadBanner();
+  } catch (e) { alert('保存失败: ' + e); }
+};
+loadBanner();
 setInterval(refreshPanels, 4000);
 send.onclick = submit;
 input.addEventListener('keydown', e => {
@@ -1058,6 +1177,40 @@ def _build_context(message: str, session_id: str) -> str:
 
 
 # ================= 文件上传/下载 =================
+# ================= Banner 配置（可自定义，持久化到 ~/.nex-agent/banner_config.json） =================
+BANNER_PATH = os.path.expanduser("~/.nex-agent/banner_config.json")
+DEFAULT_BANNER = {
+    "enabled": True,
+    "icon": "🤖",
+    "title": "麒麟 AI",
+    "subtitle": "记忆增强 · 系统工具",
+    "bg": "linear-gradient(135deg, #1a1a1a, #333333)",
+    "text_color": "#ffffff",
+}
+_BANNER_KEYS = ("enabled", "icon", "title", "subtitle", "bg", "text_color")
+
+
+def _load_banner() -> dict:
+    try:
+        with open(BANNER_PATH, encoding="utf-8") as f:
+            cfg = json.load(f)
+        return {**DEFAULT_BANNER, **{k: cfg[k] for k in _BANNER_KEYS if k in cfg}}
+    except Exception:
+        return dict(DEFAULT_BANNER)
+
+
+def _save_banner(cfg: dict) -> dict:
+    merged = {**DEFAULT_BANNER, **{k: cfg[k] for k in _BANNER_KEYS if k in cfg}}
+    merged["enabled"] = bool(merged.get("enabled", True))
+    try:
+        os.makedirs(os.path.dirname(BANNER_PATH), exist_ok=True)
+        with open(BANNER_PATH, "w", encoding="utf-8") as f:
+            json.dump(merged, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[banner] 保存失败: {e}", flush=True)
+    return merged
+
+
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
@@ -1346,6 +1499,8 @@ class Handler(BaseHTTPRequestHandler):
                       "version": s.version, "condition": s.condition}
                      for s in sm.list_skills()]
             self._json(200, {"skills": items, "conflicts": len(sm.conflicts())})
+        elif self.path == "/api/banner":
+            self._json(200, _load_banner())
         elif self.path.startswith("/api/download/"):
             from urllib.parse import unquote
             fname = unquote(self.path[len("/api/download/"):])
@@ -1372,6 +1527,14 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/banner":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            saved = _save_banner(body)
+            return self._json(200, {"ok": True, **saved})
         if self.path == "/api/chat/stream":
             return self._handle_chat_stream()
         if self.path == "/api/upload":
