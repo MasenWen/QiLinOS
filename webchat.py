@@ -720,7 +720,7 @@ function switchSession(sid) {
   try { history = JSON.parse(localStorage.getItem(histKey(sid)) || '[]'); } catch (e) { history = []; }
   if (!history.length) {
     // localStorage 无本地历史（如重启后服务端恢复的会话）→ 从服务端拉取
-    fetch('/api/history?session_id=' + encodeURIComponent(sid))
+    fetch('/api/history?session_id=' + encodeURIComponent(sid), { headers: apiHeaders })
       .then(r => r.json()).then(d => {
         if (d.messages && d.messages.length) {
           history = d.messages;
@@ -735,7 +735,7 @@ function switchSession(sid) {
 }
 async function refreshSessions() {
   try {
-    const r = await fetch('/api/sessions');
+    const r = await fetch('/api/sessions', { headers: apiHeaders });
     const d = await r.json();
     const list = document.getElementById('sessList');
     list.innerHTML = '';
@@ -769,8 +769,8 @@ function renameSession(sid, el) {
 async function refreshPanels() {
   try {
     const [m, t] = await Promise.all([
-      fetch('/api/memories').then(r => r.json()),
-      fetch('/api/tool_logs').then(r => r.json()),
+      fetch('/api/memories', { headers: apiHeaders }).then(r => r.json()),
+      fetch('/api/tool_logs', { headers: apiHeaders }).then(r => r.json()),
     ]);
     const mp = document.getElementById('memPanel');
     mp.innerHTML = (m.memories && m.memories.length)
@@ -792,7 +792,7 @@ async function refreshPanels() {
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
 async function refreshLlmConfig() {
   try {
-    const r = await fetch('/api/llm_config');
+    const r = await fetch('/api/llm_config', { headers: apiHeaders });
     const d = await r.json();
     document.getElementById('llmProvider').value = d.provider || 'sdk';
     document.getElementById('llmBaseUrl').value = d.base_url || '';
@@ -829,7 +829,7 @@ refreshLlmConfig();
 // ---- 配置面板（网页输入 → 长期记忆）----
 async function refreshSkills() {
   try {
-    const r = await fetch('/api/skills');
+    const r = await fetch('/api/skills', { headers: apiHeaders });
     const d = await r.json();
     const sp = document.getElementById('skillPanel');
     sp.innerHTML = (d.skills && d.skills.length)
@@ -877,7 +877,7 @@ refreshSessions();
 // ---- Banner 加载与配置 ----
 async function loadBanner() {
   try {
-    const r = await fetch('/api/banner');
+    const r = await fetch('/api/banner', { headers: apiHeaders });
     const cfg = await r.json();
     window._bannerCfg = cfg;
     const b = document.getElementById('banner');
