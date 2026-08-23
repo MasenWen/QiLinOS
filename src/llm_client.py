@@ -20,6 +20,7 @@ DEFAULTS = {
     "base_url": "https://api.deepseek.com/v1",
     "api_key": "",
     "model": "deepseek-chat",
+    "temperature": 0.7,
 }
 
 
@@ -64,10 +65,14 @@ def _api_generate(prompt: str, cfg: dict) -> str:
     import requests
     base = (cfg.get("base_url") or DEFAULTS["base_url"]).rstrip("/")
     model = cfg.get("model") or DEFAULTS["model"]
+    temperature = float(cfg.get("temperature") or 0.7)
+    payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    if 0 <= temperature <= 2:
+        payload["temperature"] = temperature
     resp = requests.post(
         f"{base}/chat/completions",
         headers={"Authorization": f"Bearer {cfg['api_key']}"},
-        json={"model": model, "messages": [{"role": "user", "content": prompt}]},
+        json=payload,
         timeout=180,
     )
     resp.raise_for_status()

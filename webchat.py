@@ -211,6 +211,37 @@ HTML = r"""<!doctype html>
     --accent: #000000;
     --accent-2: #333333;
     --ok: #000000;
+    --surface-solid: #ffffff;
+    --header-bg: rgba(255,255,255,.85);
+    --input-bg: #ffffff;
+    --bubble-user: #f0f0f0;
+    --bubble-ai: rgba(0,0,0,.03);
+    --modal-bg: #ffffff;
+    --modal-text: #1a1a1a;
+    --modal-border: #ddd;
+    --modal-input: #ffffff;
+    --modal-label: #666;
+  }
+  [data-theme="dark"] {
+    --bg: #1c1c1e;
+    --surface: rgba(255,255,255,.06);
+    --surface-2: rgba(255,255,255,.1);
+    --border: rgba(255,255,255,.14);
+    --text: #f2f2f2;
+    --muted: #a1a1a6;
+    --accent: #ffffff;
+    --accent-2: #d1d1d6;
+    --ok: #4cd964;
+    --surface-solid: #2c2c2e;
+    --header-bg: rgba(28,28,30,.85);
+    --input-bg: #2c2c2e;
+    --bubble-user: #2c2c2e;
+    --bubble-ai: rgba(255,255,255,.06);
+    --modal-bg: #2c2c2e;
+    --modal-text: #f2f2f2;
+    --modal-border: rgba(255,255,255,.16);
+    --modal-input: #3a3a3c;
+    --modal-label: #a1a1a6;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -230,7 +261,7 @@ HTML = r"""<!doctype html>
     position: sticky; top: 0; z-index: 10;
     display: flex; align-items: center; gap: 10px;
     padding: 13px 22px;
-    background: rgba(255,255,255,.85);
+    background: var(--header-bg);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
   }
@@ -297,7 +328,7 @@ HTML = r"""<!doctype html>
             animation: blink .9s steps(2, start) infinite; }
   @keyframes blink { to { visibility: hidden; } }
   .layout { display: flex; height: 100vh; }
-  .sidebar { width: 230px; min-width: 230px; background: rgba(255,255,255,.95);
+  .sidebar { width: 230px; min-width: 230px; background: var(--surface-solid);
              border-right: 1px solid var(--border); display: flex; flex-direction: column; }
   .banner { display: flex; align-items: center; gap: 10px; padding: 14px 14px;
              border-bottom: 1px solid var(--border); position: relative; }
@@ -312,23 +343,23 @@ HTML = r"""<!doctype html>
   .banner-edit:hover { opacity: 1; background: rgba(255,255,255,.15); }
   .banner-modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 99;
                   display: none; align-items: center; justify-content: center; }
-  .banner-modal-box { background: #fff; color: #1a1a1a; border-radius: 12px; padding: 18px 20px;
+  .banner-modal-box { background: var(--modal-bg); color: var(--modal-text); border-radius: 12px; padding: 18px 20px;
                       width: 320px; box-shadow: 0 18px 50px rgba(0,0,0,.3); }
-  .banner-modal-box h3 { margin: 0 0 12px; font-size: 15px; }
-  .banner-modal-box label { display: block; font-size: 12px; color: #666; margin: 8px 0 3px; }
-  .banner-modal-box input[type=text] { width: 100%; padding: 6px 8px; border: 1px solid #ddd;
-                      border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+  .banner-modal-box h3 { margin: 0 0 12px; font-size: 15px; color: var(--modal-text); }
+  .banner-modal-box label { display: block; font-size: 12px; color: var(--modal-label); margin: 8px 0 3px; }
+  .banner-modal-box input[type=text] { width: 100%; padding: 6px 8px; border: 1px solid var(--modal-border);
+                      background: var(--modal-input); color: var(--modal-text); border-radius: 6px; font-size: 13px; box-sizing: border-box; }
   .banner-modal-box .row { display: flex; gap: 8px; }
   .banner-modal-box .row > div { flex: 1; }
   .banner-modal-box .btns { display: flex; gap: 8px; margin-top: 14px; }
-  .banner-modal-box .btns button { flex: 1; padding: 7px; border-radius: 6px; border: 1px solid #ccc;
-                      cursor: pointer; font-size: 13px; }
-  .banner-modal-box .btns .save { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  .banner-modal-box .chk { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: #444; }
+  .banner-modal-box .btns button { flex: 1; padding: 7px; border-radius: 6px; border: 1px solid var(--modal-border);
+                      background: var(--modal-input); color: var(--modal-text); cursor: pointer; font-size: 13px; }
+  .banner-modal-box .btns .save { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .banner-modal-box .chk { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--modal-label); }
   .tabbar { display: flex; gap: 4px; border-bottom: 1px solid #eee; margin-bottom: 12px; }
   .tabbar .tab { flex: 1; padding: 7px 4px; border: none; background: none; cursor: pointer;
-                 font-size: 13px; color: #666; border-bottom: 2px solid transparent; }
-  .tabbar .tab.active { color: #1a1a1a; font-weight: 600; border-bottom-color: #1a1a1a; }
+                 font-size: 13px; color: var(--modal-label); border-bottom: 2px solid transparent; }
+  .tabbar .tab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
   .banner-modal-box .field-hint { font-size: 11px; color: #999; margin-top: 2px; }
   .floating-settings { position: fixed; right: 18px; bottom: 18px; width: 48px; height: 48px;
                        border-radius: 50%; background: linear-gradient(135deg,#333,#000);
@@ -336,6 +367,17 @@ HTML = r"""<!doctype html>
                        box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 50;
                        transition: transform .15s; }
   .floating-settings:hover { transform: scale(1.08); }
+  .model-select { padding: 5px 10px; border: 1px solid var(--border); background: var(--surface);
+                  color: var(--text); border-radius: 8px; font-size: 12.5px; cursor: pointer; }
+  .theme-btn { border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+               border-radius: 8px; padding: 5px 9px; font-size: 13px; cursor: pointer; }
+  .theme-btn:hover { color: var(--text); }
+  .msg-actions { display: flex; gap: 6px; margin-top: 6px; opacity: 0; transition: opacity .15s; }
+  .bubble:hover .msg-actions { opacity: 1; }
+  .msg-actions button { border: none; background: none; color: var(--muted); cursor: pointer;
+                        font-size: 12px; padding: 2px 6px; border-radius: 5px; }
+  .msg-actions button:hover { background: var(--surface-2); color: var(--text); }
+  .msg-actions .voted { color: #4cd964; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -346,7 +388,7 @@ HTML = r"""<!doctype html>
              color: var(--muted); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sess-item:hover, .sess-item.active { background: var(--surface-2); color: var(--text); }
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .panel { width: 240px; min-width: 240px; background: rgba(255,255,255,.95);
+  .panel { width: 240px; min-width: 240px; background: var(--surface-solid);
              border-left: 1px solid var(--border); overflow-y: auto; padding: 10px; }
   .panel h3 { font-size: 12px; color: var(--muted); margin: 8px 0 6px; letter-spacing: .5px; }
   .mem-item { font-size: 12px; color: var(--text); padding: 6px 8px; background: var(--surface);
@@ -453,6 +495,12 @@ HTML = r"""<!doctype html>
               <input type="text" id="bCfgText2" maxlength="20">
             </div>
           </div>
+          <label>界面主题</label>
+          <select id="themeSelect" style="width:100%;padding:6px;border:1px solid var(--modal-border);background:var(--modal-input);color:var(--modal-text);border-radius:6px;font-size:13px;">
+            <option value="light">☀️ 浅色</option>
+            <option value="dark">🌙 深色</option>
+            <option value="auto">🖥 跟随系统</option>
+          </select>
           <label class="chk"><input type="checkbox" id="bCfgEnabled2"> 启用 Banner</label>
           <div class="btns">
             <button id="bCfgCancel2">关闭</button>
@@ -476,11 +524,20 @@ HTML = r"""<!doctype html>
             <label>模型名</label>
             <input type="text" id="llmModel" placeholder="deepseek-chat">
           </div>
+          <div class="row">
+            <div>
+              <label>Temperature</label>
+              <input type="text" id="llmTemperature" placeholder="0.7（0~2）">
+            </div>
+            <div style="display:flex;align-items:flex-end;justify-content:center;padding:6px 0;">
+              <span id="tempValue" style="font-size:13px;color:var(--modal-label);">0.7</span>
+            </div>
+          </div>
           <div class="btns">
             <button id="llmClose">关闭</button>
             <button class="save" id="llmSave">💾 保存模型配置</button>
           </div>
-          <div id="llmStatus" style="font-size:12px;color:#666;margin-top:6px;"></div>
+          <div id="llmStatus" style="font-size:12px;color:var(--modal-label);margin-top:6px;"></div>
         </div>
         <div class="tabpane" id="tab-skills" style="display:none;">
           <label>配置名（如：时区规则）</label>
@@ -506,6 +563,8 @@ HTML = r"""<!doctype html>
       <span class="brand">aichat<em> · 麒麟 AI</em></span>
       <span class="sub">记忆增强 · 系统工具</span>
       <span class="spacer"></span>
+      <select class="model-select" id="headerModel" title="切换模型"></select>
+      <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
       <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
     </header>
@@ -602,6 +661,35 @@ function addRow(role, text) {
     md.className = 'md';
     renderMd(md, text);
     bubble.appendChild(md);
+    // ---- 消息操作：复制 / 👍 / 👎（仿 dsh message-feedback）----
+    const acts = document.createElement('div');
+    acts.className = 'msg-actions';
+    const key = 'fb_' + sessionId + '_' + (history.length);
+    const saved = localStorage.getItem(key);
+    const mk = (t, icon) => {
+      const b = document.createElement('button');
+      b.textContent = icon;
+      b.title = t;
+      b.dataset.v = t;
+      if (saved === t) b.classList.add('voted');
+      return b;
+    };
+    const bCopy = mk('复制', '📋');
+    const bUp = mk('有用', '👍');
+    const bDown = mk('没用', '👎');
+    bCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        bCopy.textContent = '✅';
+        setTimeout(() => { bCopy.textContent = '📋'; }, 1200);
+      } catch (e) {}
+    };
+    bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
+    bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
+    acts.appendChild(bCopy);
+    acts.appendChild(bUp);
+    acts.appendChild(bDown);
+    bubble.appendChild(acts);
   }
   row.appendChild(who);
   row.appendChild(bubble);
@@ -798,6 +886,66 @@ async function refreshPanels() {
   } catch (e) {}
 }
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
+// ---- 主题（深色/浅色/跟随系统）----
+function applyTheme(t) {
+  if (t === 'auto') {
+    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function loadTheme() {
+  const t = localStorage.getItem('aichat_theme') || 'light';
+  document.getElementById('themeSelect').value = t;
+  applyTheme(t);
+}
+document.getElementById('themeToggle').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('aichat_theme', next);
+  document.getElementById('themeSelect').value = next;
+  applyTheme(next);
+};
+document.getElementById('themeSelect').onchange = () => {
+  localStorage.setItem('aichat_theme', document.getElementById('themeSelect').value);
+  applyTheme(document.getElementById('themeSelect').value);
+};
+
+// ---- 顶栏模型选择器 ----
+async function loadHeaderModel() {
+  try {
+    const r = await fetch('/api/llm_config', { headers: apiHeaders });
+    const d = await r.json();
+    const sel = document.getElementById('headerModel');
+    sel.innerHTML = '';
+    const optSdk = document.createElement('option');
+    optSdk.value = 'sdk'; optSdk.textContent = '🤖 麒麟 SDK（零 Key）';
+    sel.appendChild(optSdk);
+    if (d.model) {
+      const optApi = document.createElement('option');
+      optApi.value = 'api';
+      optApi.textContent = '⚡ ' + (d.model || '自定义 API');
+      sel.appendChild(optApi);
+    }
+    sel.value = d.provider === 'api' && d.model ? 'api' : 'sdk';
+  } catch (e) {}
+}
+document.getElementById('headerModel').onchange = async (e) => {
+  const v = e.target.value;
+  try {
+    const r = await fetch('/api/llm_config', { headers: apiHeaders });
+    const cfg = await r.json();
+    const body = { provider: v, base_url: cfg.base_url || '', model: cfg.model || '', api_key: '' };
+    if (v === 'sdk') body.api_key = '';
+    await fetch('/api/llm_config', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify(body),
+    });
+  } catch (err) {}
+};
+loadHeaderModel();
+loadTheme();
+
 function toggleLlmFields() {
   const isSdk = document.getElementById('llmProvider').value === 'sdk';
   document.getElementById('llmSdkHint').style.display = isSdk ? '' : 'none';
@@ -811,9 +959,14 @@ async function refreshLlmConfig() {
     document.getElementById('llmBaseUrl').value = d.base_url || '';
     document.getElementById('llmApiKey').value = d.api_key_set ? '******' : '';
     document.getElementById('llmModel').value = d.model || '';
+    document.getElementById('llmTemperature').value = d.temperature != null ? d.temperature : 0.7;
+    document.getElementById('tempValue').textContent = d.temperature != null ? d.temperature : 0.7;
     toggleLlmFields();
   } catch (e) {}
 }
+document.getElementById('llmTemperature').oninput = () => {
+  document.getElementById('tempValue').textContent = document.getElementById('llmTemperature').value || '';
+};
 document.getElementById('llmProvider').onchange = toggleLlmFields;
 document.getElementById('llmSave').onclick = async () => {
   const btn = document.getElementById('llmSave');
@@ -825,6 +978,7 @@ document.getElementById('llmSave').onclick = async () => {
     base_url: document.getElementById('llmBaseUrl').value.trim(),
     api_key: key,
     model: document.getElementById('llmModel').value.trim(),
+    temperature: parseFloat(document.getElementById('llmTemperature').value) || 0.7,
   };
   try {
     const r = await fetch('/api/llm_config', {
@@ -1584,6 +1738,7 @@ class Handler(BaseHTTPRequestHandler):
                 "base_url": _cfg.get("base_url", ""),
                 "model": _cfg.get("model", ""),
                 "api_key_set": bool(_cfg.get("api_key")),
+                "temperature": _cfg.get("temperature", 0.7),
             })
         elif self.path == "/api/skills":
             sm = _get_skill_memory()
@@ -1646,6 +1801,11 @@ class Handler(BaseHTTPRequestHandler):
                 _cfg["api_key"] = _body["api_key"].strip()
             if _body.get("model"):
                 _cfg["model"] = _body["model"].strip()
+            if _body.get("temperature") is not None:
+                try:
+                    _cfg["temperature"] = max(0.0, min(2.0, float(_body["temperature"])))
+                except Exception:
+                    pass
             if _cfg["provider"] == "api" and not _cfg.get("api_key"):
                 return self._json(400, {"ok": False, "error": "API 模式必须提供 API Key"})
             llm_client.save_config(_cfg)
