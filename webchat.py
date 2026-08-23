@@ -58,10 +58,58 @@ init_all_tools()
 REGISTRY = get_registry()
 EXECUTOR = ClosedLoopExecutor(registry=REGISTRY, max_retries=1)
 
-TOOL_CATALOG = "\n".join(
-    f"- {name}: {REGISTRY.get(name).description}"
-    for name in REGISTRY.list_all()
-)
+# 工具参数 schema（dsh 风格：告诉模型每个工具的参数，避免瞎猜参数名）
+# 格式：{tool_name: {param: {"type": "str|int|bool", "required": bool, "desc": "..."}}}
+TOOL_PARAMS = {
+    "sysinfo": {"info_type": {"type": "str", "required": True, "desc": "cpu/memory/disk/display/load/network/os"}},
+    "process_list": {"keyword": {"type": "str", "required": False, "desc": "按名称过滤"}},
+    "process_kill": {"pid": {"type": "int", "required": True, "desc": "进程 PID"}, "signal": {"type": "int", "required": False, "desc": "信号，默认 15"}},
+    "netstatus": {"type": {"type": "str", "required": False, "desc": "ip=IP地址, net=网络详情"}},
+    "battery": {},
+    "diskinfo": {},
+    "file": {"action": {"type": "str", "required": False, "desc": "mkdir/list/read/write/verify/delete"},
+             "path": {"type": "str", "required": False, "desc": "文件或目录路径"},
+             "paths": {"type": "list", "required": False, "desc": "批量路径"},
+             "folder": {"type": "str", "required": False, "desc": "目标文件夹"},
+             "files": {"type": "list", "required": False, "desc": "文件名列表"},
+             "count": {"type": "int", "required": False, "desc": "批量数量"},
+             "ext": {"type": "str", "required": False, "desc": "扩展名，默认 md"}},
+    "shell": {"cmd": {"type": "str", "required": True, "desc": "要执行的命令（白名单受限）"}},
+    "web_search": {"query": {"type": "str", "required": True, "desc": "搜索关键词"}, "num": {"type": "int", "required": False, "desc": "返回条数(1-10)"}},
+    "python_exec": {"code": {"type": "str", "required": True, "desc": "Python 代码（沙箱执行，需 print 输出）"}},
+    "kb": {"action": {"type": "str", "required": False, "desc": "add=入库, query=问答"},
+           "content": {"type": "str", "required": False, "desc": "入库文本"},
+           "path": {"type": "str", "required": False, "desc": "文件路径"},
+           "question": {"type": "str", "required": False, "desc": "知识问答问题"}},
+    "ocr": {"image_path": {"type": "str", "required": True, "desc": "图片绝对路径"}},
+    "volume": {"action": {"type": "str", "required": False, "desc": "get/mute/unmute/up/down"}, "value": {"type": "int", "required": False, "desc": "音量百分比"}},
+    "wifi": {"action": {"type": "str", "required": True, "desc": "scan/connect/disconnect"}, "ssid": {"type": "str", "required": False, "desc": "WiFi 名"}, "password": {"type": "str", "required": False, "desc": "密码"}},
+    "timezone": {"timezone": {"type": "str", "required": True, "desc": "时区，如 Asia/Shanghai"}},
+    "datetime": {"action": {"type": "str", "required": False, "desc": "get/set"}},
+    "sleep": {"delay_seconds": {"type": "int", "required": False, "desc": "延时秒数，默认 60"}},
+    "power": {"action": {"type": "str", "required": True, "desc": "reboot/shutdown"}, "delay_seconds": {"type": "int", "required": False, "desc": "延时秒数"}},
+    "screenshot": {"mode": {"type": "str", "required": False, "desc": "full 全屏"}, "output_path": {"type": "str", "required": False, "desc": "保存路径"}},
+    "notify": {"title": {"type": "str", "required": False, "desc": "通知标题"}, "body": {"type": "str", "required": False, "desc": "通知内容"}},
+    "bluetooth": {"action": {"type": "str", "required": False, "desc": "scan/on/off"}},
+    "app": {"name": {"type": "str", "required": True, "desc": "应用名"}},
+}
+
+
+def _tool_line(name):
+    tool = REGISTRY.get(name)
+    line = f"- {name}: {tool.description}"
+    params = TOOL_PARAMS.get(name)
+    if params:
+        parts = []
+        for pname, pinfo in params.items():
+            req = "必填" if pinfo.get("required") else "可选"
+            parts.append(f"{pname}({pinfo.get('type', 'str')},{req})={pinfo.get('desc', '')}")
+        if parts:
+            line += "  [参数: " + "; ".join(parts) + "]"
+    return line
+
+
+TOOL_CATALOG = "\n".join(_tool_line(name) for name in REGISTRY.list_all())
 
 # ---------- 配置即长期记忆（类似 Codex AGENTS.md）----------
 _skill_memory = None
@@ -138,21 +186,29 @@ _tool_lock = threading.Lock()
 MAX_SESSIONS = 64        # 最多保留的会话数（LRU 淘汰）
 MAX_HISTORY_TURNS = 8    # 每会话最多拼接最近 8 轮（16 条消息）
 MAX_TURN_CHARS = 500     # 单条历史消息截断长度，控制 prompt 体积
+COMPACT_THRESHOLD = 12   # 历史超过 12 轮时触发早期压缩（dsh compaction）
+COMPACT_KEEP = 6         # 压缩时移出的早期轮次数量（保留最近轮做总结上下文）
 SESSIONS: "OrderedDict[str, list]" = OrderedDict()
+SESSIONS_META: dict = {}  # sid -> {"summary": "早期对话摘要", "title": "LLM标题"}
 _sessions_lock = threading.Lock()
 _SESSIONS_PATH = os.path.join(os.path.expanduser("~"), ".nex-agent", "sessions.json")
 
 
 def _load_sessions():
-    """从 JSON 恢复会话历史（服务重启不丢失）。"""
-    global SESSIONS
+    """从 JSON 恢复会话历史 + meta（兼容旧格式 list）。"""
+    global SESSIONS, SESSIONS_META
     try:
         with open(_SESSIONS_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict):
-            SESSIONS = OrderedDict(
-                (k, v[-MAX_HISTORY_TURNS * 2:]) for k, v in data.items()
-            )
+            if "sessions" in data:  # 新格式
+                SESSIONS = OrderedDict((k, v[-MAX_HISTORY_TURNS * 2:])
+                                       for k, v in data["sessions"].items())
+                SESSIONS_META = data.get("meta", {}) or {}
+            else:                   # 旧格式：直接是 sid -> hist
+                SESSIONS = OrderedDict(
+                    (k, v[-MAX_HISTORY_TURNS * 2:]) for k, v in data.items()
+                )
             while len(SESSIONS) > MAX_SESSIONS:
                 SESSIONS.popitem(last=False)
             print(f"[session] 已从 {_SESSIONS_PATH} 恢复 {len(SESSIONS)} 个会话")
@@ -163,12 +219,13 @@ def _load_sessions():
 
 
 def _persist_sessions():
-    """将会话历史落盘 JSON（原子写）。"""
+    """将会话历史 + meta 落盘 JSON（原子写）。"""
     try:
         os.makedirs(os.path.dirname(_SESSIONS_PATH), exist_ok=True)
         tmp = _SESSIONS_PATH + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(SESSIONS, f, ensure_ascii=False)
+            json.dump({"sessions": SESSIONS, "meta": SESSIONS_META},
+                      f, ensure_ascii=False)
         os.replace(tmp, _SESSIONS_PATH)
     except Exception as e:
         print(f"[session] 会话持久化失败: {e}")
@@ -179,15 +236,71 @@ def _session_history(session_id: str):
         return list(SESSIONS.get(session_id, []))
 
 
+def _compact_async(session_id: str, old_msgs: list):
+    """异步：用 LLM 把早期对话总结成摘要，追加到会话 meta.summary。"""
+    try:
+        from src import llm_client
+        text = "\n".join(f"{'用户' if m.get('role') == 'user' else '助手'}：{m.get('content', '')}"
+                          for m in old_msgs)
+        if not text.strip():
+            return
+        prompt = ("把以下对话压缩成一段摘要（保留：关键事实、用户偏好、已执行的操作与结果、"
+                  "明确承诺的事项）。150 字以内，只输出摘要正文：\n\n" + text)
+        summary = (llm_client.generate(prompt) or "").strip()
+        if not summary:
+            return
+        with _sessions_lock:
+            meta = SESSIONS_META.setdefault(session_id, {"summary": "", "title": ""})
+            old_s = (meta.get("summary") or "").strip()
+            meta["summary"] = (old_s + "\n" + summary) if old_s else summary
+            _persist_sessions()
+        print(f"[session] 会话 {session_id[:8]} 历史压缩完成: +{len(summary)} 字", flush=True)
+    except Exception as e:
+        print(f"[session] 压缩失败: {e}", flush=True)
+
+
+def _gen_title_async(session_id: str, first_msg: str):
+    """异步：LLM 生成会话标题（10 字内）。"""
+    try:
+        from src import llm_client
+        prompt = ("为下面这段对话的第一条用户消息生成一个简短标题（10 个汉字以内，"
+                  "不要引号，不要标点结尾）：\n" + (first_msg or "")[:60])
+        title = (llm_client.generate(prompt) or "").strip()[:20]
+        if not title:
+            return
+        with _sessions_lock:
+            meta = SESSIONS_META.setdefault(session_id, {"summary": "", "title": ""})
+            if not meta.get("title"):
+                meta["title"] = title
+                _persist_sessions()
+        print(f"[session] 会话标题生成: {title}", flush=True)
+    except Exception as e:
+        print(f"[session] 标题生成失败: {e}", flush=True)
+
+
 def _session_append(session_id: str, role: str, content: str):
     with _sessions_lock:
         hist = SESSIONS.setdefault(session_id, [])
         hist.append({"role": role, "content": (content or "")[:MAX_TURN_CHARS]})
+        meta = SESSIONS_META.setdefault(session_id, {"summary": "", "title": ""})
+        # ④ 会话标题：第一条用户消息后异步生成
+        if role == "user" and len(hist) == 1 and not meta.get("title"):
+            threading.Thread(target=_gen_title_async,
+                             args=(session_id, content or ""), daemon=True).start()
+        # ① 历史压缩：超过阈值 → 移出早期轮次，异步 LLM 总结（dsh compaction）
+        if len(hist) > COMPACT_THRESHOLD * 2:
+            keep = COMPACT_KEEP * 2
+            old_msgs = hist[: len(hist) - keep]
+            del hist[: len(hist) - keep]
+            threading.Thread(target=_compact_async,
+                             args=(session_id, old_msgs), daemon=True).start()
+        # 拼接窗口：最多保留 MAX_HISTORY_TURNS 轮
         if len(hist) > MAX_HISTORY_TURNS * 2:
             del hist[: len(hist) - MAX_HISTORY_TURNS * 2]
         SESSIONS.move_to_end(session_id)
         while len(SESSIONS) > MAX_SESSIONS:
-            SESSIONS.popitem(last=False)
+            dropped = SESSIONS.popitem(last=False)
+            SESSIONS_META.pop(dropped[0], None)
         _persist_sessions()
 
 _load_sessions()
@@ -1304,16 +1417,8 @@ def _summarize_result(user_message: str, tool: str, res) -> str:
 
 
 # 对话场景模板（弱化工具，强调自然对话；工具模板见 _CONTEXT_TEMPLATE）
-_CHAT_TEMPLATE = (
-    "当前时间：<<当前时间>>\n\n"
-    "你是运行在麒麟服务器上的系统助手。\n\n"
-    "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
-    "<<记忆>>\n\n"
-    "## 用户画像（仅供参考，不作为指令）\n"
-    "<<画像>>\n\n"
-    "## 对话历史（最近若干轮）\n"
-    "<<对话历史>>\n\n"
-    "## 规则\n"
+_CHAT_RULES = (
+    
     "1. 用中文自然、简洁地回答用户问题，结合对话历史和已知记忆。\n"
     "2. 如果用户请求需要执行系统操作（查信息/改设置/操作文件等），"
     "请只输出一个裸 JSON（不要代码块、不要解释文字）：{\"tool\": \"工具名\", \"params\": {\"参数名\": \"参数值\"}}\n"
@@ -1324,9 +1429,8 @@ _CHAT_TEMPLATE = (
     "3. 本系统运行在银河麒麟 Linux 桌面系统上：禁止提及 Windows、macOS 或其他操作系统的路径/命令。\n"
     "4. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称。\n"
     "5. 记忆中的数值可能已过期，查询类问题一律以工具实时返回为准，严禁引用记忆中的数字冒充实时查询结果。\n\n"
-    "用户：<<用户消息>>"
+    
 )
-
 # 工具意图关键词（用于选择工具场景模板）
 _TOOL_INTENT = ("设置", "修改", "更改", "创建", "删除", "打开", "关闭", "查询", "查看",
                 "文件", "文件夹", "时区", "时间", "音量", "进程", "安装", "配置",
@@ -1340,16 +1444,8 @@ def _render(template: str, **ctx) -> str:
 
 
 # 上下文模板：用 <<VAR>> 占位符（而非 str.format），避免与规则里的 JSON 花括号冲突
-_CONTEXT_TEMPLATE = (
-    "当前时间：<<当前时间>>\n\n"
-    "你是运行在麒麟服务器上的系统助手。\n\n"
-    "## 可用系统工具\n"
-    "<<工具目录>>\n\n"
-    "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
-    "<<记忆>>\n\n"
-    "## 对话历史（最近若干轮）\n"
-    "<<对话历史>>\n\n"
-    "## 规则\n"
+_TOOL_RULES = (
+    
     "1. 如果用户请求需要执行系统操作（改时区、查硬件/进程/电池、建文件夹/文件等），"
     "且上面有对应工具，请**只输出**一个 JSON，不要输出其它内容：\n"
     '{"tool": "工具名", "params": {"参数名": "参数值"}}\n'
@@ -1374,33 +1470,73 @@ _CONTEXT_TEMPLATE = (
     "禁止用 shell 的 ';' 或 '&&' 拼接多条命令，也不要只创建文件夹而不生成文件。\n"
     "7. 工具名必须来自工具目录中列出的名称，禁止发明不存在的工具名（如 run_command）；"
     "记忆中的内容可能已过期，查询类问题一律以工具实时返回为准，不得用记忆数据冒充当前查询结果。\n\n"
-    "用户：<<用户消息>>"
+    
 )
+
+def _skill_prompt_block() -> str:
+    """技能/长期记忆配置 → 提示词分节（dsh: 配置即长期记忆，须遵守）。"""
+    try:
+        sm = _get_skill_memory()
+        skills = sm.list_skills()
+        if not skills:
+            return ""
+        lines = []
+        for sk in skills:
+            name = getattr(sk, "name", "")
+            content = getattr(sk, "content", "")
+            cond = getattr(sk, "condition", "") or ""
+            tag_txt = ",".join(getattr(sk, "tags", []) or [])
+            if name and content:
+                head = name + (f"（适用: {cond}）" if cond else "")
+                if tag_txt:
+                    head += f" [{tag_txt}]"
+                lines.append(f"- {head}: {content[:200]}")
+        return "\n".join(lines) if lines else ""
+    except Exception:
+        return ""
 
 
 def _build_context(message: str, session_id: str) -> str:
-    """统一拼接上下文：分场景模板 + 工具目录 + 记忆 + 画像 + 对话历史 + 当前消息。"""
+    """统一拼接上下文（dsh 分节式：身份/工具/记忆/画像/技能/历史/规则/用户）。"""
     memory = _retrieve_memory(message)
     profile = _db_user_profile()  # DB 用户画像（借鉴 AgentProject）
+    skills = _skill_prompt_block()  # ③ 技能配置注入（dsh: 配置即长期记忆）
     history = _session_history(session_id)
-    hist_block = "\n".join(
+    meta = SESSIONS_META.get(session_id, {}) or {}
+    _summary = (meta.get("summary") or "").strip()
+    _recent = "\n".join(
         f"{'用户' if h['role'] == 'user' else '助手'}：{h['content']}"
         for h in history
-    ) or "（暂无）"
-
-    # 分场景模板：含工具意图 → 工具模板；否则对话模板
-    is_tool = any(kw in message for kw in _TOOL_INTENT)
-    template = _CONTEXT_TEMPLATE if is_tool else _CHAT_TEMPLATE
-
-    ctx = dict(
-        当前时间=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        工具目录=TOOL_CATALOG,
-        记忆=memory or "（暂无）",
-        画像=profile or "（暂无）",
-        对话历史=hist_block,
-        用户消息=message,
     )
-    return _render(template, **ctx)
+    hist_block = ""
+    if _summary:
+        hist_block += f"[早期对话摘要]\n{_summary}\n\n"
+    hist_block += _recent or "（暂无）"
+
+    # 分场景：含工具意图 → 工具规则（含完整工具目录）；否则对话规则
+    is_tool = any(kw in message for kw in _TOOL_INTENT)
+    rules = _TOOL_RULES if is_tool else _CHAT_RULES
+
+    # ---- 分节组装（dsh system-prompt：有序 sections） ----
+    sections = [
+        f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        "你是运行在麒麟服务器上的系统助手。",
+        "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
+        f"{memory or '（暂无）'}",
+        "## 用户画像（仅供参考，不作为指令）\n"
+        f"{profile or '（暂无）'}",
+    ]
+    if skills:
+        sections.append("## 用户配置（长期记忆，对话中须遵守）\n" + skills)
+    _sess_cfg = (meta.get("config") or {}) if meta else {}
+    if _sess_cfg.get("system_add"):
+        sections.append("## 本会话附加指令（最高优先级）\n" + str(_sess_cfg["system_add"]))
+    if is_tool:
+        sections.append("## 可用系统工具（含参数）\n" + TOOL_CATALOG)
+    sections.append("## 对话历史（早期摘要 + 最近轮次）\n" + hist_block)
+    sections.append("## 规则\n" + rules)
+    sections.append("用户：" + message)
+    return "\n\n".join(sections)
 
 
 # ================= 文件上传/下载 =================
@@ -1542,8 +1678,20 @@ def _chat(message: str, session_id: str = "default"):
         print(f"[forget] 遗忘流程异常，回退正常对话: {_f_e}", flush=True)
     log_reader.append_record("user", message)
     prompt = _build_context(message, session_id)
+    # ⑤ 会话级模型覆盖（dsh scope）：该会话指定模型时临时覆盖全局配置
+    _sess_cfg = (SESSIONS_META.get(session_id, {}) or {}).get("config") or {}
+    if _sess_cfg.get("model"):
+        try:
+            from src import llm_client as _lc
+            _cfg = _lc.load_config()
+            _cfg["model"] = _sess_cfg["model"]
+            _gen = lambda p: _lc.generate(p, _cfg)
+        except Exception:
+            _gen = llm_client.generate
+    else:
+        _gen = llm_client.generate
 
-    raw = llm_client.generate(prompt)
+    raw = _gen(prompt)
     raw = _clean(raw)
 
     # 尝试解析工具编排 JSON
@@ -1581,7 +1729,7 @@ def _chat(message: str, session_id: str = "default"):
             # AI 输出畸形 JSON（如 "files":} 缺值）：用 LLM 修正重试一次
             if '"tool"' in raw or "'tool'" in raw:
                 try:
-                    retry_raw = llm_client.generate(
+                    retry_raw = _gen(
                             prompt + "\n\n注意：您上一次输出的工具调用 JSON 格式不完整或无效。"
                             "请重新输出，必须是一个完整合法的 JSON 对象，所有字段都要有值。"
                         )
@@ -1701,6 +1849,7 @@ class Handler(BaseHTTPRequestHandler):
             with _sessions_lock:
                 sess = [
                     {"session_id": sid, "turns": len(hist),
+                     "title": (SESSIONS_META.get(sid, {}) or {}).get("title", ""),
                      "preview": (hist[-1]["content"][:24] if hist else "")}
                     for sid, hist in SESSIONS.items()
                 ]
@@ -1730,6 +1879,12 @@ class Handler(BaseHTTPRequestHandler):
                       "version": s.version, "condition": s.condition}
                      for s in sm.list_skills()]
             self._json(200, {"skills": items, "conflicts": len(sm.conflicts())})
+        elif self.path.startswith("/api/session/config"):
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            sid = (qs.get("session_id") or [""])[0]
+            cfg = (SESSIONS_META.get(sid, {}) or {}).get("config") or {}
+            self._json(200, {"session_id": sid, "config": cfg})
         elif self.path == "/api/banner":
             self._json(200, _load_banner())
         elif self.path.startswith("/api/download/"):
@@ -1758,6 +1913,25 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/session/config":
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            sid = (body.get("session_id") or "").strip()
+            if not sid:
+                return self._json(400, {"ok": False, "error": "缺少 session_id"})
+            with _sessions_lock:
+                meta = SESSIONS_META.setdefault(sid, {"summary": "", "title": ""})
+                cfg = dict(meta.get("config") or {})
+                if body.get("system_add") is not None:
+                    cfg["system_add"] = str(body["system_add"]).strip()[:2000]
+                if body.get("model"):
+                    cfg["model"] = str(body["model"]).strip()[:80]
+                meta["config"] = cfg
+                _persist_sessions()
+            return self._json(200, {"ok": True, "config": cfg})
         if self.path == "/api/banner":
             try:
                 length = int(self.headers.get("Content-Length") or 0)

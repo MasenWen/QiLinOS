@@ -47,11 +47,11 @@ def save_config(cfg: dict) -> None:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
 
 
-def generate(prompt: str) -> str:
-    """统一文本生成入口。配置为 api 且有 key 时走 OpenAI 兼容接口，否则走麒麟 SDK。"""
+def generate(prompt: str, cfg_override: dict | None = None) -> str:
+    """统一文本生成入口。cfg_override 可覆盖全局配置（会话级作用域，dsh scope）。"""
     if not prompt:
         return ""
-    cfg = load_config()
+    cfg = cfg_override or load_config()
     if cfg.get("provider") == "api" and cfg.get("api_key"):
         return _api_generate(prompt, cfg)
     # 默认路径：麒麟 SDK
