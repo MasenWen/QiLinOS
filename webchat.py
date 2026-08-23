@@ -1371,15 +1371,39 @@ document.getElementById('clear').onclick = () => {
   msgs.appendChild(d);
   input.focus();
 };
-document.getElementById('clearMem').onclick = async () => {
+document.getElementById('clearMem').onclick = () => {
+  document.getElementById('clearMemModal').style.display = 'flex';
+};
+document.getElementById('clearMemCancel').onclick = () => {
+  document.getElementById('clearMemModal').style.display = 'none';
+};
+document.getElementById('clearMemModal').onclick = (e) => {
+  if (e.target === document.getElementById('clearMemModal'))
+    document.getElementById('clearMemModal').style.display = 'none';
+};
+document.getElementById('clearMemConfirm').onclick = async () => {
   try {
     await fetch('/api/mem/clear', { method: 'POST', headers: apiHeaders });
     alert('已清空 AI 关于你的记忆');
   } catch (e) {
     alert('清空记忆失败: ' + e);
   }
+  document.getElementById('clearMemModal').style.display = 'none';
+  refreshPanels();
 };
 </script>
+<div class="banner-modal" id="clearMemModal">
+  <div class="banner-modal-box" style="width:320px;">
+    <h3>⚠️ 清空记忆</h3>
+    <p style="font-size:12.5px;color:var(--modal-label);margin:6px 0 12px;">
+      确定清空 AI 关于你的<strong>全部长期记忆</strong>吗？<br>此操作不可恢复。
+    </p>
+    <div class="btns">
+      <button id="clearMemCancel">取消</button>
+      <button class="save" id="clearMemConfirm" style="background:#c0392b;color:#fff;border-color:#c0392b;">确认清空</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
 """
