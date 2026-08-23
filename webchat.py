@@ -1515,10 +1515,7 @@ def _handle_tool_confirm(self) -> None:
                                      summary=str(getattr(res, "output", ""))[:200])
         except Exception:
             pass
-        try:
-            reply = _summarize_result(session_id, tool, res)
-        except Exception:
-            reply = _render_tool_result(res)
+        reply = _render_tool_result(res)
         return self._json(200, {"ok": True, "reply": reply})
     except Exception as e:
         return self._json(500, {"ok": False, "error": f"执行失败: {e}"})
@@ -1675,6 +1672,23 @@ _TOOL_RULES = (
     "禁止用 shell 的 ';' 或 '&&' 拼接多条命令，也不要只创建文件夹而不生成文件。\n"
     "7. 工具名必须来自工具目录中列出的名称，禁止发明不存在的工具名（如 run_command）；"
     "记忆中的内容可能已过期，查询类问题一律以工具实时返回为准，不得用记忆数据冒充当前查询结果。\n"
+    "8b. 文件/文本查询映射："
+    "查看/读取文件内容 → file 工具 action=read path=完整路径（或 shell cat 路径）；"
+    "查找【内容】包含某关键词的文件 → shell 工具 grep -l 关键词 路径/*（grep 匹配内容，find -name 只匹配文件名，不要混用）；"
+    "统计文件数量 → shell ls 路径 | wc -l 或 file list；"
+    "列出目录 → file action=list path=路径（或 shell ls）。"
+    "工具返回后必须把具体文件名、内容、数量原样转述，禁止只说'已成功'。\n"
+    "示例（务必模仿此格式）：\n"
+    "  用户：查找 /tmp 下包含 project_dev1 的文件\n"
+    "  工具：{\"tool\": \"shell\", \"params\": {\"cmd\": \"grep -l project_dev1 /tmp/* 2>/dev/null | head -10\"}}\n"
+    "  工具返回：/tmp/测试文本.txt\n"
+    "  正确回答：找到包含 project_dev1 的文件：/tmp/测试文本.txt\n"
+    "  错误回答：已成功查找（没有列出文件名）\n"
+    "  用户：查看桌面测试文档.txt 的内容\n"
+    "  工具：{\"tool\": \"file\", \"params\": {\"action\": \"read\", \"path\": \"~/桌面/测试文档.txt\"}}\n"
+    "  工具返回：第一行：hello world\n"
+    "  正确回答：测试文档.txt 的内容：第一行：hello world（原样转述）\n"
+    "  查找【内容】用 grep -l；查找【文件名】用 find -name。\n"
     "8. 路径必须是用户原话或工具返回的精确路径，禁止自行拼接、添加或修改修饰词"
     "（如用户提到「测试文件夹」，路径只能用用户提供的原词；目录名与路径不要混入「文件夹」等描述词）。\n"
     "9. 查询最大文件/目录、文件大小、磁盘占用排名等，**必须调用 shell 工具执行管道命令**"
@@ -1963,15 +1977,11 @@ def _chat(message: str, session_id: str = "default"):
                                              summary=str(getattr(res, "output", ""))[:200])
                 except Exception:
                     pass
-                try:
-                    reply = _summarize_result(message, tool, res)
-                    # 步骤化编排：复杂任务回显进度（借鉴 AgentProject step/all_step）
-                    if step is not None and total_steps:
-                        reply = f"（步骤 {step}/{total_steps}）" + reply
-                    return reply
-                except Exception as e:
-                    print(f"[tool] 结果二次生成失败，回退原始渲染: {e}", flush=True)
-                    return _render_tool_result(res)
+                # 忠实透传工具结果（不经 LLM 美化——LLM 二次总结会丢数据/空泛化）
+                reply = _render_tool_result(res)
+                if step is not None and total_steps:
+                    reply = f"（步骤 {step}/{total_steps}）" + reply
+                return reply
         except Exception as e:
             print(f"[tool] 编排执行失败: {e}", flush=True)
             # AI 输出畸形 JSON（如 "files":} 缺值）：用 LLM 修正重试一次

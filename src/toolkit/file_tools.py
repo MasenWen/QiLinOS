@@ -84,6 +84,24 @@ class FileTool(BaseTool):
                 lines.append(f"- {tag} {e}{size}")
             return self._ok(f"目录 {path} 共 {len(entries)} 项：\n" + "\n".join(lines))
 
+        # read：只读查看文本文件内容（解决"查看文件内容"无专用工具的缺口）
+        if action == "read":
+            path = self._resolve(raw_path or "")
+            if not os.path.isfile(path):
+                return self._fail(f"文件不存在: {raw_path or ''}")
+            try:
+                size = os.path.getsize(path)
+                if size > 200 * 1024:
+                    return self._fail(f"文件过大（{size//1024}KB），超过 200KB 读取上限，请用 shell head/tail 分段查看")
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+            except Exception as e:
+                return self._fail(f"读取失败: {e}")
+            if not content.strip():
+                return self._ok(f"文件为空: {path}")
+            lines = content.splitlines()
+            return self._ok(f"文件 {path}（{len(lines)} 行）：\n" + "\n".join(lines[:100]))
+
         # batch：一步创建文件夹 + 内部多文件（解决"建文件夹含N个文件"场景）
         if action == "batch":
             folder = (kwargs.get("folder") or "").strip()
