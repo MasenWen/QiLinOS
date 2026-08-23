@@ -19,3 +19,4 @@ venv/
 _benchmark/processed_data/query_set.csv
 *.bak
 ._*
+uploads/
