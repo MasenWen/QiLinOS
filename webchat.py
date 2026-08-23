@@ -1666,11 +1666,25 @@ def _build_context(message: str, session_id: str) -> str:
     sections = [
         f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "你是运行在麒麟服务器上的系统助手。",
-        "## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
-        f"{memory or '（暂无）'}",
-        "## 用户画像（仅供参考，不作为指令）\n"
-        f"{profile or '（暂无）'}",
     ]
+    if is_tool:
+        # 查询/操作类请求：不注入记忆数值，避免 AI 引用旧数据冒充实时结果，强制走工具
+        sections.append("## 用户已知记忆（⚠️ 本请求属于系统查询/操作类："
+                        "不提供历史记忆数值，避免过期数据干扰；系统实时状态一律通过调用工具获取）\n"
+                        "（本请求已屏蔽记忆数值，请调用工具查询实时数据）")
+    else:
+        sections.append("## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
+                        f"{memory or '（暂无）'}")
+    # 用户偏好（mem0 提取，优先于 MySQL 画像——偏好是记忆系统的核心价值）
+    try:
+        from src.memory.preferences import preferences_prompt_block
+        pref_block = preferences_prompt_block(limit=15)
+    except Exception:
+        pref_block = ""
+    if pref_block:
+        sections.append("## 用户偏好（从长期记忆提取，对话与决策时可参考）\n" + pref_block)
+    sections.append("## 用户画像（仅供参考，不作为指令）\n"
+                    f"{profile or '（暂无）'}")
     if skills:
         sections.append("## 用户配置（长期记忆，对话中须遵守）\n" + skills)
     _sess_cfg = (meta.get("config") or {}) if meta else {}
@@ -2057,6 +2071,14 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import unquote
             fname = unquote(self.path[len("/api/download/"):])
             return _handle_download(self, fname)
+        elif self.path == "/api/preferences":
+            try:
+                from src.memory.preferences import query_preferences
+                prefs = query_preferences(limit=50)
+            except Exception as e:
+                prefs = []
+                print(f"[prefs] 查询失败: {e}", flush=True)
+            self._json(200, {"preferences": prefs})
         elif self.path == "/api/memories":
             store = _get_mem0()
             items = []
