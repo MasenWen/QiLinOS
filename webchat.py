@@ -1452,6 +1452,18 @@ def _remember(messages):
     try:
         with _mem_lock:
             store.add(messages)
+        # ④ 偏好类记忆同步写入知识图谱（KG 积累）
+        try:
+            from src.memory.preferences import is_preference
+            _um = str((messages or [{}])[0].get("content") or "").strip()
+            if _um and is_preference(_um):
+                from src.memory_engine.knowledge_graph import KnowledgeGraph
+                _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
+                _kg = KnowledgeGraph.load(_kg_path) if os.path.exists(_kg_path) else KnowledgeGraph()
+                _kg.add_node(label="preference", text=_um[:100], strength=0.8)
+                _kg.save(_kg_path)
+        except Exception:
+            pass
     except Exception as e:
         print(f"[mem] 写入失败: {e}", flush=True)
 
@@ -1780,6 +1792,21 @@ def _build_context(message: str, session_id: str) -> str:
         pref_block = preferences_prompt_block(limit=15)
     except Exception:
         pref_block = ""
+    # ⑤ 跨会话联动：其他会话的早期摘要若含偏好信号，一并注入（历史知识跨会话可见）
+    try:
+        from src.memory.preferences import is_preference
+        _extra = []
+        for _sid, _m in SESSIONS_META.items():
+            if _sid == session_id:
+                continue
+            _sm = ((_m or {}).get("summary") or "").strip()
+            if _sm and is_preference(_sm):
+                _extra.append(_sm[:120])
+        if _extra:
+            pref_block = (pref_block + "\n" if pref_block else "") + "\n".join(
+                f"- [历史] {e}" for e in _extra[:5])
+    except Exception:
+        pass
     if pref_block:
         sections.append("## 用户偏好（从长期记忆提取，对话与决策时可参考）\n" + pref_block)
     sections.append("## 用户画像（仅供参考，不作为指令）\n"
