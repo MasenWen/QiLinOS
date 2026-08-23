@@ -63,19 +63,22 @@ class Mem0Store:
         try:
             self._memory = Memory(cfg)
         except Exception as e:
-            # MilvusLite 单实例锁：向量库文件被其它进程独占 →
-            # 降级到临时向量库，保证服务可多实例启动（数据不持久）
-            import tempfile
+            # MilvusLite 单实例锁：向量库被其它进程独占 →
+            # 【只读降级】不切换到临时库写入（避免记忆写临时库、重启后静默丢失）
+            # 降级期间：读取返回空、写入拒绝并告警；重启后自动恢复真实库
             db_path = _config_dict["vector_store"]["config"]["path"]
-            tmp_db = os.path.join(tempfile.mkdtemp(prefix="mem0_degraded_"), "mem0_vectordb.db")
-            logger.warning("[Mem0] 向量库 %s 被占用，降级到临时库（重启后记忆不保留）: %s", db_path, e)
-            cfg.vector_store.config.path = tmp_db  # QdrantConfig 是 pydantic 对象，属性赋值
-            self._memory = Memory(cfg)
+            self._memory = None
             self._degraded = True
+            self._degraded_reason = str(e)
+            logger.warning(
+                "[Mem0] ⚠️ 向量库 %s 被占用 → 只读降级（本次进程不写入记忆，重启后恢复）: %s",
+                db_path, e)
         
         self._default_user = "nex_user"
 
     def search(self, query: str, user_id: str = None, top_k: int = 5):
+        if self._memory is None:
+            return []
         try:
             result = self._memory.search(
                 query,
@@ -94,6 +97,8 @@ class Mem0Store:
 
     def list_all(self, user_id: str = None, top_k: int = 100) -> list:
         """列出全部记忆（用于记忆面板）。"""
+        if self._memory is None:
+            return []
         try:
             result = self._memory.get_all(
                 filters={"user_id": user_id or self._default_user},
@@ -165,6 +170,9 @@ class Mem0Store:
             return 0
 
     def add(self, messages: list[dict], user_id: str = None):
+        if self._memory is None:
+            logger.warning("[Mem0] ⚠️ 记忆库只读降级中，本次对话不写入记忆（重启后恢复）")
+            return
         try:
             # --- 敏感信息识别 + 威胁扫描 (MemoryGuard 四层审查，对每条消息) ---
             # 1 威胁扫描(注入/密钥/隐藏字符) 2 PII脱敏(手机号/邮箱/密钥/密码)
@@ -208,6 +216,8 @@ class Mem0Store:
             print(f"[Mem0] add 失败: {e}")
 
     def add_fact(self, fact: str, user_id: str = None):
+        if self._memory is None:
+            return
         fact = (fact or "").strip()
         if not fact:
             return
@@ -219,6 +229,8 @@ class Mem0Store:
         self._memory.add(fact, user_id=user_id or self._default_user)
 
     def delete_all(self, user_id: str = None):
+        if self._memory is None:
+            return
         self._memory.delete_all(user_id=user_id or self._default_user)
 
 
