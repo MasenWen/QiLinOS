@@ -34,17 +34,70 @@ def _run_async(coro) -> dict:
 class KnowledgeBaseTool(BaseTool):
     """知识库：文档入库 + 检索问答（LightRAG）。"""
     name = "kb"
-    description = ("知识库（RAG）。action=insert: 文档入库(content=文本 或 path=文件路径)；"
-                   "action=query: 知识库问答(question=问题)；action=stats: 统计；"
-                   "action=user_info: 按用户查询画像(user=用户标识)；"
-                   "action=extract: 从文档提取用户信息(content=文本，可选先入库)。"
-                   "例: kb action=insert path=~/文档/手册.txt；kb action=user_info user=小张")
+    description = ("知识库。provider=kylin(默认,麒麟知识库SDK) 或 lightrag(旧)。"
+                   "麒麟库: action=create(name=库名)/delete(name=库名)/insert(content=文本 或 path=文件)/"
+                   "query(question=问题, name=库名, 默认default)/stats；"
+                   "例: kb action=insert content=手册内容；kb action=query question=手册里写了什么")
     risk = RiskLevel.LOW
     timeout_s = 180.0
 
+    def _kylin_kb(self, action: str, kwargs: dict) -> ToolResult:
+        """麒麟知识库 SDK 操作（服务需注册到 D-Bus，SSH 无桌面会话时不可用）。"""
+        try:
+            from src.rag_kykb import get_kb, KnowledgeBaseUnavailable
+            kb = get_kb()
+        except ImportError as e:
+            return self._fail(f"麒麟知识库模块缺失: {e}")
+        name = (kwargs.get("name") or kwargs.get("kb_name") or "default").strip()
+        try:
+            if action in ("create", "新建", "建库"):
+                r = kb.create_knowledge_base(name)
+                return self._ok(f"知识库已创建: {name}（{r}）")
+            if action in ("delete", "删除", "删库"):
+                r = kb.delete_knowledge_base(name)
+                return self._ok(f"知识库已删除: {name}（{r}）")
+            if action in ("insert", "add", "入库", "学习"):
+                path = (kwargs.get("path") or "").strip()
+                content = (kwargs.get("content") or kwargs.get("text") or "").strip()
+                if path:
+                    import os as _os
+                    if not _os.path.isfile(_os.path.expanduser(path)):
+                        return self._fail(f"文件不存在: {path}")
+                    r = kb.add_text_files(name, _os.path.expanduser(path))
+                    return self._ok(f"已入库到知识库「{name}」: {r}")
+                if content:
+                    r = kb.add_text_content(name, content)
+                    return self._ok(f"已入库到知识库「{name}」: {r}")
+                return self._fail("需要 content（文本）或 path（文件路径）")
+            if action in ("query", "ask", "查询", "问答"):
+                question = (kwargs.get("question") or kwargs.get("q")
+                            or kwargs.get("query") or "").strip()
+                if not question:
+                    return self._fail("需要 question 参数")
+                top_k = int(kwargs.get("top_k") or 5)
+                r = kb.similarity_search(name, question, top_k=top_k)
+                text = str(r)
+                if len(text) > 2000:
+                    text = text[:2000] + "..."
+                return self._ok(f"知识库「{name}」检索结果:\n{text}")
+            if action in ("stats", "统计"):
+                return self._ok(f"麒麟知识库（服务:{kb.available()}，库名:{name}）")
+            return self._fail(f"未知操作: '{action}'。麒麟库可用: create, delete, insert, query, stats")
+        except KnowledgeBaseUnavailable as e:
+            return self._fail(f"麒麟知识库服务不可用: {e}")
+        except Exception as e:
+            return self._fail(f"麒麟知识库操作失败: {e}")
+
     def execute(self, **kwargs) -> ToolResult:
-        from src.rag_ps import RAGEngine, get_engine
         action = (kwargs.get("action") or "").strip().lower()
+        provider = (kwargs.get("provider") or "kylin").strip().lower()
+
+        # ---- 麒麟知识库 SDK（默认，替代 LightRAG）----
+        if provider in ("kylin", "kykb", "麒麟"):
+            return self._kylin_kb(action, kwargs)
+
+        # ---- LightRAG（旧，provider=lightrag 显式使用）----
+        from src.rag_ps import RAGEngine, get_engine
         engine = get_engine()
 
         try:
