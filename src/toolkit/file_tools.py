@@ -62,6 +62,28 @@ class FileTool(BaseTool):
         raw_paths = kwargs.get("paths") or []
         home = os.path.abspath(os.path.expanduser("~"))
 
+        # list：只读列目录（解决"列目录只能走 shell"的缺口）
+        if action == "list":
+            path = self._resolve(raw_path or ".")
+            if not os.path.isdir(path):
+                return self._fail(f"目录不存在: {raw_path or '.'}")
+            try:
+                entries = sorted(os.listdir(path))
+            except Exception as e:
+                return self._fail(f"列目录失败: {e}")
+            if not entries:
+                return self._ok(f"目录为空: {path}")
+            lines = []
+            for e in entries:
+                full = os.path.join(path, e)
+                try:
+                    tag = "[目录]" if os.path.isdir(full) else "[文件]"
+                    size = "" if os.path.isdir(full) else f" ({os.path.getsize(full)}B)"
+                except OSError:
+                    tag, size = "[?]", ""
+                lines.append(f"- {tag} {e}{size}")
+            return self._ok(f"目录 {path} 共 {len(entries)} 项：\n" + "\n".join(lines))
+
         # batch：一步创建文件夹 + 内部多文件（解决"建文件夹含N个文件"场景）
         if action == "batch":
             folder = (kwargs.get("folder") or "").strip()

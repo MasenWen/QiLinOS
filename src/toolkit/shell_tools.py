@@ -11,6 +11,7 @@ Shell 兜底工具 — 当没有专门工具时，用白名单内的操作系统
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import subprocess
 
@@ -101,7 +102,7 @@ class ShellTool(BaseTool):
             if base not in self.ALLOWED:
                 return self._fail(f"管道段命令不在白名单: {base!r}")
             for ch in (";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
-                if any(ch in a for a in argv):
+                if any(ch in a for a in argv if not self._REDIR_NULL.fullmatch(a or "")):
                     return self._fail(f"管道段含禁止字符: {ch!r}")
             # find 参数级白名单：只允许只读选项
             find_err = self._validate_find_args(argv)
@@ -118,9 +119,13 @@ class ShellTool(BaseTool):
         try:
             for i, argv in enumerate(parsed):
                 stdin = procs[-1].stdout if procs else None
+                argv, _out_n, _err_n = self._extract_redir(argv)
+                _last = (i == len(parsed) - 1)
                 procs.append(subprocess.Popen(
-                    argv, stdin=stdin, stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE, text=True, cwd=home,
+                    argv, stdin=stdin,
+                    stdout=subprocess.DEVNULL if (_out_n and _last) else subprocess.PIPE,
+                    stderr=subprocess.DEVNULL if _err_n else subprocess.PIPE,
+                    text=True, cwd=home,
                 ))
                 if stdin is not None:
                     stdin.close()
@@ -143,6 +148,25 @@ class ShellTool(BaseTool):
         except Exception as e:
             return self._fail(f"管道执行异常: {e}")
 
+    _REDIR_NULL = re.compile(r"[12]?[<>]\s*/dev/null")
+
+    @classmethod
+    def _extract_redir(cls, argv: list) -> tuple:
+        """把 argv 中的 2>/dev/null / >/dev/null / 1>/dev/null 参数拆出。
+        返回 (clean_argv, stdout_to_null, stderr_to_null)。只读丢弃输出，无注入面。"""
+        clean, out_null, err_null = [], False, False
+        for a in argv or []:
+            if cls._REDIR_NULL.fullmatch(a or ""):
+                if a.lstrip("0123456789").startswith("<"):
+                    continue  # 输入重定向一律不放开
+                if a.startswith("2"):
+                    err_null = True
+                else:
+                    out_null = True
+            else:
+                clean.append(a)
+        return clean, out_null, err_null
+
     def execute(self, **kwargs):
         cmd = (kwargs.get("cmd") or kwargs.get("command") or "").strip()
         if not cmd:
@@ -153,8 +177,10 @@ class ShellTool(BaseTool):
             return self._run_pipeline(cmd)
 
         # 1b. 拒绝其余 shell 元字符（命令注入防护）
+        # 2>/dev/null 等只读输出丢弃特例先行剥离（无注入面）
+        _chk = self._REDIR_NULL.sub("", cmd)
         for ch in (";", "&", ">", "<", "`", "$(", "${", "\n", "\r"):
-            if ch in cmd:
+            if ch in _chk:
                 return self._fail(f"命令包含禁止的字符: {ch!r}")
 
         # 2. 拆分命令
@@ -192,10 +218,13 @@ class ShellTool(BaseTool):
 
         # 4. 执行（shell=False，cwd 固定在主目录）
         home = os.path.abspath(os.path.expanduser("~"))
+        argv, _out_n, _err_n = self._extract_redir(argv)
         try:
             r = subprocess.run(
-                argv, capture_output=True, text=True,
-                timeout=self.timeout_s, cwd=home,
+                argv,
+                stdout=subprocess.DEVNULL if _out_n else subprocess.PIPE,
+                stderr=subprocess.DEVNULL if _err_n else subprocess.PIPE,
+                text=True, timeout=self.timeout_s, cwd=home,
             )
         except subprocess.TimeoutExpired:
             return self._fail(f"命令执行超时({self.timeout_s:.0f}s)")
