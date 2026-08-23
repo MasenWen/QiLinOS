@@ -180,6 +180,62 @@ class RAGEngine:
             logger.error("RAG 查询失败: %s", e)
             return f"（知识库查询失败: {e}）"
 
+    async def query_user_info(self, user_identifier: str, mode: str = "hybrid") -> dict:
+        """按用户标识从知识库查询用户画像（融入 QiLinOS query_user_info）。
+
+        构造「关于 X 的个人信息/工作/教育/联系方式」查询 → LightRAG 检索。
+        """
+        await self.ensure_init()
+        from lightrag import QueryParam
+        query = f"关于{user_identifier}的个人信息、工作信息、教育背景、联系方式等详细信息是什么？"
+        loop = asyncio.get_event_loop()
+        try:
+            result = await loop.run_in_executor(
+                None, lambda: asyncio.run(self.rag.aquery(
+                    query, param=QueryParam(mode=mode, top_k=10, response_type="中文回答"))))
+            text = str(result).strip()
+            if text:
+                return {"success": True, "result": text, "query": query, "mode": mode}
+            return {"success": False, "error": "查询返回空结果（知识库中可能没有该用户的信息）"}
+        except Exception as e:
+            logger.error("用户画像查询失败: %s", e)
+            return {"success": False, "error": f"用户画像查询失败: {e}"}
+
+    async def extract_user_info(self, document_content: str | None = None) -> dict:
+        """从知识库提取用户相关信息（融入 QiLinOS extract_user_info_from_document）。
+
+        若提供 document_content 且未入库，先入库再提取；否则从现有知识库提取。
+        四类查询：个人信息 / 工作教育 / 组织机构 / 重要日期事件。
+        """
+        if document_content and document_content.strip():
+            r = await self.insert_document(document_content)
+            if r.get("status") not in ("ok", "duplicate"):
+                return {"success": False, "error": f"文档入库失败: {r.get('error')}"}
+        await self.ensure_init()
+        from lightrag import QueryParam
+        user_queries = [
+            "文档中提到的个人信息有哪些？包括姓名、联系方式、地址等",
+            "文档中的工作和教育信息是什么？",
+            "文档中涉及的组织机构有哪些？",
+            "文档中的重要日期和事件有哪些？",
+        ]
+        extracted: dict = {}
+        loop = asyncio.get_event_loop()
+        for query in user_queries:
+            try:
+                result = await loop.run_in_executor(
+                    None, lambda q=query: asyncio.run(self.rag.aquery(
+                        q, param=QueryParam(mode="local", top_k=5, response_type="中文回答"))))
+                text = str(result).strip()
+                if text:
+                    key = query.split("？")[0].replace("文档中", "").replace("的", "").strip() or "信息"
+                    extracted[key] = text[:300]
+            except Exception as e:
+                logger.warning("提取查询失败 %s: %s", query[:12], e)
+        if not extracted:
+            return {"success": False, "error": "未能从知识库提取到用户信息（库中可能没有相关文档）"}
+        return {"success": True, "extracted_info": extracted}
+
     def stats(self) -> dict:
         return {"docs": len(self.docs), "working_dir": WORKING_DIR}
 
