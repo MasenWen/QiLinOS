@@ -474,44 +474,10 @@ HTML = r"""<!doctype html>
       <div class="banner-modal-box" style="width:360px;">
         <h3>设置</h3>
         <div class="tabbar">
-          <button class="tab active" data-tab="appearance">🎨 外观</button>
-          <button class="tab" data-tab="model">🤖 模型</button>
+          <button class="tab active" data-tab="model">🤖 模型</button>
           <button class="tab" data-tab="skills">⚙️ 技能</button>
         </div>
-        <div class="tabpane" id="tab-appearance">
-          <label>图标（Emoji）</label>
-          <input type="text" id="bCfgIcon2" maxlength="8" placeholder="🤖">
-          <label>标题</label>
-          <input type="text" id="bCfgTitle2" maxlength="20" placeholder="麒麟 AI">
-          <label>副标题</label>
-          <input type="text" id="bCfgSub2" maxlength="30" placeholder="记忆增强 · 系统工具">
-          <div class="row">
-            <div>
-              <label>背景（色值/渐变）</label>
-              <input type="text" id="bCfgBg2" maxlength="80">
-            </div>
-            <div>
-              <label>文字颜色</label>
-              <input type="text" id="bCfgText2" maxlength="20">
-            </div>
-          </div>
-          <label>界面主题</label>
-          <select id="themeSelect" style="width:100%;padding:6px;border:1px solid var(--modal-border);background:var(--modal-input);color:var(--modal-text);border-radius:6px;font-size:13px;">
-            <option value="light">☀️ 浅色</option>
-            <option value="dark">🌙 深色</option>
-            <option value="auto">🖥 跟随系统</option>
-          </select>
-          <label>界面语言</label>
-          <select id="langSelect" style="width:100%;padding:6px;border:1px solid var(--modal-border);background:var(--modal-input);color:var(--modal-text);border-radius:6px;font-size:13px;">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-          <label class="chk"><input type="checkbox" id="bCfgEnabled2"> 启用 Banner</label>
-          <div class="btns">
-            <button id="bCfgCancel2">关闭</button>
-            <button class="save" id="bCfgSave2">保存外观</button>
-          </div>
-        </div>
+
         <div class="tabpane" id="tab-model" style="display:none;">
           <label>模型提供方</label>
           <select id="llmProvider" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
@@ -569,6 +535,10 @@ HTML = r"""<!doctype html>
       <span class="sub">记忆增强 · 系统工具</span>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
+      <select class="model-select" id="headerLang" title="切换语言">
+        <option value="zh">中</option>
+        <option value="en">EN</option>
+      </select>
       <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
       <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
@@ -924,12 +894,12 @@ function applyLang() {
   document.getElementById('toolTitle').textContent = t('toolTitle');
   renderEmptyMsg();
 }
-document.getElementById('langSelect').onchange = () => {
-  localStorage.setItem('aichat_lang', document.getElementById('langSelect').value);
+document.getElementById('headerLang').onchange = () => {
+  localStorage.setItem('aichat_lang', document.getElementById('headerLang').value);
   applyLang();
 };
 function loadLang() {
-  document.getElementById('langSelect').value = LANG;
+  document.getElementById('headerLang').value = LANG;
   applyLang();
 }
 
@@ -943,19 +913,13 @@ function applyTheme(t) {
 }
 function loadTheme() {
   const t = localStorage.getItem('aichat_theme') || 'light';
-  document.getElementById('themeSelect').value = t;
   applyTheme(t);
 }
 document.getElementById('themeToggle').onclick = () => {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   const next = cur === 'dark' ? 'light' : 'dark';
   localStorage.setItem('aichat_theme', next);
-  document.getElementById('themeSelect').value = next;
   applyTheme(next);
-};
-document.getElementById('themeSelect').onchange = () => {
-  localStorage.setItem('aichat_theme', document.getElementById('themeSelect').value);
-  applyTheme(document.getElementById('themeSelect').value);
 };
 
 // ---- 顶栏模型选择器 ----
@@ -1110,19 +1074,12 @@ async function loadBanner() {
 // ---- 设置弹窗（外观 / 模型 / 技能 三 tab）----
 function showTab(tab) {
   document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['appearance', 'model', 'skills'].forEach(t => {
+  ['model', 'skills'].forEach(t => {
     document.getElementById('tab-' + t).style.display = (t === tab) ? '' : 'none';
   });
 }
 function openSettings(tab) {
-  const cfg = window._bannerCfg || {};
-  document.getElementById('bCfgIcon2').value = cfg.icon || '🤖';
-  document.getElementById('bCfgTitle2').value = cfg.title || '';
-  document.getElementById('bCfgSub2').value = cfg.subtitle || '';
-  document.getElementById('bCfgBg2').value = cfg.bg || '';
-  document.getElementById('bCfgText2').value = cfg.text_color || '';
-  document.getElementById('bCfgEnabled2').checked = cfg.enabled !== false;
-  showTab(tab || 'appearance');
+  showTab(tab || 'model');
   document.getElementById('settingsModal').style.display = 'flex';
   if (tab === 'model') refreshLlmConfig();
   if (tab === 'skills') refreshSkills();
@@ -1136,34 +1093,14 @@ document.querySelectorAll('.tabbar .tab').forEach(t => {
 });
 document.getElementById('floatingSettings').onclick = () => openSettings('appearance');
 // 遮罩点击不关闭（防止误关设置）；仅通过关闭按钮关闭
-document.getElementById('bCfgCancel2').onclick = () => {
-  document.getElementById('settingsModal').style.display = 'none';
-};
+
 document.getElementById('llmClose').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
 };
 document.getElementById('skillClose').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
 };
-document.getElementById('bCfgSave2').onclick = async () => {
-  const body = {
-    enabled: document.getElementById('bCfgEnabled2').checked,
-    icon: document.getElementById('bCfgIcon2').value.trim(),
-    title: document.getElementById('bCfgTitle2').value.trim(),
-    subtitle: document.getElementById('bCfgSub2').value.trim(),
-    bg: document.getElementById('bCfgBg2').value.trim(),
-    text_color: document.getElementById('bCfgText2').value.trim(),
-  };
-  try {
-    const r = await fetch('/api/banner', {
-      method: 'POST', headers: apiHeaders,
-      body: JSON.stringify(body),
-    });
-    await r.json();
-    document.getElementById('settingsModal').style.display = 'none';
-    loadBanner();
-  } catch (e) { alert('保存失败: ' + e); }
-};
+
 loadBanner();
 setInterval(refreshPanels, 4000);
 send.onclick = submit;
