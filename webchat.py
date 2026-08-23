@@ -501,6 +501,11 @@ HTML = r"""<!doctype html>
             <option value="dark">🌙 深色</option>
             <option value="auto">🖥 跟随系统</option>
           </select>
+          <label>界面语言</label>
+          <select id="langSelect" style="width:100%;padding:6px;border:1px solid var(--modal-border);background:var(--modal-input);color:var(--modal-text);border-radius:6px;font-size:13px;">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
           <label class="chk"><input type="checkbox" id="bCfgEnabled2"> 启用 Banner</label>
           <div class="btns">
             <button id="bCfgCancel2">关闭</button>
@@ -584,9 +589,9 @@ HTML = r"""<!doctype html>
     </footer>
   </div>
   <aside class="panel">
-    <h3>🧠 记忆</h3>
+    <h3 id="memTitle">🧠 记忆</h3>
     <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
-    <h3>🔧 工具调用</h3>
+    <h3 id="toolTitle">🔧 工具调用</h3>
     <div id="toolPanel"><div class="log-item">（暂无）</div></div>
   </aside>
 </div>
@@ -886,6 +891,46 @@ async function refreshPanels() {
   } catch (e) {}
 }
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
+// ---- 语言（中文/English，仿 dsh locale）----
+const I18N = {
+  send: { zh: '发送', en: 'Send' },
+  newChat: { zh: '＋ 新会话', en: '＋ New Chat' },
+  clear: { zh: '清空', en: 'Clear' },
+  clearMem: { zh: '清空记忆', en: 'Clear Memory' },
+  inputPh: { zh: '输入消息…（可让我改时区、查系统信息等）', en: 'Type a message… (e.g. check CPU usage)' },
+  welcome: { zh: '你好，我是麒麟 AI', en: 'Hello, I\'m Kylin AI' },
+  welcomeSub: { zh: '我会记住你的偏好，也能调用服务器上的系统工具。', en: 'I remember your preferences and can use system tools.' },
+  hint: { zh: 'Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆', en: 'Enter send · Shift+Enter newline · streaming · auto memory' },
+  memTitle: { zh: '🧠 记忆', en: '🧠 Memory' },
+  toolTitle: { zh: '🔧 工具调用', en: '🔧 Tools' },
+};
+let LANG = localStorage.getItem('aichat_lang') || 'zh';
+function t(key) { return ((I18N[key] || {})[LANG] || (I18N[key] || {}).zh || key); }
+function renderEmptyMsg() {
+  const e = document.getElementById('empty');
+  if (e) e.innerHTML = '<h1>' + t('welcome') + '</h1><p>' + t('welcomeSub') + '</p><p>' + t('hint') + '</p>';
+}
+function applyLang() {
+  LANG = localStorage.getItem('aichat_lang') || 'zh';
+  document.getElementById('send').textContent = t('send');
+  document.getElementById('newChat').textContent = t('newChat');
+  document.getElementById('clear').textContent = t('clear');
+  document.getElementById('clearMem').textContent = t('clearMem');
+  document.getElementById('input').placeholder = t('inputPh');
+  const h = document.querySelector('.hint'); if (h) h.textContent = t('hint');
+  document.getElementById('memTitle').textContent = t('memTitle');
+  document.getElementById('toolTitle').textContent = t('toolTitle');
+  renderEmptyMsg();
+}
+document.getElementById('langSelect').onchange = () => {
+  localStorage.setItem('aichat_lang', document.getElementById('langSelect').value);
+  applyLang();
+};
+function loadLang() {
+  document.getElementById('langSelect').value = LANG;
+  applyLang();
+}
+
 // ---- 主题（深色/浅色/跟随系统）----
 function applyTheme(t) {
   if (t === 'auto') {
@@ -945,6 +990,7 @@ document.getElementById('headerModel').onchange = async (e) => {
 };
 loadHeaderModel();
 loadTheme();
+loadLang();
 
 function toggleLlmFields() {
   const isSdk = document.getElementById('llmProvider').value === 'sdk';
@@ -1139,7 +1185,7 @@ document.getElementById('clear').onclick = () => {
   const d = document.createElement('div');
   d.className = 'empty';
   d.id = 'empty';
-  d.innerHTML = '<h1>你好，我是麒麟 AI</h1><p>我会记住你的偏好，也能调用服务器上的系统工具。</p><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
+  d.innerHTML = '<h1>' + t('welcome') + '</h1><p>' + t('welcomeSub') + '</p><p>' + t('hint') + '</p>';
   msgs.appendChild(d);
   input.focus();
 };
