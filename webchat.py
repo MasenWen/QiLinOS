@@ -909,40 +909,15 @@ async function submit() {
   md.appendChild(cursor);
 
   try {
-    // ---- SSE 流式回复 ----
-    const r = await fetch('/api/chat/stream', {
+    // ---- 普通非流式回复 ----
+    const r = await fetch('/api/chat', {
       method: 'POST',
       headers: apiHeaders,
       body: JSON.stringify({ message: text, session_id: sessionId })
     });
-    if (!r.ok) { throw new Error('HTTP ' + r.status); }
-    const reader = r.body.getReader();
-    const decoder = new TextDecoder();
-    let reply = '';
-    let buf = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const events = buf.split('\n\n');
-      buf = events.pop() || '';
-      for (const ev of events) {
-        if (!ev.startsWith('data: ')) continue;
-        const payload = ev.slice(6);
-        if (payload === '[DONE]') continue;
-        try {
-          const obj = JSON.parse(payload);
-          if (obj.done) continue;
-          if (obj.chunk) {
-            reply += obj.chunk;
-            md.textContent = reply + '▌';
-            scrollBottom();
-          }
-        } catch (e2) {}
-      }
-    }
+    const data = await r.json();
     cursor.remove();
-    if (!reply) reply = '(无回复)';
+    const reply = data.reply || '(无回复)';
     // ---- 工具确认卡片（dsh ask 模式）----
     const cm = reply.match(/\[TOOL_CONFIRM\] (\{.*\})/);
     if (cm) {
