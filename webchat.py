@@ -1162,8 +1162,14 @@ class Handler(BaseHTTPRequestHandler):
             items = []
             if store is not None:
                 try:
-                    for it in store.list_all(top_k=100):
-                        items.append(str(it.get("memory", ""))[:80])
+                    from src.memory.priority import prioritize_items
+                    raw = store.list_all(top_k=200)
+                    for it in prioritize_items(raw):
+                        items.append({
+                            "text": str(it.get("memory", ""))[:80],
+                            "level": it.get("priority_level", "low"),
+                            "score": it.get("priority", 0),
+                        })
                 except Exception:
                     pass
             self._json(200, {"memories": items})

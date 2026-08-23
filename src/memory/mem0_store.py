@@ -7,6 +7,7 @@ from mem0.configs.base import MemoryConfig
 
 import src.memory  # noqa: F401
 from security.memory_guard import get_memory_guard
+from src.memory.priority import lowest_priority_ids
 import logging
 
 MEM0_DIR = os.path.expanduser("~/.nex-agent/mem0")
@@ -124,20 +125,17 @@ class Mem0Store:
         return str(it.get("created_at") or it.get("id") or "")
 
     def _enforce_cap(self, user_id=None):
-        """记忆条数上限：超过 MAX_MEMORIES 删除最旧的。"""
+        """记忆条数上限：超过 MAX_MEMORIES 时按优先级淘汰（低优先级先删，敏感记忆受保护）。"""
         try:
             items = self.list_all(user_id=user_id, top_k=self.MAX_MEMORIES + 100)
             if len(items) > self.MAX_MEMORIES:
-                items_sorted = sorted(items, key=self._created_key)
-                over = items_sorted[: len(items) - self.MAX_MEMORIES]
-                for it in over:
-                    m_id = it.get("id")
-                    if m_id:
-                        try:
-                            self._memory.delete(memory_id=m_id)
-                        except Exception:
-                            pass
-                print(f"[Mem0] 上限控制: 从 {len(items)} 裁剪到 {self.MAX_MEMORIES}")
+                victims = lowest_priority_ids(items, keep=self.MAX_MEMORIES)
+                for m_id in victims:
+                    try:
+                        self._memory.delete(memory_id=m_id)
+                    except Exception:
+                        pass
+                print(f"[Mem0] 优先级淘汰: 从 {len(items)} 裁剪到 {self.MAX_MEMORIES}, 删 {len(victims)} 条")
         except Exception as e:
             print(f"[Mem0] 上限控制失败: {e}")
 
