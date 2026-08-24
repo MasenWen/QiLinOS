@@ -66,7 +66,10 @@ if ! command -v "$PY" >/dev/null 2>&1; then
     echo "!! 未找到 python3，尝试安装："
     sudo apt-get update -y
     sudo apt-get install -y python3 python3-venv python3-pip || {
-        sudo sed -i 's|http://archive.ubuntu.com/ubuntu|https://mirrors.aliyun.com/ubuntu|g' /etc/apt/sources.list 2>/dev/null || true
+        # 麒麟 V11 无第三方镜像（清华/阿里均无麒麟源），用官方双源回退
+        echo "!! apt 默认源失败，尝试官方备用源 archive2.kylinos.cn"
+        sudo sed -i "s|http://archive.kylinos.cn|https://archive2.kylinos.cn|g" \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
         sudo apt-get update -y
         sudo apt-get install -y python3 python3-venv python3-pip
     }
@@ -83,9 +86,15 @@ if [ "$WITH_SDK" = "1" ]; then
         dpkg -l "$pkg" 2>/dev/null | grep -q "^ii" || SDK_MISSING="$SDK_MISSING $pkg"
     done
     if [ -n "$SDK_MISSING" ]; then
-        echo "!! 缺失 SDK:$SDK_MISSING，尝试 apt 安装（需麒麟源）"
+        echo "!! 缺失 SDK:$SDK_MISSING，尝试 apt 安装（麒麟官方源）"
         sudo apt-get update -y
-        sudo apt-get install -y $SDK_MISSING || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
+        if ! sudo apt-get install -y $SDK_MISSING; then
+            echo "!! 默认源失败，尝试官方备用源 archive2.kylinos.cn"
+            sudo sed -i "s|http://archive.kylinos.cn|https://archive2.kylinos.cn|g" \
+                /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
+            sudo apt-get update -y
+            sudo apt-get install -y $SDK_MISSING || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
+        fi
     else
         echo "✅ SDK 已就绪"
     fi
