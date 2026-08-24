@@ -1240,8 +1240,7 @@ async function manageProvider(action) {
     } else if (action === 'del') {
       const keys = Object.keys(provs);
       if (!keys.length) { alert('没有可删除的模型'); return; }
-      const pick = prompt('删除哪个模型？（输入名称）
-可删: ' + keys.join(' / '));
+      const pick = prompt('删除哪个模型？（输入名称）  可删: ' + keys.join(' / '));
       if (!pick || !pick.trim()) return;
       const k = pick.trim();
       if (!(k in provs)) { alert('未找到模型「' + k + '」'); return; }
