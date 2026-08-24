@@ -1205,22 +1205,37 @@ async function manageProvider(action) {
     const r = await fetch('/api/llm_config', { headers: apiHeaders });
     const cfg = await r.json();
     const provs = cfg.api_providers || {};
+    const modal = document.getElementById('addModelModal');
+    const err = document.getElementById('amError');
+    err.style.display = 'none';
+    window._editingProvider = null;
     if (action === 'add') {
-      // 弹窗式三输入框（替代连续 prompt）+ 合法性校验
-      const modal = document.getElementById('addModelModal');
+      // 新增：空表单
+      document.getElementById('amModalTitle').textContent = '＋ 新增模型';
       document.getElementById('amName').value = '';
       document.getElementById('amBaseUrl').value = 'https://api.deepseek.com/v1';
       document.getElementById('amApiKey').value = '';
-      document.getElementById('amError').style.display = 'none';
+      modal.style.display = 'flex';
+      return;
+    } else if (action === 'edit') {
+      // 编辑：预填当前值（模态框，无 prompt）
+      const keys = Object.keys(provs);
+      if (!keys.length) { alert('没有可编辑的模型'); return; }
+      const k = (cfg.api_choice in provs) ? cfg.api_choice : keys[0];
+      const p = provs[k];
+      document.getElementById('amModalTitle').textContent = '✏️ 编辑模型：' + k;
+      document.getElementById('amName').value = p.model || k;
+      document.getElementById('amBaseUrl').value = p.base_url || 'https://api.deepseek.com/v1';
+      document.getElementById('amApiKey').value = p.api_key || '';
+      window._editingProvider = k;
       modal.style.display = 'flex';
       return;
     } else if (action === 'del') {
+      // 删除：直接删当前选中的模型（无 prompt），保留回退
       const keys = Object.keys(provs);
       if (!keys.length) { alert('没有可删除的模型'); return; }
-      const pick = prompt('删除哪个模型？（输入名称）  可删: ' + keys.join(' / '));
-      if (!pick || !pick.trim()) return;
-      const k = pick.trim();
-      if (!(k in provs)) { alert('未找到模型「' + k + '」'); return; }
+      const k = (cfg.api_choice in provs) ? cfg.api_choice : keys[0];
+      if (!confirm('确定删除模型「' + k + '」？')) return;
       await fetch('/api/llm_config', {
         method: 'POST', headers: apiHeaders,
         body: JSON.stringify({ action: 'del_provider', provider_name: k }),
