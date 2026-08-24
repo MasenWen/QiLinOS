@@ -10,7 +10,7 @@ from security.memory_guard import get_memory_guard
 from src.memory.priority import lowest_priority_ids
 import logging
 
-MEM0_DIR = os.path.expanduser("~/.nex-agent/mem0")
+MEM0_DIR = os.environ.get("MEM0_DIR", os.path.expanduser("~/.nex-agent/mem0"))
 os.makedirs(MEM0_DIR, exist_ok=True)
 
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ _config_dict = {
         "config": {
             "collection_name": "mem0_memories",
             "embedding_model_dims": 768,
-            "path": os.path.expanduser("~/.nex-agent/mem0_vectordb.db"),
+            "path": os.environ.get("MEM0_DB_PATH", os.path.expanduser("~/.nex-agent/mem0_vectordb.db")),
             "on_disk": True,
         },
     },
