@@ -110,7 +110,31 @@ def _tool_line(name):
     return line
 
 
-TOOL_CATALOG = "\n".join(_tool_line(name) for name in REGISTRY.list_all())
+def _build_tool_catalog() -> str:
+    """动态生成工具目录：麒麟知识库服务不可用（远程 SSH 无桌面会话）时排除 kb 工具，
+    防止 LLM 路由到 kb 导致 NameHasNoOwner 报错。"""
+    names = list(REGISTRY.list_all())
+    if "kb" in names:
+        try:
+            from src.rag_kykb import get_kb
+            if not get_kb().available():
+                names.remove("kb")
+                print("[tools] 麒麟知识库服务不可用，kb 工具已从目录隐藏", flush=True)
+        except Exception:
+            names.remove("kb")
+    return "\n".join(_tool_line(name) for name in names)
+
+
+def _kb_available() -> bool:
+    """麒麟知识库服务是否可用（供提示词规则使用）。"""
+    try:
+        from src.rag_kykb import get_kb
+        return get_kb().available()
+    except Exception:
+        return False
+
+
+TOOL_CATALOG = _build_tool_catalog()
 
 # ---------- 配置即长期记忆（类似 Codex AGENTS.md）----------
 _skill_memory = None
@@ -1061,29 +1085,7 @@ function renameSession(sid, el) {
   else { const m = getNames(); delete m[sid]; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); }
   refreshSessions();
 }
-async function refreshPanels() {
-  try {
-    const [m, t] = await Promise.all([
-      fetch('/api/memories', { headers: apiHeaders }).then(r => r.json()),
-      fetch('/api/tool_logs', { headers: apiHeaders }).then(r => r.json()),
-    ]);
-    const mp = document.getElementById('memPanel');
-    mp.innerHTML = (m.memories && m.memories.length)
-      ? m.memories.map(x => {
-          const icon = x.level === 'high' ? '🔴' : x.level === 'medium' ? '🟡' : '⚪';
-          return `<div class="mem-item">${icon} ${x.text}</div>`;
-        }).join('')
-      : '<div class="mem-item">（暂无记忆）</div>';
-    const tp = document.getElementById('toolPanel');
-    tp.innerHTML = (t.logs && t.logs.length)
-      ? t.logs.slice().reverse().map(l =>
-          `<div class="log-item ${l.status === 'verified' || l.status === 'success' ? 'ok' : 'err'}">
-             <span class="tool">${l.tool}</span> · ${l.status} · ${l.duration_ms}ms
-             ${l.error ? `<br><span style="color:#111111">${l.error.slice(0, 60)}</span>` : ''}
-           </div>`).join('')
-      : '<div class="log-item">（暂无）</div>';
-  } catch (e) {}
-}
+// refreshPanels 已删除：记忆/工具日志面板已隐藏（日志仍在服务端记录）
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
 // ---- 语言（中文/English，仿 dsh locale）----
 const I18N = {
@@ -1111,8 +1113,6 @@ function applyLang() {
   document.getElementById('clearMem').textContent = t('clearMem');
   document.getElementById('input').placeholder = t('inputPh');
   const h = document.querySelector('.hint'); if (h) h.textContent = t('hint');
-  document.getElementById('memTitle').textContent = t('memTitle');
-  document.getElementById('toolTitle').textContent = t('toolTitle');
   renderEmptyMsg();
 }
 function loadLang() { applyLang(); }  // 取消中英切换：固定中文
@@ -1321,7 +1321,6 @@ document.getElementById('skillClose').onclick = () => {
 };
 
 loadBanner();
-setInterval(refreshPanels, 4000);
 send.onclick = submit;
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
@@ -1365,8 +1364,7 @@ document.getElementById('clearMemConfirm').onclick = async () => {
     alert('清空记忆失败: ' + e);
   }
   document.getElementById('clearMemModal').style.display = 'none';
-  refreshPanels();
-};
+  };
 </script>
 <div class="banner-modal" id="clearMemModal">
   <div class="banner-modal-box" style="width:320px;">
@@ -1897,6 +1895,12 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
         sections.append("## 本会话附加指令（最高优先级）\n" + str(_sess_cfg["system_add"]))
     if is_tool:
         sections.append("## 可用系统工具（含参数）\n" + TOOL_CATALOG)
+        # kb 服务不可用（远程 SSH）时明确告知：记住/学习类请求走记忆，禁止 kb
+        if not _kb_available():
+            sections.append("## 环境限制（重要）\n"
+                            "当前环境麒麟知识库服务不可用（远程无桌面会话）。"
+                            "「记住/学习/入库」类请求一律写入用户记忆（无需调用任何工具）；"
+                            "禁止使用 kb 工具（其描述中的 insert/入库操作当前不可用）。")
     sections.append("## 对话历史（早期摘要 + 最近轮次）\n" + hist_block)
     sections.append("## 规则\n" + rules)
     # 大小/排名类查询的强制指令（模型可能忽略规则，此处就近用户消息强约束）
