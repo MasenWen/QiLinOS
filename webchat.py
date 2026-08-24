@@ -1488,12 +1488,34 @@ def _retrieve_memory(query: str) -> str:
     except Exception as e:
         print(f"[mem] 检索失败: {e}", flush=True)
         return ""
+    # 遗忘曲线开关与阈值（默认开，阈值 0.3）
+    _decay_on = os.getenv("NEX_FORGET_DECAY", "1").strip().lower() not in ("0", "false", "off")
+    _threshold = float(os.getenv("NEX_FORGET_THRESHOLD", "0.3"))
+    _curve = None
+    if _decay_on:
+        try:
+            from src.memory_engine.forgetting_curve import ForgettingCurve
+            _curve = ForgettingCurve()
+        except Exception:
+            _curve = None
     seen, lines = set(), []
     for it in items:
         mem = str(it.get("memory", "")).strip()
-        if mem and mem not in seen:
-            seen.add(mem)
-            lines.append(f"- {mem}")
+        if not mem or mem in seen:
+            continue
+        if _curve is not None:
+            try:
+                strength = _curve.strength_at(
+                    confidence=1.0, stability=1.0,
+                    last_seen=it.get("created_at") or it.get("updated_at"),
+                )
+                if strength < _threshold:
+                    print(f"[遗忘曲线] 剔除弱记忆(强度{strength:.2f}<{_threshold}): {mem[:30]}", flush=True)
+                    continue
+            except Exception:
+                pass
+        seen.add(mem)
+        lines.append(f"- {mem}")
     return "[用户相关记忆]\n" + "\n".join(lines) if lines else ""
 
 

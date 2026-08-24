@@ -22,7 +22,7 @@ def _hours_since(last_seen: str | None, now: str | None = None) -> float:
 class ForgettingCurveConfig:
     """遗忘曲线参数。"""
 
-    half_life_hours: float = 24.0   # 强度衰减到一半所需小时数（指数形态）
+    half_life_hours: float = 168.0  # 强度衰减到一半所需小时数（指数形态，7天）
     decay_exponent: float = 0.5     # 幂律衰减指数（艾宾浩斯形态）
     reinforcement: float = 0.2      # 每次激活/反思的强化增量
 
