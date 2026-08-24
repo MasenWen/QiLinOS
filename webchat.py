@@ -1810,11 +1810,44 @@ def _skill_prompt_block() -> str:
         return ""
 
 
+def _kg_prompt_block(limit: int = 8) -> str:
+    """知识图谱记忆注入（技术报告 9 章）：强记忆 + 关联分组 → 提示词分节。
+
+    只注入 strength >= 0.7 的强记忆节点；有关联分组时附组信息。
+    KG 只写不读的历史问题由此修复——写入时积累的图谱现在回流参与对话。
+    """
+    try:
+        _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
+        if not os.path.exists(_kg_path):
+            return ""
+        from src.memory_engine.knowledge_graph import KnowledgeGraph
+        kg = KnowledgeGraph.load(_kg_path)
+        nodes = kg.strong_memories()[:limit]
+        if not nodes:
+            return ""
+        lines = []
+        # 过滤过程性文本（问句/删除指令/遗忘指令等非持久偏好），避免污染
+        _NOISE = ("？", "?", "忘掉", "忘记", "删除", "删掉", "移除", "清除", "帮我查", "查看", "搜索")
+        for n in nodes:
+            label = n.label or "memory"
+            text = (n.text or "").strip()[:120]
+            if not text or any(k in text for k in _NOISE):
+                continue
+            lines.append(f"- [{label}] {text} (强度 {n.strength:.2f})")
+        if lines:
+            return "## 知识图谱记忆（长期沉淀，供参考）\n" + "\n".join(lines)
+        return ""
+    except Exception as e:
+        print(f"[kg] 注入失败: {e}", flush=True)
+        return ""
+
+
 def _build_context(message: str, session_id: str) -> str:
     """统一拼接上下文（dsh 分节式：身份/工具/记忆/画像/技能/历史/规则/用户）。"""
     memory = _retrieve_memory(message)
     profile = _db_user_profile()  # DB 用户画像（借鉴 AgentProject）
     skills = _skill_prompt_block()  # ③ 技能配置注入（dsh: 配置即长期记忆）
+    kg_block = _kg_prompt_block()  # 知识图谱记忆注入（9 章：强记忆回流）
     history = _session_history(session_id)
     meta = SESSIONS_META.get(session_id, {}) or {}
     _summary = (meta.get("summary") or "").strip()
@@ -1872,6 +1905,8 @@ def _build_context(message: str, session_id: str) -> str:
                     f"{profile or '（暂无）'}")
     if skills:
         sections.append("## 用户配置（长期记忆，对话中须遵守）\n" + skills)
+    if kg_block:
+        sections.append(kg_block)
     _sess_cfg = (meta.get("config") or {}) if meta else {}
     if _sess_cfg.get("system_add"):
         sections.append("## 本会话附加指令（最高优先级）\n" + str(_sess_cfg["system_add"]))
