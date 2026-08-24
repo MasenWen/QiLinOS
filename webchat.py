@@ -1600,12 +1600,14 @@ def _new_pending_token() -> str:
         return f"t{int(time.time())}{_pending_seq}"
 
 
-def _request_tool_confirm(tool: str, params: dict, session_id: str) -> str:
-    """登记待确认工具调用，返回给前端的标记文本。"""
+def _request_tool_confirm(tool: str, params: dict, session_id: str,
+                            user_message: str = "") -> str:
+    """登记待确认工具调用，返回给前端的标记文本（存用户消息供确认后 LLM 润色）。"""
     token = _new_pending_token()
     with _pending_lock:
         PENDING_TOOLS[token] = {"tool": tool, "params": params,
-                                "session_id": session_id, "ts": time.time()}
+                                "session_id": session_id, "ts": time.time(),
+                                "user_message": user_message or ""}
     payload = {"token": token, "tool": tool, "params": params}
     return "[TOOL_CONFIRM] " + json.dumps(payload, ensure_ascii=False)
 
@@ -1649,7 +1651,12 @@ def _handle_tool_confirm(self) -> None:
                                      summary=str(getattr(res, "output", ""))[:200])
         except Exception:
             pass
-        reply = _render_tool_result(res)
+        # 确认后：把结果返回给 LLM 润色成自然语言（与普通工具调用一致）
+        _um = (item.get("user_message") or "").strip()
+        try:
+            reply = _summarize_result(_um or f"执行 {tool}", tool, res)
+        except Exception:
+            reply = _render_tool_result(res)
         return self._json(200, {"ok": True, "reply": reply})
     except Exception as e:
         return self._json(500, {"ok": False, "error": f"执行失败: {e}"})
@@ -2212,7 +2219,7 @@ def _chat(message: str, session_id: str = "default"):
                 # ---- dsh ask 模式：requires_approval 的工具先请求用户确认 ----
                 _td = REGISTRY.get(tool)
                 if _td is not None and getattr(_td, "requires_approval", False):
-                    confirm_text = _request_tool_confirm(tool, params, session_id)
+                    confirm_text = _request_tool_confirm(tool, params, session_id, message)
                     try:
                         log_reader.append_record("tool", "", tool=tool, status="pending",
                                                  summary="等待用户确认")
@@ -2229,8 +2236,11 @@ def _chat(message: str, session_id: str = "default"):
                                              summary=str(getattr(res, "output", ""))[:200])
                 except Exception:
                     pass
-                # 忠实透传工具结果（不经 LLM 美化——LLM 二次总结会丢数据/空泛化）
-                reply = _render_tool_result(res)
+                # LLM 润色：把工具原始结果转成自然语言答复（确认模式与普通模式一致）
+                try:
+                    reply = _summarize_result(message, tool, res)
+                except Exception:
+                    reply = _render_tool_result(res)
                 if step is not None and total_steps:
                     reply = f"（步骤 {step}/{total_steps}）" + reply
                 return reply
