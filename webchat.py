@@ -1539,10 +1539,15 @@ def _remember(messages):
         with _mem_lock:
             store.add(messages)
         # ④ 偏好类记忆同步写入知识图谱（KG 积累）
+        # 修复：写入端过滤过程性文本（遗忘指令/删除指令/问句），
+        # 避免「忘掉X」「我喜欢什么？」这类非持久偏好污染 KG（把遗忘当记忆的 bug）
         try:
             from src.memory.preferences import is_preference
             _um = str((messages or [{}])[0].get("content") or "").strip()
-            if _um and is_preference(_um):
+            _NOISE = ("忘掉", "忘记", "删除", "删掉", "移除", "清除", "取消",
+                      "？", "?", "为什么", "怎么", "是否", "吗", "呢",
+                      "记住", "忘", "删")
+            if _um and is_preference(_um) and not any(k in _um for k in _NOISE):
                 from src.memory_engine.knowledge_graph import KnowledgeGraph
                 _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
                 _kg = KnowledgeGraph.load(_kg_path) if os.path.exists(_kg_path) else KnowledgeGraph()

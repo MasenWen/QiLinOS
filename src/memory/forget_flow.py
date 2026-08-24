@@ -229,6 +229,12 @@ class ForgetFlow:
         if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
                 w in msg for w in ("删", "忘", "清", "remove", "delete", "forget")):
             return True, self._extract_keywords(msg)
+        # 修复：问句拦截——含疑问词的句子不判为遗忘意图（防「我的狗叫什么？」误判）
+        # 疑问词优先于 LLM 兜底，规则层直接放行
+        _Q = ("？", "?", "吗", "呢", "什么", "怎么", "为啥", "为何", "是否", "哪", "谁",
+              "多少", "几", "how", "what", "why", "which", "where", "when")
+        if any(q in msg for q in _Q):
+            return False, []
         # LLM 路由兜底（handoff_to_forget）— ⑤ 可通过 FORGET_LLM_ROUTING=0 关闭
         if self._llm_routing:
             try:
