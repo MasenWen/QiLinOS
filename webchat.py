@@ -681,15 +681,14 @@ HTML = r"""<!doctype html>
       <div class="banner-modal-box" style="width:360px;">
         <h3>设置</h3>
         <div class="tabpane" id="tab-skills" style="display:block;">
-          <label>配置名（如：时区规则）</label>
+          <label>配置名</label>
           <input type="text" id="skillName" placeholder="配置名">
-          <label>配置内容 / 常用提示词</label>
+          <label>配置内容</label>
           <textarea id="skillContent" rows="3" placeholder="配置内容…" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
           <div class="btns">
             <button id="skillClose">关闭</button>
             <button class="save" id="skillAdd">＋ 存入长期记忆</button>
           </div>
-          <div class="field-hint">同名配置自动版本化覆盖</div>
           <div id="skillPanel" style="margin-top:8px;"></div>
         </div>
       </div>
@@ -706,22 +705,22 @@ HTML = r"""<!doctype html>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
       <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
-      <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
+      <button class="icon-btn" id="clearMem" title="清空记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
     </header>
     <main><div class="wrap" id="messages">
       <div class="empty" id="empty">
         <h1>你好，我是麒麟记忆</h1>
-        <p>我会记住你的偏好，也能调用麒麟桌面上的系统工具。</p>
+        
         <p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>
       </div>
     </div></main>
     <footer>
       <div class="inputbar">
-        <textarea id="input" rows="1" placeholder="输入消息…（可让我改时区、查系统信息等）"></textarea>
+        <textarea id="input" rows="1" placeholder="输入消息…"></textarea>
         <button id="send">发送</button>
       </div>
-      <div class="hint">Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆</div>
+      <div class="hint">Enter 发送 · Shift+Enter 换行</div>
     </footer>
   </div>
   <!-- 记忆/工具日志面板已隐藏（日志仍记录在服务端） -->
@@ -732,7 +731,7 @@ HTML = r"""<!doctype html>
     <h3 id="amModalTitle">＋ 新增模型</h3>
     <label>1. Base URL</label>
     <input type="text" id="amBaseUrl" placeholder="https://api.deepseek.com/v1">
-    <label>2. Model（模型名，右上角显示）</label>
+    <label>2. Model</label>
     <input type="text" id="amName" placeholder="如 deepseek-chat">
     <label>3. API Key</label>
     <input type="password" id="amApiKey" placeholder="填写 API Key">
@@ -744,7 +743,7 @@ HTML = r"""<!doctype html>
   </div>
 </div>
 
-<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/配置）">⚙</button>
+<button class="floating-settings" id="floatingSettings" title="设置">⚙</button>
 
 <script>
 const msgs = document.getElementById('messages');
@@ -1124,10 +1123,10 @@ const I18N = {
   newChat: { zh: '＋ 新会话', en: '＋ New Chat' },
   clear: { zh: '清空', en: 'Clear' },
   clearMem: { zh: '清空记忆', en: 'Clear Memory' },
-  inputPh: { zh: '输入消息…（可让我改时区、查系统信息等）', en: 'Type a message… (e.g. check CPU usage)' },
+  inputPh: { zh: '输入消息…', en: 'Type a message…' },
   welcome: { zh: '你好，我是麒麟 AI', en: 'Hello, I\'m Kylin AI' },
-  welcomeSub: { zh: '我会记住你的偏好，也能调用麒麟桌面上的系统工具。', en: 'I remember your preferences and can use system tools.' },
-  hint: { zh: 'Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆', en: 'Enter send · Shift+Enter newline · streaming · auto memory' },
+  welcomeSub: { zh: '', en: '' },
+  hint: { zh: 'Enter 发送 · Shift+Enter 换行', en: 'Enter send · Shift+Enter newline' },
   memTitle: { zh: '🧠 记忆', en: '🧠 Memory' },
   toolTitle: { zh: '🔧 工具调用', en: '🔧 Tools' },
 };
