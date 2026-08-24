@@ -79,26 +79,37 @@ def save_config(cfg: dict) -> None:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
 
 
-def generate(prompt: str, cfg_override: dict | None = None) -> str:
-    """统一文本生成入口。cfg_override 可覆盖全局配置（会话级作用域，dsh scope）。"""
+def generate(prompt: str, cfg_override: dict | None = None,
+             system: str = "") -> str:
+    """统一文本生成入口。cfg_override 可覆盖全局配置（会话级作用域，dsh scope）。
+
+    system: 可选的系统提示词。API 模式按 role 拆分发送（system/user）；
+            SDK 模式拼接在 prompt 前（麒麟 SDK 仅接受单文本）。
+    """
     if not prompt:
         return ""
     cfg = cfg_override or load_config()
     if cfg.get("provider") == "api" and cfg.get("api_key"):
-        return _api_generate(prompt, cfg)
-    # 默认路径：麒麟 SDK
+        return _api_generate(prompt, cfg, system=system)
+    # 默认路径：麒麟 SDK（拼接 system + user）
+    if system:
+        prompt = system + "\n\n" + prompt
     from src.sdk import ai_text
     with ai_text.TextSession() as t:
         return t.generate(prompt)
 
 
-def _api_generate(prompt: str, cfg: dict) -> str:
-    """OpenAI 兼容接口调用（DeepSeek/OpenAI/通义等）。"""
+def _api_generate(prompt: str, cfg: dict, system: str = "") -> str:
+    """OpenAI 兼容接口调用（DeepSeek/OpenAI/通义等），支持 system/user 角色拆分。"""
     import requests
     base = (cfg.get("base_url") or DEFAULTS["base_url"]).rstrip("/")
     model = cfg.get("model") or DEFAULTS["model"]
     temperature = float(cfg.get("temperature") or 0.7)
-    payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    payload = {"model": model, "messages": messages}
     if 0 <= temperature <= 2:
         payload["temperature"] = temperature
     resp = requests.post(

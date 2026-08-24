@@ -1822,8 +1822,13 @@ def _kg_prompt_block(limit: int = 8) -> str:
         return ""
 
 
-def _build_context(message: str, session_id: str) -> str:
-    """统一拼接上下文（dsh 分节式：身份/工具/记忆/画像/技能/历史/规则/用户）。"""
+def _build_context(message: str, session_id: str, split_role: bool = False):
+    """统一拼接上下文（dsh 分节式：身份/工具/记忆/画像/技能/历史/规则/用户）。
+
+    split_role=True 时返回 (system_prompt, user_message) 元组——供 API 模式
+    按 role 拆分发送（system 身份/工具/规则 + user 消息），提升规则遵循度。
+    split_role=False 返回完整拼接文本（兼容 SDK 单文本路径与既有调用方）。
+    """
     memory = _retrieve_memory(message)
     profile = _db_user_profile()  # DB 用户画像（借鉴 AgentProject）
     skills = _skill_prompt_block()  # ③ 技能配置注入（dsh: 配置即长期记忆）
@@ -1903,7 +1908,14 @@ def _build_context(message: str, session_id: str) -> str:
                         "路径必须用中文（桌面是 ~/桌面，不是 ~/Desktop）；"
                         "执行后必须把工具返回的具体文件名和大小数值转述给用户，禁止凭记忆回答、禁止只说已成功。")
     sections.append("用户：" + message)
-    return "\n\n".join(sections)
+    full = "\n\n".join(sections)
+    if split_role:
+        # 拆分：最后一段「用户：xxx」作为 user 消息，其余为 system
+        marker = "\n\n用户："
+        idx = full.rfind(marker)
+        if idx > 0:
+            return full[:idx], full[idx + len(marker):]
+    return full
 
 
 # ================= 文件上传/下载 =================
@@ -2044,21 +2056,24 @@ def _chat(message: str, session_id: str = "default"):
     except Exception as _f_e:
         print(f"[forget] 遗忘流程异常，回退正常对话: {_f_e}", flush=True)
     log_reader.append_record("user", message)
-    prompt = _build_context(message, session_id)
     # ⑤ 会话级模型覆盖（dsh scope）：该会话指定模型时临时覆盖全局配置
     _sess_cfg = (SESSIONS_META.get(session_id, {}) or {}).get("config") or {}
+    _cfg_ovr = None
     if _sess_cfg.get("model"):
         try:
             from src import llm_client as _lc
-            _cfg = _lc.load_config()
-            _cfg["model"] = _sess_cfg["model"]
-            _gen = lambda p: _lc.generate(p, _cfg)
+            _cfg_ovr = _lc.load_config()
+            _cfg_ovr["model"] = _sess_cfg["model"]
         except Exception:
-            _gen = llm_client.generate
+            _cfg_ovr = None
+    # 角色拆分：API 模式 system/user 分开发送（规则遵循更可靠）；SDK 模式拼接
+    _is_api = bool((_cfg_ovr or llm_client.load_config()).get("provider") == "api")
+    if _is_api:
+        _sys, _user = _build_context(message, session_id, split_role=True)
+        raw = llm_client.generate(_user, _cfg_ovr, system=_sys)
     else:
-        _gen = llm_client.generate
-
-    raw = _gen(prompt)
+        prompt = _build_context(message, session_id)
+        raw = llm_client.generate(prompt, _cfg_ovr)
     raw = _clean(raw)
 
     # 尝试解析工具编排 JSON
@@ -2105,7 +2120,13 @@ def _chat(message: str, session_id: str = "default"):
             # AI 输出畸形 JSON（如 "files":} 缺值）：用 LLM 修正重试一次
             if '"tool"' in raw or "'tool'" in raw:
                 try:
-                    retry_raw = _gen(
+                    if _is_api:
+                        retry_raw = llm_client.generate(
+                            _user + "\n\n注意：您上一次输出的工具调用 JSON 格式不完整或无效。"
+                            "请重新输出，必须是一个完整合法的 JSON 对象，所有字段都要有值。",
+                            _cfg_ovr, system=_sys)
+                    else:
+                        retry_raw = _gen(
                             prompt + "\n\n注意：您上一次输出的工具调用 JSON 格式不完整或无效。"
                             "请重新输出，必须是一个完整合法的 JSON 对象，所有字段都要有值。"
                         )
