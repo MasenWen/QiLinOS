@@ -3,7 +3,7 @@
 import io, os, sys, json
 
 os.environ["MEM0_TELEMETRY"] = "False"
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
+sys.path.insert(0, "/home/kylin/work/projects/kylin-mem")
 
 from src.memory.forget_flow import ForgetFlow
 from src.memory.mem0_store import mem0_store

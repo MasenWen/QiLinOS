@@ -4,7 +4,7 @@ import os
 import sys
 import tempfile
 
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
+sys.path.insert(0, "/home/kylin/work/projects/kylin-mem")
 os.environ.setdefault("MEMORY_ENGINE_DB", tempfile.mktemp(suffix=".db"))
 
 from src.memory_engine.engine import MemoryEngine

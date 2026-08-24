@@ -183,7 +183,7 @@ docs/                   # 依赖瘦身记录等
 ## 部署与运维
 
 - **启动**：`sudo systemctl start webchat`
-- **日志**：`project_dev1/webchat.log`（服务日志）、`logs/security_audit.jsonl`（安全审计）
+- **日志**：`kylin-mem/webchat.log`（服务日志）、`logs/security_audit.jsonl`（安全审计）
 - **重启**：`sudo systemctl restart webchat`
 - **数据备份**：`~/.nex-agent/`（记忆/会话/配置）+ 代码仓库（git）
 

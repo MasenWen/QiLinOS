@@ -3,7 +3,7 @@
 分页 / 敏感二次确认 / 审计 / 批量遗忘 / LLM开关 / 会话隔离 / 指定删除"""
 import io, os, sys, json
 
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
+sys.path.insert(0, "/home/kylin/work/projects/kylin-mem")
 from src.memory.forget_flow import ForgetFlow
 
 # ---- mock store：绕开 mem0/嵌入/LLM，只测 ForgetFlow 逻辑 ----

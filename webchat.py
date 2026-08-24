@@ -729,11 +729,11 @@ HTML = r"""<!doctype html>
 
 <div class="banner-modal" id="addModelModal" style="display:none;">
   <div class="banner-modal-box" style="width:360px;">
-    <h3>＋ 新增模型</h3>
-    <label>1. 模型名称（标识）</label>
-    <input type="text" id="amName" placeholder="如 mymodel">
-    <label>2. Base URL</label>
+    <h3 id="amModalTitle">＋ 新增模型</h3>
+    <label>1. Base URL</label>
     <input type="text" id="amBaseUrl" placeholder="https://api.deepseek.com/v1">
+    <label>2. Model（模型名，右上角显示）</label>
+    <input type="text" id="amName" placeholder="如 deepseek-chat">
     <label>3. API Key</label>
     <input type="password" id="amApiKey" placeholder="填写 API Key">
     <div id="amError" style="font-size:12px;color:#c0392b;margin-top:8px;display:none;"></div>
@@ -1183,7 +1183,7 @@ async function loadHeaderModel() {
     for (const [key, p] of Object.entries(provs)) {
       const opt = document.createElement('option');
       opt.value = 'api:' + key;
-      opt.textContent = '⚡ ' + (p.model || key) + '（' + key + '）';
+      opt.textContent = '⚡ ' + (p.model || key);  // 右上角显示模型名
       sel.appendChild(opt);
     }
     // 管理选项：新增 / 删除自定义模型
@@ -1239,7 +1239,7 @@ function validateAddModel() {
   const baseUrl = document.getElementById('amBaseUrl').value.trim();
   const apiKey = document.getElementById('amApiKey').value.trim();
   err.style.display = 'none';
-  if (!name) { err.textContent = '❌ 模型名称不能为空'; err.style.display = 'block'; return null; }
+  if (!name) { err.textContent = '❌ Model 不能为空'; err.style.display = 'block'; return null; }
   try { const u = new URL(baseUrl); if (u.protocol !== 'http:' && u.protocol !== 'https:') throw 0; }
   catch (e) { err.textContent = '❌ Base URL 不合法（需 http/https 开头）'; err.style.display = 'block'; return null; }
   if (!apiKey) { err.textContent = '❌ API Key 不能为空'; err.style.display = 'block'; return null; }
@@ -1251,25 +1251,29 @@ document.getElementById('amSave').onclick = async () => {
   const btn = document.getElementById('amSave');
   btn.disabled = true;
   try {
-    // 名称重复校验
+    const editing = window._editingProvider || null;
     const r = await fetch('/api/llm_config', { headers: apiHeaders });
     const cfg = await r.json();
     const provs = cfg.api_providers || {};
-    if (v.name in provs) {
+    if (!editing && (v.name in provs)) {
       document.getElementById('amError').textContent = '❌ 模型「' + v.name + '」已存在，请换一个名称';
       document.getElementById('amError').style.display = 'block';
       btn.disabled = false;
       return;
     }
+    const action = editing ? 'edit_provider' : 'add_provider';
+    const pname = editing || v.name;
     await fetch('/api/llm_config', {
       method: 'POST', headers: apiHeaders,
       body: JSON.stringify({
-        action: 'add_provider', provider_name: v.name,
+        action: action, provider_name: pname,
         model: v.name, base_url: v.baseUrl, api_key: v.apiKey,
       }),
     });
     document.getElementById('addModelModal').style.display = 'none';
-    alert('✅ 模型「' + v.name + '」已新增并切换');
+    window._editingProvider = null;
+    document.getElementById('amModalTitle').textContent = '＋ 新增模型';
+    alert(editing ? ('✅ 模型「' + editing + '」已更新') : ('✅ 模型「' + v.name + '」已新增并切换'));
     loadHeaderModel();
   } catch (e) {
     document.getElementById('amError').textContent = '❌ 保存失败: ' + e;
@@ -1279,6 +1283,8 @@ document.getElementById('amSave').onclick = async () => {
 };
 document.getElementById('amCancel').onclick = () => {
   document.getElementById('addModelModal').style.display = 'none';
+  window._editingProvider = null;
+  document.getElementById('amModalTitle').textContent = '＋ 新增模型';
 };
 
 document.getElementById('headerModel').onchange = async (e) => {
@@ -1286,6 +1292,7 @@ document.getElementById('headerModel').onchange = async (e) => {
   // 管理分支：新增 / 删除模型
   if (v === '__add__') { manageProvider('add'); loadHeaderModel(); return; }
   if (v === '__del__') { manageProvider('del'); loadHeaderModel(); return; }
+  if (v === '__edit__') { manageProvider('edit'); loadHeaderModel(); return; }
   try {
     const r = await fetch('/api/llm_config', { headers: apiHeaders });
     const cfg = await r.json();
@@ -1811,10 +1818,10 @@ _TOOL_RULES = (
     "列出目录 → file action=list path=路径（或 shell ls）。"
     "工具返回后必须把具体文件名、内容、数量原样转述，禁止只说'已成功'。\n"
     "示例（务必模仿此格式）：\n"
-    "  用户：查找 /tmp 下包含 project_dev1 的文件\n"
-    "  工具：{\"tool\": \"shell\", \"params\": {\"cmd\": \"grep -l project_dev1 /tmp/* 2>/dev/null | head -10\"}}\n"
+    "  用户：查找 /tmp 下包含 kylin-mem 的文件\n"
+    "  工具：{\"tool\": \"shell\", \"params\": {\"cmd\": \"grep -l kylin-mem /tmp/* 2>/dev/null | head -10\"}}\n"
     "  工具返回：/tmp/测试文本.txt\n"
-    "  正确回答：找到包含 project_dev1 的文件：/tmp/测试文本.txt\n"
+    "  正确回答：找到包含 kylin-mem 的文件：/tmp/测试文本.txt\n"
     "  错误回答：已成功查找（没有列出文件名）\n"
     "  用户：查看桌面测试文档.txt 的内容\n"
     "  工具：{\"tool\": \"file\", \"params\": {\"action\": \"read\", \"path\": \"~/桌面/测试文档.txt\"}}\n"
@@ -2497,6 +2504,22 @@ class Handler(BaseHTTPRequestHandler):
                     _cfg["api_key"] = _provs[_pk]["api_key"]
                     _cfg["model"] = _pm
                     _cfg["provider"] = "api"
+            if _body.get("action") == "edit_provider":
+                _pk = str(_body.get("provider_name") or "").strip()
+                _provs = _cfg.get("api_providers") or {}
+                if _pk in _provs:
+                    _pm = str(_body.get("model") or "").strip()
+                    if _pm:
+                        _provs[_pk] = {
+                            "base_url": str(_body.get("base_url") or "").strip() or _provs[_pk].get("base_url", ""),
+                            "api_key": str(_body.get("api_key") or "").strip() or _provs[_pk].get("api_key", ""),
+                            "model": _pm,
+                        }
+                        # 若正在使用该模型则同步切换
+                        if _cfg.get("api_choice") == _pk:
+                            _cfg["base_url"] = _provs[_pk]["base_url"]
+                            _cfg["api_key"] = _provs[_pk]["api_key"]
+                            _cfg["model"] = _pm
             if _body.get("action") == "del_provider":
                 _pk = str(_body.get("provider_name") or "").strip()
                 _provs = _cfg.get("api_providers") or {}

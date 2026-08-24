@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """优先级判定测试：强调/时间/敏感/密度/频率因子 + 批量排序 + 淘汰选择"""
 import os, sys
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
+sys.path.insert(0, "/home/kylin/work/projects/kylin-mem")
 
 from src.memory.priority import (
     compute_priority, prioritize_items, lowest_priority_ids, PriorityLevel,
