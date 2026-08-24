@@ -89,8 +89,26 @@ class ForgetFlow:
             # 非空：跳过 LLM 编排，直接进入 forget_node（确认分支）
             # 仅同会话可继续确认；其他会话不打扰
             if st.get("session_id") != session_id:
-                return "", False
-            return self._forget_node_confirm(msg, st)
+                # 修复：会话不匹配 + 状态过期（>30分钟）→ 视为脏状态清理并继续路由
+                # （此前直接短路返回 False，导致精准遗忘在 webchat 中失效——评测残留状态污染）
+                _stale = True
+                try:
+                    from datetime import datetime
+                    _created = st.get("created_at") or ""
+                    if _created:
+                        _age = (datetime.now() - datetime.fromisoformat(_created)).total_seconds()
+                        _stale = _age > 1800  # 30 分钟
+                except Exception:
+                    pass
+                if _stale:
+                    self._save_state({"active": False, "candidates": [],
+                                      "keyword": "", "session_id": session_id,
+                                      "created_at": st.get("created_at"),
+                                      "resolved_at": _now(), "resolution": "stale_cleared"})
+                else:
+                    return "", False
+            else:
+                return self._forget_node_confirm(msg, st)
         # ---- coordinator_node: 无 pending → LLM 路由 handoff_to_forget ----
         forget, keywords = self._route_forget_intent(msg)
         if not forget:
