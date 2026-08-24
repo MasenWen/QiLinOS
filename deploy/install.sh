@@ -13,6 +13,11 @@
 set -e
 cd "$(dirname "$0")/.."   # 回到项目根
 
+# apt 超时配置（麒麟官方源可能慢，防安装挂死）：单次连接 30s，重试 2 次
+APT_OPTS="-o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=2"
+# pip 超时配置：120s 超时 + 3 次重试
+PIP_OPTS="--timeout 120 --retries 3"
+
 PROJ_DIR="$(pwd)"
 PORT="${PORT:-8080}"
 
@@ -64,14 +69,14 @@ echo "工作目录: $PROJ_DIR"
 PY=python3
 if ! command -v "$PY" >/dev/null 2>&1; then
     echo "!! 未找到 python3，尝试安装："
-    sudo apt-get update -y
-    sudo apt-get install -y python3 python3-venv python3-pip || {
+    sudo apt-get update -y $APT_OPTS
+    sudo apt-get install -y $APT_OPTS python3 python3-venv python3-pip || {
         # 麒麟 V11 无第三方镜像（清华/阿里均无麒麟源），用官方双源回退
         echo "!! apt 默认源失败，尝试官方备用源 archive2.kylinos.cn"
         sudo sed -i "s|http://archive.kylinos.cn|https://archive2.kylinos.cn|g" \
             /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-        sudo apt-get update -y
-        sudo apt-get install -y python3 python3-venv python3-pip
+        sudo apt-get update -y $APT_OPTS
+        sudo apt-get install -y $APT_OPTS python3 python3-venv python3-pip
     }
 fi
 $PY --version || true
@@ -87,18 +92,18 @@ if [ "$WITH_SDK" = "1" ]; then
     done
     if [ -n "$SDK_MISSING" ]; then
         echo "!! 缺失 SDK:$SDK_MISSING，尝试 apt 安装（麒麟官方源）"
-        sudo apt-get update -y
-        if ! sudo apt-get install -y $SDK_MISSING; then
+        sudo apt-get update -y $APT_OPTS
+        if ! sudo apt-get install -y $APT_OPTS $SDK_MISSING; then
             echo "!! 默认源失败，尝试官方备用源 archive2.kylinos.cn"
             sudo sed -i "s|http://archive.kylinos.cn|https://archive2.kylinos.cn|g" \
                 /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
-            sudo apt-get update -y
-            sudo apt-get install -y $SDK_MISSING || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
+            sudo apt-get update -y $APT_OPTS
+            sudo apt-get install -y $APT_OPTS $SDK_MISSING || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
         fi
     else
         echo "✅ SDK 已就绪"
     fi
-    fc-list 2>/dev/null | grep -qi "noto sans cjk\|wqy" || sudo apt-get install -y fonts-noto-cjk 2>/dev/null || true
+    fc-list 2>/dev/null | grep -qi "noto sans cjk\|wqy" || sudo apt-get install -y $APT_OPTS fonts-noto-cjk 2>/dev/null || true
 fi
 
 # ============================================================
@@ -106,15 +111,15 @@ fi
 # ============================================================
 if [ ! -d .venv ]; then
     echo "--- 创建虚拟环境 .venv ---"
-    $PY -m venv .venv 2>/dev/null || { sudo apt-get install -y python3-venv; $PY -m venv .venv; }
+    $PY -m venv .venv 2>/dev/null || { sudo apt-get install -y $APT_OPTS python3-venv; $PY -m venv .venv; }
 fi
 
 # ============================================================
 # 4. 依赖安装（多镜像源自动切换）
 # ============================================================
 echo "--- 安装依赖（多镜像源自动切换）---"
-.venv/bin/pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple -q || \
-    .venv/bin/pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ -q
+.venv/bin/pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple -q $PIP_OPTS || \
+    .venv/bin/pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/ -q $PIP_OPTS
 MIRRORS=(
     "https://pypi.tuna.tsinghua.edu.cn/simple"
     "https://mirrors.aliyun.com/pypi/simple/"
@@ -124,7 +129,7 @@ MIRRORS=(
 install_ok=0
 for mirror in "${MIRRORS[@]}"; do
     echo "---- 镜像: $mirror ----"
-    if .venv/bin/pip install -r requirements.txt -i "$mirror" --timeout 120 --retries 3; then
+    if .venv/bin/pip install -r requirements.txt -i "$mirror" $PIP_OPTS; then
         install_ok=1; echo "✅ 依赖安装成功"; break
     fi
 done
