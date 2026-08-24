@@ -680,36 +680,7 @@ HTML = r"""<!doctype html>
     <div class="banner-modal" id="settingsModal">
       <div class="banner-modal-box" style="width:360px;">
         <h3>设置</h3>
-        <div class="tabbar">
-          <button class="tab active" data-tab="model">🤖 模型</button>
-          <button class="tab" data-tab="skills">⚙️ 配置</button>
-        </div>
-
-        <div class="tabpane" id="tab-model" style="display:none;">
-          <label>模型提供方</label>
-          <select id="llmProvider" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
-            <option value="sdk">麒麟 SDK（默认，零 Key）</option>
-            <option value="api">自定义 API（使用 OpenAI 接口）</option>
-          </select>
-          <div class="field-hint">提示：使用 OpenAI 接口时，在下方填写 Base URL、API Key 与模型名</div>
-          <div id="llmSdkHint" style="font-size:12px;color:#888;margin:8px 0;padding:8px;background:#f5f5f5;border-radius:6px;">
-            ✅ 麒麟 SDK 零 Key，无需填写模型与 API Key，保存即可使用
-          </div>
-          <div id="llmApiFields">
-            <label>Base URL</label>
-            <input type="text" id="llmBaseUrl" placeholder="https://api.deepseek.com/v1">
-            <label>API Key</label>
-            <input type="password" id="llmApiKey" placeholder="填写 API Key">
-            <label>模型名</label>
-            <input type="text" id="llmModel" placeholder="deepseek-chat">
-          </div>
-          <div class="btns">
-            <button id="llmClose">关闭</button>
-            <button class="save" id="llmSave">💾 保存模型配置</button>
-          </div>
-          <div id="llmStatus" style="font-size:12px;color:var(--modal-label);margin-top:6px;"></div>
-        </div>
-        <div class="tabpane" id="tab-skills" style="display:none;">
+        <div class="tabpane" id="tab-skills" style="display:block;">
           <label>配置名（如：时区规则）</label>
           <input type="text" id="skillName" placeholder="配置名">
           <label>配置内容 / 常用提示词</label>
@@ -1219,19 +1190,17 @@ async function manageProvider(action) {
     const cfg = await r.json();
     const provs = cfg.api_providers || {};
     if (action === 'add') {
-      const name = prompt('新增模型名称（标识，如 mymodel）:');
+      const name = prompt('1. 模型名称（标识，如 mymodel）:');
       if (!name || !name.trim()) return;
-      const model = prompt('模型名（如 deepseek-chat）:');
-      if (!model || !model.trim()) return;
-      const baseUrl = prompt('Base URL（默认 DeepSeek）:', 'https://api.deepseek.com/v1');
-      const apiKey = prompt('API Key:');
+      const baseUrl = prompt('2. Base URL（默认 DeepSeek）:', 'https://api.deepseek.com/v1');
+      const apiKey = prompt('3. API Key:');
       if (!apiKey || !apiKey.trim()) { alert('API Key 必填'); return; }
       await fetch('/api/llm_config', {
         method: 'POST', headers: apiHeaders,
         body: JSON.stringify({
           action: 'add_provider',
           provider_name: name.trim(),
-          model: model.trim(),
+          model: name.trim(),
           base_url: (baseUrl || '').trim(),
           api_key: apiKey.trim(),
         }),
@@ -1282,48 +1251,7 @@ loadHeaderModel();
 loadTheme();
 loadLang();
 
-function toggleLlmFields() {
-  const isSdk = document.getElementById('llmProvider').value === 'sdk';
-  document.getElementById('llmSdkHint').style.display = isSdk ? '' : 'none';
-  document.getElementById('llmApiFields').style.display = isSdk ? 'none' : '';
-}
-async function refreshLlmConfig() {
-  try {
-    const r = await fetch('/api/llm_config', { headers: apiHeaders });
-    const d = await r.json();
-    document.getElementById('llmProvider').value = d.provider || 'sdk';
-    document.getElementById('llmBaseUrl').value = d.base_url || '';
-    document.getElementById('llmApiKey').value = d.api_key_set ? '******' : '';
-    document.getElementById('llmModel').value = d.model || '';
-    toggleLlmFields();
-  } catch (e) {}
-}
-document.getElementById('llmProvider').onchange = toggleLlmFields;
-document.getElementById('llmSave').onclick = async () => {
-  const btn = document.getElementById('llmSave');
-  btn.disabled = true;
-  let key = document.getElementById('llmApiKey').value.trim();
-  if (key === '******') key = '';  // 占位符=未修改，保留旧 key
-  const body = {
-    provider: document.getElementById('llmProvider').value,
-    base_url: document.getElementById('llmBaseUrl').value.trim(),
-    api_key: key,
-    model: document.getElementById('llmModel').value.trim(),
-  };
-  try {
-    const r = await fetch('/api/llm_config', {
-      method: 'POST', headers: apiHeaders,
-      body: JSON.stringify(body),
-    });
-    const d = await r.json();
-    document.getElementById('llmStatus').textContent = d.ok ? '✅ 已保存，下次对话生效' : ('❌ ' + (d.error || '失败'));
-    refreshLlmConfig();
-  } catch (e) {
-    document.getElementById('llmStatus').textContent = '❌ 保存失败';
-  }
-  btn.disabled = false;
-};
-refreshLlmConfig();
+// 模型设置已移到主页右上角模型下拉（此处移除设置弹窗内的模型栏目）
 
 // ---- 配置面板（网页输入 → 长期记忆）----
 async function refreshSkills() {
@@ -1389,32 +1317,14 @@ async function loadBanner() {
     document.getElementById('bannerSub').textContent = cfg.subtitle || '';
   } catch (e) {}
 }
-// ---- 设置弹窗（外观 / 模型 / 技能 三 tab）----
-function showTab(tab) {
-  document.querySelectorAll('.tabbar .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['model', 'skills'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = (t === tab) ? '' : 'none';
-  });
-}
-function openSettings(tab) {
-  showTab(tab || 'model');
+// ---- 设置弹窗（仅配置栏目；模型管理在主页右上角下拉）----
+function openSettings() {
   document.getElementById('settingsModal').style.display = 'flex';
-  if (tab === 'model') refreshLlmConfig();
-  if (tab === 'skills') refreshSkills();
+  refreshSkills();
 }
-document.querySelectorAll('.tabbar .tab').forEach(t => {
-  t.onclick = () => {
-    showTab(t.dataset.tab);
-    if (t.dataset.tab === 'model') refreshLlmConfig();
-    if (t.dataset.tab === 'skills') refreshSkills();
-  };
-});
-document.getElementById('floatingSettings').onclick = () => openSettings('appearance');
+document.getElementById('floatingSettings').onclick = () => openSettings();
 // 遮罩点击不关闭（防止误关设置）；仅通过关闭按钮关闭
 
-document.getElementById('llmClose').onclick = () => {
-  document.getElementById('settingsModal').style.display = 'none';
-};
 document.getElementById('skillClose').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
 };
