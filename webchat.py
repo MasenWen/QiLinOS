@@ -278,6 +278,18 @@ def _session_history(session_id: str):
         return list(SESSIONS.get(session_id, []))
 
 
+def _delete_session_message(session_id: str, index: int) -> bool:
+    """删除会话中的单条消息（按索引，前端同步删除）。"""
+    with _sessions_lock:
+        hist = SESSIONS.get(session_id)
+        if not hist or index < 0 or index >= len(hist):
+            return False
+        del hist[index]
+        _persist_sessions()
+    print(f"[session] 已删除会话 {session_id[:12]} 第 {index} 条消息", flush=True)
+    return True
+
+
 def _delete_session(session_id: str) -> bool:
     """删除整个会话（历史 + meta + 持久化）。"""
     with _sessions_lock:
@@ -811,12 +823,22 @@ function addRow(role, text) {
   bubble.className = 'bubble';
   if (role === 'user') {
     bubble.textContent = text;
+    // ---- 用户消息操作：删除（悬停显示）----
+    const acts = document.createElement('div');
+    acts.className = 'msg-actions';
+    const bDel = document.createElement('button');
+    bDel.textContent = '🗑';
+    bDel.title = '删除这条消息';
+    bDel.dataset.v = 'del';
+    bDel.onclick = () => deleteMessage(row, text);
+    acts.appendChild(bDel);
+    bubble.appendChild(acts);
   } else {
     const md = document.createElement('div');
     md.className = 'md';
     renderMd(md, text);
     bubble.appendChild(md);
-    // ---- 消息操作：复制 / 👍 / 👎（仿 dsh message-feedback）----
+    // ---- 消息操作：复制 / 👍 / 👎 / 删除（仿 dsh message-feedback）----
     const acts = document.createElement('div');
     acts.className = 'msg-actions';
     const key = 'fb_' + sessionId + '_' + (history.length);
@@ -832,6 +854,7 @@ function addRow(role, text) {
     const bCopy = mk('复制', '📋');
     const bUp = mk('有用', '👍');
     const bDown = mk('没用', '👎');
+    const bDel = mk('删除', '🗑');
     bCopy.onclick = async () => {
       try {
         await navigator.clipboard.writeText(text);
@@ -841,9 +864,11 @@ function addRow(role, text) {
     };
     bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
     bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
+    bDel.onclick = () => deleteMessage(row, text);
     acts.appendChild(bCopy);
     acts.appendChild(bUp);
     acts.appendChild(bDown);
+    acts.appendChild(bDel);
     bubble.appendChild(acts);
   }
   row.appendChild(who);
@@ -851,6 +876,24 @@ function addRow(role, text) {
   msgs.appendChild(row);
   scrollBottom();
   return row;
+}
+
+// ---- 删除单条消息（界面 + localStorage + 服务端同步）----
+async function deleteMessage(row, text) {
+  if (!confirm('确定删除这条消息？')) return;
+  const idx = [...msgs.children].indexOf(row);   // 在 DOM 中的位置 = history 索引
+  if (idx < 0) return;
+  history.splice(idx, 1);
+  save();
+  row.remove();
+  // 服务端同步删除
+  try {
+    await fetch('/api/history/delete', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({ session_id: sessionId, index: idx }),
+    });
+  } catch (e) {}
+  refreshSessions();
 }
 
 function renderConfirmCard(md, req, originalText) {
@@ -2357,7 +2400,17 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_chat_stream()
         if self.path == "/api/upload":
             return _handle_upload(self)
-        if self.path == "/api/sessions/delete":
+        if self.path == "/api/history/delete":
+            try:
+                _length = int(self.headers.get("Content-Length") or 0)
+                _body = json.loads(self.rfile.read(_length) or b"{}")
+            except Exception:
+                _body = {}
+            _sid = str(_body.get("session_id") or "")
+            _idx = int(_body.get("index") or -1)
+            ok = bool(_sid) and _delete_session_message(_sid, _idx)
+            self._json(200, {"ok": ok})
+        elif self.path == "/api/sessions/delete":
             try:
                 length = int(self.headers.get("Content-Length") or 0)
                 body = json.loads(self.rfile.read(length) or b"{}")
