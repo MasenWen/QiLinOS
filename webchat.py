@@ -1198,11 +1198,68 @@ async function loadHeaderModel() {
       opt.textContent = '⚡ ' + (p.model || key) + '（' + key + '）';
       sel.appendChild(opt);
     }
+    // 管理选项：新增 / 删除自定义模型
+    const optSep = document.createElement('option');
+    optSep.disabled = true; optSep.textContent = '──────────';
+    sel.appendChild(optSep);
+    const optAdd = document.createElement('option');
+    optAdd.value = '__add__'; optAdd.textContent = '＋ 新增模型';
+    sel.appendChild(optAdd);
+    const optDel = document.createElement('option');
+    optDel.value = '__del__'; optDel.textContent = '🗑 删除模型';
+    sel.appendChild(optDel);
     sel.value = d.provider === 'api' ? ('api:' + choice) : 'sdk';
   } catch (e) {}
 }
+
+// ---- 新增 / 删除模型（右上角模型下拉管理）----
+async function manageProvider(action) {
+  try {
+    const r = await fetch('/api/llm_config', { headers: apiHeaders });
+    const cfg = await r.json();
+    const provs = cfg.api_providers || {};
+    if (action === 'add') {
+      const name = prompt('新增模型名称（标识，如 mymodel）:');
+      if (!name || !name.trim()) return;
+      const model = prompt('模型名（如 deepseek-chat）:');
+      if (!model || !model.trim()) return;
+      const baseUrl = prompt('Base URL（默认 DeepSeek）:', 'https://api.deepseek.com/v1');
+      const apiKey = prompt('API Key:');
+      if (!apiKey || !apiKey.trim()) { alert('API Key 必填'); return; }
+      await fetch('/api/llm_config', {
+        method: 'POST', headers: apiHeaders,
+        body: JSON.stringify({
+          action: 'add_provider',
+          provider_name: name.trim(),
+          model: model.trim(),
+          base_url: (baseUrl || '').trim(),
+          api_key: apiKey.trim(),
+        }),
+      });
+      alert('✅ 模型「' + name.trim() + '」已新增并切换');
+    } else if (action === 'del') {
+      const keys = Object.keys(provs);
+      if (!keys.length) { alert('没有可删除的模型'); return; }
+      const pick = prompt('删除哪个模型？（输入名称）
+可删: ' + keys.join(' / '));
+      if (!pick || !pick.trim()) return;
+      const k = pick.trim();
+      if (!(k in provs)) { alert('未找到模型「' + k + '」'); return; }
+      await fetch('/api/llm_config', {
+        method: 'POST', headers: apiHeaders,
+        body: JSON.stringify({ action: 'del_provider', provider_name: k }),
+      });
+      alert('🗑 模型「' + k + '」已删除');
+    }
+    loadHeaderModel();
+  } catch (e) { alert('操作失败: ' + e); }
+}
+
 document.getElementById('headerModel').onchange = async (e) => {
   const v = e.target.value;
+  // 管理分支：新增 / 删除模型
+  if (v === '__add__') { manageProvider('add'); loadHeaderModel(); return; }
+  if (v === '__del__') { manageProvider('del'); loadHeaderModel(); return; }
   try {
     const r = await fetch('/api/llm_config', { headers: apiHeaders });
     const cfg = await r.json();
@@ -2457,6 +2514,35 @@ class Handler(BaseHTTPRequestHandler):
                     _cfg["base_url"] = _provs[_choice].get("base_url") or _cfg["base_url"]
                     _cfg["api_key"] = _provs[_choice].get("api_key") or _cfg["api_key"]
                     _cfg["model"] = _provs[_choice].get("model") or _cfg["model"]
+            # 管理：新增 / 删除自定义模型 provider
+            if _body.get("action") == "add_provider":
+                _pk = str(_body.get("provider_name") or "").strip()
+                _pm = str(_body.get("model") or "").strip()
+                if _pk and _pm:
+                    _provs = _cfg.setdefault("api_providers", {})
+                    _provs[_pk] = {
+                        "base_url": str(_body.get("base_url") or "").strip() or "https://api.deepseek.com/v1",
+                        "api_key": str(_body.get("api_key") or "").strip(),
+                        "model": _pm,
+                    }
+                    _cfg["api_choice"] = _pk
+                    _cfg["base_url"] = _provs[_pk]["base_url"]
+                    _cfg["api_key"] = _provs[_pk]["api_key"]
+                    _cfg["model"] = _pm
+                    _cfg["provider"] = "api"
+            if _body.get("action") == "del_provider":
+                _pk = str(_body.get("provider_name") or "").strip()
+                _provs = _cfg.get("api_providers") or {}
+                if _pk in _provs:
+                    del _provs[_pk]
+                    if _cfg.get("api_choice") == _pk:
+                        _cfg["api_choice"] = next(iter(_provs), "deepseek")
+                        _fall = _provs.get(_cfg["api_choice"]) or {}
+                        _cfg["base_url"] = _fall.get("base_url") or _cfg["base_url"]
+                        _cfg["api_key"] = _fall.get("api_key") or _cfg["api_key"]
+                        _cfg["model"] = _fall.get("model") or _cfg["model"]
+                        if not _provs:
+                            _cfg["provider"] = "sdk"
             if _body.get("temperature") is not None:
                 try:
                     _cfg["temperature"] = max(0.0, min(2.0, float(_body["temperature"])))
