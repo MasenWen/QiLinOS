@@ -1,14 +1,14 @@
-# NexAgent（QiLinOS）
+# Kylin Mem（麒麟记忆）
 
-**麒麟 OS Agent**：运行在银河麒麟桌面系统上的智能助手，通过网页对话执行系统操作，并具备多层级记忆体系。
+**麒麟记忆**：运行在银河麒麟 Kylin OS V11 桌面系统上的 AI 助手，通过网页对话执行系统操作，并具备多层级记忆体系。
 
-单进程 Python 服务（`webchat.py`），内置 27 个系统工具、4 层记忆存储、可切换的 LLM（麒麟 SDK / OpenAI 兼容 API）。
+单进程 Python 服务（`webchat.py`），内置 27 个系统工具、4 层记忆存储、可切换的 LLM（麒麟 SDK / OpenAI 兼容 API：DeepSeek / Grok）。
 
 ---
 
 ## 功能特性
 
-- **网页聊天**（三栏界面：会话列表 / 对话区 / 记忆与配置面板，黑白主题）
+- **网页聊天**（两栏界面：会话列表 / 对话区，黑白主题；记忆与工具日志在服务端记录，不占界面）
 - **27 个系统工具**：文件、Shell（受限白名单）、系统信息（CPU/内存/磁盘/网络/负载）、时区、日期、进程、电池、蓝牙、音量、WiFi、壁纸、截图、电源计划等
 - **工具调用闭环**：AI 输出 JSON → 工具执行 → 验证 → 回滚 → 重试 → 降级兜底
 - **麒麟 SDK 优先**：系统信息/硬件查询优先走官方 SDK（libky*），SDK 无数据时自动兜底系统命令
@@ -19,7 +19,8 @@
   - 配置记忆（SKILL，网页输入 → 长期记忆）
   - 日志驱动记忆（对话日志增量扫描，自动提炼动作事件）
   - 记忆防爆炸：同类快照自动裁剪、精确/语义去重
-- **LLM 可配置**：默认麒麟 SDK，网页一键切换 OpenAI 兼容 API（DeepSeek/OpenAI 等，模型 + Key 可改）
+- **LLM 可配置**：默认麒麟 SDK，网页一键切换 OpenAI 兼容 API（预置 DeepSeek / Grok，模型 + Key 可改）
+- **会话标题自动生成**：每个对话在后台由 LLM 自动生成标题，也可手动重命名
 - **会话管理**：多会话、会话重命名、会话历史服务端持久化、每个会话独立草稿
 - **安全设计**：仅绑定 `127.0.0.1`、Shell 命令白名单（含参数级校验）、危险工具（重启/关机/睡眠）拦截、可配置访问令牌
 
@@ -41,16 +42,16 @@ git clone git@github.com:MasenWen/QiLinOS.git
 cd QiLinOS
 git checkout dev1
 
-# 2. 创建虚拟环境并安装依赖
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 2. 一键安装（自动创建 venv + 多镜像源切换安装依赖）
+./install.sh
 
-# 3.（可选）安装 mem0 本地向量库（记忆必需）
-.venv/bin/pip install mem0ai==2.0.18 milvus-lite qdrant-client
-
-# 4. 启动
+# 3. 启动
 .venv/bin/python webchat.py 8080
 ```
+
+> `install.sh` 会处理麒麟系统上 python3 下载/安装的常见问题：自动检测 python3、
+> 缺失时用 apt（含阿里云镜像源回退）安装、pip 升级与依赖安装均按
+> 清华 → 阿里 → 豆瓣 → 官方源顺序自动切换重试。
 
 ### systemd 守护（推荐）
 
@@ -77,7 +78,7 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 ```
 ┌─────────────────────────────────────────────┐
 │             浏览器（前端三栏界面）              │
-│  会话列表 │ 对话区 │ 记忆/配置面板（模型/技能）  │
+│  会话列表（标题自动生成/可重命名） │ 对话区  │
 └──────────────────┬──────────────────────────┘
                    │ HTTP (127.0.0.1:8080)
 ┌──────────────────▼──────────────────────────┐
@@ -141,19 +142,24 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 
 ## LLM 配置
 
-默认使用麒麟 SDK；网页右侧"模型配置"可切换 OpenAI 兼容 API：
+默认使用麒麟 SDK；网页模型下拉框可一键切换 OpenAI 兼容 API（预置 DeepSeek / Grok，使用 OpenAI 接口）：
 
 ```json
 // ~/.nex-agent/llm_config.json
 {
-  "provider": "sdk",                      // 或 "api"
+  "provider": "api",                      // 或 "sdk"
+  "api_choice": "deepseek",               // deepseek | grok
   "base_url": "https://api.deepseek.com/v1",
-  "api_key": "",
-  "model": "deepseek-chat"
+  "api_key": "sk-...",
+  "model": "deepseek-v4-flash",
+  "api_providers": {
+    "deepseek": { "base_url": "...", "api_key": "sk-...", "model": "deepseek-v4-flash" },
+    "grok":     { "base_url": "https://api.x.ai/v1", "api_key": "xai-...", "model": "grok-4" }
+  }
 }
 ```
 
-统一入口 `src/llm_client.py`：`sdk` → 麒麟 SDK；`api` → OpenAI 兼容接口。
+统一入口 `src/llm_client.py`：`sdk` → 麒麟 SDK；`api` → OpenAI 兼容接口（按 `api_choice` 选择预置 provider）。
 
 ---
 

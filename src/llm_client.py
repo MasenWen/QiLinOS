@@ -21,6 +21,20 @@ DEFAULTS = {
     "api_key": "",
     "model": "deepseek-chat",
     "temperature": 0.7,
+    # 预置 OpenAI 兼容 API（deepseek + grok），provider=api 时可用 api_choice 切换
+    "api_providers": {
+        "deepseek": {
+            "base_url": "https://api.deepseek.com/v1",
+            "api_key": "",   # 真实 key 在 ~/.nex-agent/llm_config.json（不入库）
+            "model": "deepseek-v4-flash",
+        },
+        "grok": {
+            "base_url": "https://api.x.ai/v1",
+            "api_key": "",   # 真实 key 在 ~/.nex-agent/llm_config.json（不入库）
+            "model": "grok-4",
+        },
+    },
+    "api_choice": "deepseek",
 }
 
 
@@ -34,8 +48,26 @@ def load_config() -> dict:
             for k in DEFAULTS:
                 if d.get(k) is not None:
                     cfg[k] = d[k]
+            # api_providers 深合并（配置文件中的真实 key 覆盖占位符）
+            _fp = d.get("api_providers") or {}
+            if _fp:
+                _merged = {}
+                for _pk, _pv in (cfg.get("api_providers") or {}).items():
+                    _merged[_pk] = dict(_pv)
+                for _pk, _pv in _fp.items():
+                    _merged.setdefault(_pk, {})
+                    _merged[_pk].update({kk: vv for kk, vv in _pv.items() if vv})
+                cfg["api_providers"] = _merged
     except Exception:
         pass
+    # api_choice 选中的预置 provider 生效（覆盖 base_url/api_key/model）
+    if cfg.get("provider") == "api":
+        choice = cfg.get("api_choice") or "deepseek"
+        prov = (cfg.get("api_providers") or {}).get(choice) or {}
+        if prov:
+            cfg["base_url"] = prov.get("base_url") or cfg["base_url"]
+            cfg["api_key"] = prov.get("api_key") or cfg["api_key"]
+            cfg["model"] = prov.get("model") or cfg["model"]
     return cfg
 
 

@@ -357,7 +357,7 @@ HTML = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>aichat · 麒麟 AI</title>
+<title>Kylin Mem · 麒麟记忆</title>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
@@ -604,7 +604,7 @@ HTML = r"""<!doctype html>
     <div class="banner" id="banner">
       <div class="banner-icon" id="bannerIcon">🤖</div>
       <div class="banner-text">
-        <div class="banner-title" id="bannerTitle">麒麟 AI</div>
+        <div class="banner-title" id="bannerTitle">麒麟记忆</div>
         <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
       </div>
 
@@ -617,7 +617,7 @@ HTML = r"""<!doctype html>
         <div class="row">
           <div>
             <label>标题</label>
-            <input type="text" id="bCfgTitle" maxlength="20" placeholder="麒麟 AI">
+            <input type="text" id="bCfgTitle" maxlength="20" placeholder="麒麟记忆">
           </div>
           <div>
             <label>副标题</label>
@@ -646,15 +646,16 @@ HTML = r"""<!doctype html>
         <h3>设置</h3>
         <div class="tabbar">
           <button class="tab active" data-tab="model">🤖 模型</button>
-          <button class="tab" data-tab="skills">⚙️ 技能</button>
+          <button class="tab" data-tab="skills">⚙️ 配置</button>
         </div>
 
         <div class="tabpane" id="tab-model" style="display:none;">
           <label>模型提供方</label>
           <select id="llmProvider" style="width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:13px;">
             <option value="sdk">麒麟 SDK（默认，零 Key）</option>
-            <option value="api">自定义 API（OpenAI 兼容）</option>
+            <option value="api">自定义 API（使用 OpenAI 接口）</option>
           </select>
+          <div class="field-hint">提示：使用 OpenAI 接口时，在下方填写 Base URL、API Key 与模型名</div>
           <div id="llmSdkHint" style="font-size:12px;color:#888;margin:8px 0;padding:8px;background:#f5f5f5;border-radius:6px;">
             ✅ 麒麟 SDK 零 Key，无需填写模型与 API Key，保存即可使用
           </div>
@@ -665,15 +666,6 @@ HTML = r"""<!doctype html>
             <input type="password" id="llmApiKey" placeholder="填写 API Key">
             <label>模型名</label>
             <input type="text" id="llmModel" placeholder="deepseek-chat">
-          </div>
-          <div class="row">
-            <div>
-              <label>Temperature</label>
-              <input type="text" id="llmTemperature" placeholder="0.7（0~2）">
-            </div>
-            <div style="display:flex;align-items:flex-end;justify-content:center;padding:6px 0;">
-              <span id="tempValue" style="font-size:13px;color:var(--modal-label);">0.7</span>
-            </div>
           </div>
           <div class="btns">
             <button id="llmClose">关闭</button>
@@ -695,29 +687,25 @@ HTML = r"""<!doctype html>
         </div>
       </div>
     </div>
-    <div class="brand">aichat<em> · 麒麟 AI</em></div>
+    <div class="brand">Kylin Mem<em> · 麒麟记忆</em></div>
     <div class="newchat" id="newChat">＋ 新会话</div>
     <div class="sess-list" id="sessList"></div>
   </aside>
   <div class="main">
     <header>
       <span class="dot"></span>
-      <span class="brand">aichat<em> · 麒麟 AI</em></span>
+      <span class="brand">Kylin Mem<em> · 麒麟记忆</em></span>
       <span class="sub">记忆增强 · 系统工具</span>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
-      <select class="model-select" id="headerLang" title="切换语言">
-        <option value="zh">中</option>
-        <option value="en">EN</option>
-      </select>
       <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
       <button class="icon-btn" id="clearMem" title="清空 AI 关于你的记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
     </header>
     <main><div class="wrap" id="messages">
       <div class="empty" id="empty">
-        <h1>你好，我是麒麟 AI</h1>
-        <p>我会记住你的偏好，也能调用服务器上的系统工具。</p>
+        <h1>你好，我是麒麟记忆</h1>
+        <p>我会记住你的偏好，也能调用麒麟桌面上的系统工具。</p>
         <p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>
       </div>
     </div></main>
@@ -729,15 +717,10 @@ HTML = r"""<!doctype html>
       <div class="hint">Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆</div>
     </footer>
   </div>
-  <aside class="panel">
-    <h3 id="memTitle">🧠 记忆</h3>
-    <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
-    <h3 id="toolTitle">🔧 工具调用</h3>
-    <div id="toolPanel"><div class="log-item">（暂无）</div></div>
-  </aside>
+  <!-- 记忆/工具日志面板已隐藏（日志仍记录在服务端） -->
 </div>
 
-<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/技能）">⚙</button>
+<button class="floating-settings" id="floatingSettings" title="设置（外观/模型/配置）">⚙</button>
 
 <script>
 const msgs = document.getElementById('messages');
@@ -977,7 +960,7 @@ function renderHistory() {
   if (!history.length) {
     const d = document.createElement('div');
     d.className = 'empty'; d.id = 'empty';
-    d.innerHTML = '<h1>你好，我是麒麟 AI</h1><p>我会记住你的偏好，也能调用服务器上的系统工具。</p><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
+    d.innerHTML = '<h1>你好，我是麒麟记忆</h1><p>我会记住你的偏好与常用配置。</p><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
     msgs.appendChild(d);
   } else {
     history.forEach(m => addRow(m.role, m.text));
@@ -1018,7 +1001,7 @@ async function refreshSessions() {
       const names = getNames();
       el.onclick = () => { switchSession(s.session_id); };
       el.title = '点击切换 · 悬停可重命名';
-      el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${names[s.session_id] || s.preview || s.session_id.slice(0,12)}</span>
+      el.innerHTML = `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${names[s.session_id] || s.title || s.preview || s.session_id.slice(0,12)}</span>
         <span style="display:none;margin-left:4px;color:var(--accent-2);cursor:pointer;" class="renameBtn">✎</span>
         <span style="display:none;margin-left:4px;color:#c0392b;cursor:pointer;" class="delBtn">🗑</span>`;
       el.style.display = 'flex'; el.style.alignItems = 'center';
@@ -1110,19 +1093,18 @@ const I18N = {
   clearMem: { zh: '清空记忆', en: 'Clear Memory' },
   inputPh: { zh: '输入消息…（可让我改时区、查系统信息等）', en: 'Type a message… (e.g. check CPU usage)' },
   welcome: { zh: '你好，我是麒麟 AI', en: 'Hello, I\'m Kylin AI' },
-  welcomeSub: { zh: '我会记住你的偏好，也能调用服务器上的系统工具。', en: 'I remember your preferences and can use system tools.' },
+  welcomeSub: { zh: '我会记住你的偏好，也能调用麒麟桌面上的系统工具。', en: 'I remember your preferences and can use system tools.' },
   hint: { zh: 'Enter 发送 · Shift+Enter 换行 · 回复流式输出 · 对话会自动写入记忆', en: 'Enter send · Shift+Enter newline · streaming · auto memory' },
   memTitle: { zh: '🧠 记忆', en: '🧠 Memory' },
   toolTitle: { zh: '🔧 工具调用', en: '🔧 Tools' },
 };
-let LANG = localStorage.getItem('aichat_lang') || 'zh';
+const LANG = 'zh';  // 取消中英切换：固定中文
 function t(key) { return ((I18N[key] || {})[LANG] || (I18N[key] || {}).zh || key); }
 function renderEmptyMsg() {
   const e = document.getElementById('empty');
   if (e) e.innerHTML = '<h1>' + t('welcome') + '</h1><p>' + t('welcomeSub') + '</p><p>' + t('hint') + '</p>';
 }
 function applyLang() {
-  LANG = localStorage.getItem('aichat_lang') || 'zh';
   document.getElementById('send').textContent = t('send');
   document.getElementById('newChat').textContent = t('newChat');
   document.getElementById('clear').textContent = t('clear');
@@ -1133,14 +1115,7 @@ function applyLang() {
   document.getElementById('toolTitle').textContent = t('toolTitle');
   renderEmptyMsg();
 }
-document.getElementById('headerLang').onchange = () => {
-  localStorage.setItem('aichat_lang', document.getElementById('headerLang').value);
-  applyLang();
-};
-function loadLang() {
-  document.getElementById('headerLang').value = LANG;
-  applyLang();
-}
+function loadLang() { applyLang(); }  // 取消中英切换：固定中文
 
 // ---- 主题（深色/浅色/跟随系统）----
 function applyTheme(t) {
@@ -1171,13 +1146,16 @@ async function loadHeaderModel() {
     const optSdk = document.createElement('option');
     optSdk.value = 'sdk'; optSdk.textContent = '🤖 麒麟 SDK（零 Key）';
     sel.appendChild(optSdk);
-    if (d.model) {
-      const optApi = document.createElement('option');
-      optApi.value = 'api';
-      optApi.textContent = '⚡ ' + (d.model || '自定义 API');
-      sel.appendChild(optApi);
+    // 预置 OpenAI 兼容 API：deepseek / grok（来自 /api/llm_config 的 api_providers）
+    const provs = d.api_providers || {};
+    const choice = d.api_choice || 'deepseek';
+    for (const [key, p] of Object.entries(provs)) {
+      const opt = document.createElement('option');
+      opt.value = 'api:' + key;
+      opt.textContent = '⚡ ' + (p.model || key) + '（' + key + '）';
+      sel.appendChild(opt);
     }
-    sel.value = d.provider === 'api' && d.model ? 'api' : 'sdk';
+    sel.value = d.provider === 'api' ? ('api:' + choice) : 'sdk';
   } catch (e) {}
 }
 document.getElementById('headerModel').onchange = async (e) => {
@@ -1187,6 +1165,14 @@ document.getElementById('headerModel').onchange = async (e) => {
     const cfg = await r.json();
     const body = { provider: v, base_url: cfg.base_url || '', model: cfg.model || '', api_key: '' };
     if (v === 'sdk') body.api_key = '';
+    if (v.startsWith('api:')) {
+      const key = v.slice(4);
+      const p = (cfg.api_providers || {})[key] || {};
+      body.provider = 'api';
+      body.api_choice = key;
+      body.base_url = p.base_url || cfg.base_url || '';
+      body.model = p.model || cfg.model || '';
+    }
     await fetch('/api/llm_config', {
       method: 'POST', headers: apiHeaders,
       body: JSON.stringify(body),
@@ -1210,14 +1196,9 @@ async function refreshLlmConfig() {
     document.getElementById('llmBaseUrl').value = d.base_url || '';
     document.getElementById('llmApiKey').value = d.api_key_set ? '******' : '';
     document.getElementById('llmModel').value = d.model || '';
-    document.getElementById('llmTemperature').value = d.temperature != null ? d.temperature : 0.7;
-    document.getElementById('tempValue').textContent = d.temperature != null ? d.temperature : 0.7;
     toggleLlmFields();
   } catch (e) {}
 }
-document.getElementById('llmTemperature').oninput = () => {
-  document.getElementById('tempValue').textContent = document.getElementById('llmTemperature').value || '';
-};
 document.getElementById('llmProvider').onchange = toggleLlmFields;
 document.getElementById('llmSave').onclick = async () => {
   const btn = document.getElementById('llmSave');
@@ -1229,7 +1210,6 @@ document.getElementById('llmSave').onclick = async () => {
     base_url: document.getElementById('llmBaseUrl').value.trim(),
     api_key: key,
     model: document.getElementById('llmModel').value.trim(),
-    temperature: parseFloat(document.getElementById('llmTemperature').value) || 0.7,
   };
   try {
     const r = await fetch('/api/llm_config', {
@@ -1643,7 +1623,7 @@ def _summarize_result(user_message: str, tool: str, res, _session_hint: str = ""
         raw_lines.append("说明：本次走了降级（fallback）路径")
 
     prompt = (
-        "你是系统助手。你刚为用户的请求调用了工具，下面是工具返回的原始结果。\n\n"
+        "你是麒麟桌面 AI 助手。你刚为用户的请求调用了工具，下面是工具返回的原始结果。\n\n"
         "## 用户原始请求\n"
         f"{user_message}\n\n"
         "## 工具原始结果\n"
@@ -1868,7 +1848,7 @@ def _build_context(message: str, session_id: str) -> str:
     # ---- 分节组装（dsh system-prompt：有序 sections） ----
     sections = [
         f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        "你是运行在麒麟服务器上的系统助手。",
+        "你是运行在麒麟 Kylin OS V11 桌面系统上的 AI 助手（Kylin Mem）。",
     ]
     if is_tool:
         # 查询/操作类请求：不注入记忆数值，避免 AI 引用旧数据冒充实时结果，强制走工具
@@ -2268,6 +2248,8 @@ class Handler(BaseHTTPRequestHandler):
                 "model": _cfg.get("model", ""),
                 "api_key_set": bool(_cfg.get("api_key")),
                 "temperature": _cfg.get("temperature", 0.7),
+                "api_choice": _cfg.get("api_choice", "deepseek"),
+                "api_providers": _cfg.get("api_providers", {}),
             })
         elif self.path == "/api/skills":
             sm = _get_skill_memory()
@@ -2389,6 +2371,14 @@ class Handler(BaseHTTPRequestHandler):
                 _cfg["api_key"] = _body["api_key"].strip()
             if _body.get("model"):
                 _cfg["model"] = _body["model"].strip()
+            if _body.get("api_choice"):
+                _choice = str(_body["api_choice"]).strip()
+                _provs = _cfg.get("api_providers") or {}
+                if _choice in _provs:
+                    _cfg["api_choice"] = _choice
+                    _cfg["base_url"] = _provs[_choice].get("base_url") or _cfg["base_url"]
+                    _cfg["api_key"] = _provs[_choice].get("api_key") or _cfg["api_key"]
+                    _cfg["model"] = _provs[_choice].get("model") or _cfg["model"]
             if _body.get("temperature") is not None:
                 try:
                     _cfg["temperature"] = max(0.0, min(2.0, float(_body["temperature"])))
