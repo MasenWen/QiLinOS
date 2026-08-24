@@ -1449,6 +1449,18 @@ def _remember(messages):
     store = _get_mem0()
     if store is None:
         return
+    # ---- 融入 QiLinOS 记忆流转：LLM 回合级审查，只保存持久信息 ----
+    # 开关 NEX_MEMORY_REVIEW=0 可关闭（默认开）
+    try:
+        if os.getenv("NEX_MEMORY_REVIEW", "1").strip().lower() not in ("0", "false", "off"):
+            from src.memory.memory_lifecycle import review_and_save_memory
+            _u = str((messages or [{}])[0].get("content") or "").strip()
+            _a = str((messages or [{}])[1].get("content") or "").strip() if len(messages or []) > 1 else ""
+            # 仅对正常对话做审查（工具结果/快照跳过，避免污染）
+            if _u and not any(mk in _a for mk in ("✅ 工具", "❌", "状态：", "**输出**")):
+                review_and_save_memory(_u, _a, store)
+    except Exception as _e:
+        print(f"[mem] 审查跳过: {_e}", flush=True)
     try:
         with _mem_lock:
             store.add(messages)
@@ -1674,6 +1686,52 @@ def _render(template: str, **ctx) -> str:
     return re.sub(r"<<([^>>]+)>>", lambda m: str(ctx.get(m.group(1), "")), template)
 
 
+import re as _re_mod  # noqa
+
+def _route_intent(message: str) -> str:
+    """结构化意图分流（融入 QiLinOS coordinator 规则）。
+
+    返回: tool | memory_query | preference | chat | forget | planning | web
+    规则优先（零 LLM 成本），规则未命中时用 LLM 分类（失败回退 chat）。
+    """
+    msg = (message or "").strip()
+    if not msg:
+        return "chat"
+    low = msg.lower()
+    # 1) 遗忘类（交给 ForgetFlow 处理）
+    from src.memory_engine.forget_api import extract_forget_target
+    if extract_forget_target(msg) or (
+            any(w in msg for w in ("记忆", "记住", "偏好")) and
+            any(w in msg for w in ("删", "忘", "清", "remove", "delete", "forget"))):
+        return "forget"
+    # 2) 工具/系统操作（对齐 _TOOL_INTENT，优先于 web）
+    if any(k in msg for k in _TOOL_INTENT):
+        return "tool"
+    # 3) 外部能力/实时信息 → 搜索
+    if any(k in msg for k in ("搜索", "搜一下", "最新", "新闻", "天气", "股价",
+                               "网址", "网页", "http", "www.")):
+        return "web"
+    # 4) 记忆查询（用户已知记忆/偏好）
+    if any(k in msg for k in ("我记得", "我的偏好", "我的习惯", "我喜欢", "我讨厌",
+                               "我以前", "我上次", "我之前")):
+        return "memory_query"
+    # 5) LLM 分类兜底（默认开启，可用 NEX_LLM_ROUTING=0 关闭）
+    if os.getenv("NEX_LLM_ROUTING", "1").strip().lower() not in ("0", "false", "off"):
+        try:
+            _route_prompt = (
+                "你是意图路由器。将用户消息分类为："
+                "tool(系统操作/查询/文件) | web(搜索/网页/外部信息) | "
+                "memory_query(询问记忆/偏好/历史) | forget(删除/遗忘记忆) | "
+                "chat(闲聊/问答/其他)。只输出一个词。\n用户消息：" + msg[:200])
+            _r = llm_client.generate(_route_prompt).strip().lower()
+            for k in ("forget", "memory_query", "web", "tool"):
+                if k in _r:
+                    return k
+        except Exception:
+            pass
+    return "chat"
+
+
 # 上下文模板：用 <<VAR>> 占位符（而非 str.format），避免与规则里的 JSON 花括号冲突
 _TOOL_RULES = (
     
@@ -1770,7 +1828,8 @@ def _build_context(message: str, session_id: str) -> str:
     hist_block += _recent or "（暂无）"
 
     # 分场景：含工具意图 → 工具规则（含完整工具目录）；否则对话规则
-    is_tool = any(kw in message for kw in _TOOL_INTENT)
+    # 融入 QiLinOS coordinator 分流：_route_intent 结构化分类（规则+LLM兜底）
+    is_tool = _route_intent(message) in ("tool", "web", "forget")
     rules = _TOOL_RULES if is_tool else _CHAT_RULES
 
     # ---- 分节组装（dsh system-prompt：有序 sections） ----
