@@ -727,6 +727,23 @@ HTML = r"""<!doctype html>
   <!-- 记忆/工具日志面板已隐藏（日志仍记录在服务端） -->
 </div>
 
+<div class="banner-modal" id="addModelModal" style="display:none;">
+  <div class="banner-modal-box" style="width:360px;">
+    <h3>＋ 新增模型</h3>
+    <label>1. 模型名称（标识）</label>
+    <input type="text" id="amName" placeholder="如 mymodel">
+    <label>2. Base URL</label>
+    <input type="text" id="amBaseUrl" placeholder="https://api.deepseek.com/v1">
+    <label>3. API Key</label>
+    <input type="password" id="amApiKey" placeholder="填写 API Key">
+    <div id="amError" style="font-size:12px;color:#c0392b;margin-top:8px;display:none;"></div>
+    <div class="btns">
+      <button id="amCancel">取消</button>
+      <button class="save" id="amSave">💾 保存</button>
+    </div>
+  </div>
+</div>
+
 <button class="floating-settings" id="floatingSettings" title="设置（外观/模型/配置）">⚙</button>
 
 <script>
@@ -1190,22 +1207,14 @@ async function manageProvider(action) {
     const cfg = await r.json();
     const provs = cfg.api_providers || {};
     if (action === 'add') {
-      const name = prompt('1. 模型名称（标识，如 mymodel）:');
-      if (!name || !name.trim()) return;
-      const baseUrl = prompt('2. Base URL（默认 DeepSeek）:', 'https://api.deepseek.com/v1');
-      const apiKey = prompt('3. API Key:');
-      if (!apiKey || !apiKey.trim()) { alert('API Key 必填'); return; }
-      await fetch('/api/llm_config', {
-        method: 'POST', headers: apiHeaders,
-        body: JSON.stringify({
-          action: 'add_provider',
-          provider_name: name.trim(),
-          model: name.trim(),
-          base_url: (baseUrl || '').trim(),
-          api_key: apiKey.trim(),
-        }),
-      });
-      alert('✅ 模型「' + name.trim() + '」已新增并切换');
+      // 弹窗式三输入框（替代连续 prompt）+ 合法性校验
+      const modal = document.getElementById('addModelModal');
+      document.getElementById('amName').value = '';
+      document.getElementById('amBaseUrl').value = 'https://api.deepseek.com/v1';
+      document.getElementById('amApiKey').value = '';
+      document.getElementById('amError').style.display = 'none';
+      modal.style.display = 'flex';
+      return;
     } else if (action === 'del') {
       const keys = Object.keys(provs);
       if (!keys.length) { alert('没有可删除的模型'); return; }
@@ -1222,6 +1231,55 @@ async function manageProvider(action) {
     loadHeaderModel();
   } catch (e) { alert('操作失败: ' + e); }
 }
+
+// ---- 新增模型弹窗：校验 + 保存 ----
+function validateAddModel() {
+  const err = document.getElementById('amError');
+  const name = document.getElementById('amName').value.trim();
+  const baseUrl = document.getElementById('amBaseUrl').value.trim();
+  const apiKey = document.getElementById('amApiKey').value.trim();
+  err.style.display = 'none';
+  if (!name) { err.textContent = '❌ 模型名称不能为空'; err.style.display = 'block'; return null; }
+  try { const u = new URL(baseUrl); if (u.protocol !== 'http:' && u.protocol !== 'https:') throw 0; }
+  catch (e) { err.textContent = '❌ Base URL 不合法（需 http/https 开头）'; err.style.display = 'block'; return null; }
+  if (!apiKey) { err.textContent = '❌ API Key 不能为空'; err.style.display = 'block'; return null; }
+  return { name, baseUrl, apiKey };
+}
+document.getElementById('amSave').onclick = async () => {
+  const v = validateAddModel();
+  if (!v) return;
+  const btn = document.getElementById('amSave');
+  btn.disabled = true;
+  try {
+    // 名称重复校验
+    const r = await fetch('/api/llm_config', { headers: apiHeaders });
+    const cfg = await r.json();
+    const provs = cfg.api_providers || {};
+    if (v.name in provs) {
+      document.getElementById('amError').textContent = '❌ 模型「' + v.name + '」已存在，请换一个名称';
+      document.getElementById('amError').style.display = 'block';
+      btn.disabled = false;
+      return;
+    }
+    await fetch('/api/llm_config', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({
+        action: 'add_provider', provider_name: v.name,
+        model: v.name, base_url: v.baseUrl, api_key: v.apiKey,
+      }),
+    });
+    document.getElementById('addModelModal').style.display = 'none';
+    alert('✅ 模型「' + v.name + '」已新增并切换');
+    loadHeaderModel();
+  } catch (e) {
+    document.getElementById('amError').textContent = '❌ 保存失败: ' + e;
+    document.getElementById('amError').style.display = 'block';
+  }
+  btn.disabled = false;
+};
+document.getElementById('amCancel').onclick = () => {
+  document.getElementById('addModelModal').style.display = 'none';
+};
 
 document.getElementById('headerModel').onchange = async (e) => {
   const v = e.target.value;
