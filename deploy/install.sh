@@ -86,22 +86,25 @@ $PY --version || true
 # ============================================================
 if [ "$WITH_SDK" = "1" ]; then
     echo "--- 检查麒麟 SDK 系统依赖 ---"
-    SDK_MISSING=""
-    for pkg in kylin-ai-runtime kylin-ai-abstract-models kylin-ai-knowledge-base-service; do
-        dpkg -l "$pkg" 2>/dev/null | grep -q "^ii" || SDK_MISSING="$SDK_MISSING $pkg"
-    done
-    if [ -n "$SDK_MISSING" ]; then
-        echo "!! 缺失 SDK:$SDK_MISSING，尝试 apt 安装（麒麟官方源）"
+    # 优先检测 .so 库（可靠，不限安装方式）；再查 dpkg 包名（apt 安装用）
+    if ldconfig -p 2>/dev/null | grep -q "libkyai"; then
+        echo "✅ SDK 已就绪（检测到 libkyai 库）"
+    else
+        echo "!! 未检测到麒麟 SDK，尝试 apt 安装（libkysdk 系统 SDK + kylin-ai AI 能力）"
+        # webchat 系统工具依赖 libkysdk-*（sysinfo/disk/battery/shutdown/restart 等）
+        SDK_PKGS="libkysdk-sysinfo libkysdk-package libkysdk-net libkysdk-hardware \
+                  libkysdk-systime libkysdk-proc libkysdk-realtime libkysdk-disk \
+                  libkysdk-restart libkysdk-shutdown libkysdk-battery libkysdk-global \
+                  libkysdk-location libkysdk-powermanagement \
+                  kylin-ai-runtime kylin-ai-abstract-models kylin-ai-knowledge-base-service"
         sudo apt-get update -y $APT_OPTS
-        if ! sudo apt-get install -y $APT_OPTS $SDK_MISSING; then
+        if ! sudo apt-get install -y $APT_OPTS $SDK_PKGS; then
             echo "!! 默认源失败，尝试官方备用源 archive2.kylinos.cn"
             sudo sed -i "s|http://archive.kylinos.cn|https://archive2.kylinos.cn|g" \
                 /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null || true
             sudo apt-get update -y $APT_OPTS
-            sudo apt-get install -y $APT_OPTS $SDK_MISSING || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
+            sudo apt-get install -y $APT_OPTS $SDK_PKGS || echo "⚠️ SDK 安装失败——webchat 对话/记忆仍可用，系统工具降级"
         fi
-    else
-        echo "✅ SDK 已就绪"
     fi
     fc-list 2>/dev/null | grep -qi "noto sans cjk\|wqy" || sudo apt-get install -y $APT_OPTS fonts-noto-cjk 2>/dev/null || true
 fi
