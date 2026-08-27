@@ -707,6 +707,7 @@ HTML = r"""<!doctype html>
       <span class="sub">记忆增强 · 系统工具</span>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
+      <button class="theme-btn" id="panelBtn" title="显示/隐藏记忆与工具面板">📊</button>
       <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
       <button class="icon-btn" id="clearMem" title="清空记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
@@ -1130,7 +1131,15 @@ function renameSession(sid, el) {
   else { const m = getNames(); delete m[sid]; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); }
   refreshSessions();
 }
-// 记忆/工具日志面板（可选项，默认隐藏；设置里可开关）
+// 记忆/工具日志面板（可选项，默认隐藏；header 📊 按钮或设置里开关）
+document.getElementById('panelBtn').onclick = () => {
+  const show = localStorage.getItem('kylinmem_panel') !== '1';
+  localStorage.setItem('kylinmem_panel', show ? '1' : '0');
+  applyPanelPref();
+  const btn = document.getElementById('panelBtn');
+  btn.style.opacity = show ? '1' : '0.45';
+  btn.style.borderColor = show ? 'var(--accent)' : '';
+};
 async function refreshPanels() {
   const panel = document.getElementById('sidePanel');
   if (!panel || panel.style.display === 'none') return;  // 未开启时跳过
@@ -1163,6 +1172,8 @@ function applyPanelPref() {
   panel.style.display = show ? '' : 'none';
   const cb = document.getElementById('panelToggle');
   if (cb) cb.checked = show;
+  const btn = document.getElementById('panelBtn');
+  if (btn) { btn.style.opacity = show ? '1' : '0.45'; btn.title = show ? '隐藏记忆与工具面板' : '显示记忆与工具面板'; }
   if (show) refreshPanels();
 }
 setInterval(refreshPanels, 4000);
