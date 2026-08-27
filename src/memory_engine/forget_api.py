@@ -25,6 +25,11 @@ def extract_forget_target(instruction: str) -> str:
     text = (instruction or "").strip()
     if not text:
         return ""
+    # 否定/非遗忘语境拦截：「别忘了」「不要忘记」「难忘」等不是删除记忆指令
+    _NEG = ("别忘", "别忘了", "不要忘", "不要忘记", "别忘了", "没忘", "不忘",
+            "难忘", "难以忘", "别忘记", "别忘掉", "别忘了")
+    if any(n in text for n in _NEG):
+        return ""
     for verb in _FORGET_VERBS:
         if text.startswith(verb):
             target = text[len(verb):].lstrip("，,、 的")

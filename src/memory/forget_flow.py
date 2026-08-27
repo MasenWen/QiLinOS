@@ -226,8 +226,12 @@ class ForgetFlow:
         target = extract_forget_target(msg)
         if target:
             return True, self._split_keywords(target)
+        # 收紧：只用完整动词（删除/清除等），去掉单字"忘"——
+        # "忘"会误判「别忘了明天开会」「难以忘怀」等自然语言；
+        # 完整遗忘动词（忘记/忘掉/忘了）已由上方 extract_forget_target 覆盖
         if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
-                w in msg for w in ("删", "忘", "清", "remove", "delete", "forget")):
+                w in msg for w in ("删除", "删掉", "清除", "移除", "清空",
+                                   "remove", "delete", "forget")):
             return True, self._extract_keywords(msg)
         # 修复：问句拦截——含疑问词的句子不判为遗忘意图（防「我的狗叫什么？」误判）
         # 疑问词优先于 LLM 兜底，规则层直接放行

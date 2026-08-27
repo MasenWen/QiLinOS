@@ -90,7 +90,27 @@ def generate(prompt: str, cfg_override: dict | None = None,
         return ""
     cfg = cfg_override or load_config()
     if cfg.get("provider") == "api" and cfg.get("api_key"):
-        return _api_generate(prompt, cfg, system=system)
+        # 失败回退：当前 API 调用失败/超时 → 自动尝试其他预置 provider → 最后回退麒麟 SDK
+        try:
+            return _api_generate(prompt, cfg, system=system)
+        except Exception as e:
+            print(f"[llm] API 调用失败({cfg.get('api_choice')}): {str(e)[:80]}，尝试回退", flush=True)
+            _provs = cfg.get("api_providers") or {}
+            _choice = cfg.get("api_choice") or ""
+            for _key, _p in _provs.items():
+                if _key == _choice or not (_p.get("api_key") or ""):
+                    continue
+                print(f"[llm] 回退到 {_key}", flush=True)
+                try:
+                    _fall = dict(cfg)
+                    _fall["api_choice"] = _key
+                    _fall["base_url"] = _p.get("base_url") or _fall["base_url"]
+                    _fall["api_key"] = _p.get("api_key") or _fall["api_key"]
+                    _fall["model"] = _p.get("model") or _fall["model"]
+                    return _api_generate(prompt, _fall, system=system)
+                except Exception as e2:
+                    print(f"[llm] 回退 {_key} 也失败: {str(e2)[:60]}", flush=True)
+            print("[llm] 全部 API 失败，回退麒麟 SDK", flush=True)
     # 默认路径：麒麟 SDK（拼接 system + user）
     if system:
         prompt = system + "\n\n" + prompt
@@ -116,7 +136,7 @@ def _api_generate(prompt: str, cfg: dict, system: str = "") -> str:
         f"{base}/chat/completions",
         headers={"Authorization": f"Bearer {cfg['api_key']}"},
         json=payload,
-        timeout=180,
+        timeout=int(os.getenv("NEX_API_TIMEOUT", "45")),  # 45s，失败快速回退
     )
     resp.raise_for_status()
     try:
