@@ -1389,15 +1389,34 @@ async function refreshSkills() {
     const r = await fetch('/api/skills', { headers: apiHeaders });
     const d = await r.json();
     const sp = document.getElementById('skillPanel');
-    sp.innerHTML = (d.skills && d.skills.length)
-      ? d.skills.map(s =>
-          `<div class="mem-item" style="position:relative;">
-             <b>${s.name}</b> <span style="color:var(--muted)">v${s.version}</span>
-             ${(s.tags||[]).map(t=>`<span style="font-size:10px;background:var(--accent);padding:1px 5px;border-radius:4px;margin-left:3px;">${t}</span>`).join('')}
-             <div style="font-size:11px;color:var(--muted);margin-top:3px;">${s.content.slice(0,60)}</div>
-             <span style="position:absolute;top:4px;right:6px;cursor:pointer;color:#000000;" onclick="deleteSkill('${s.name}')">✕</span>
-           </div>`).join('')
-      : '<div class="mem-item">（暂无配置，输入后点击存入）</div>';
+    sp.innerHTML = '';
+    if (d.skills && d.skills.length) {
+      // 安全渲染：name/content 用 textContent（防引号/尖括号破坏 HTML 或注入）
+      d.skills.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'mem-item';
+        item.style.position = 'relative';
+        const head = document.createElement('b');
+        head.textContent = (s.name || '') + '  v' + (s.version || 1);
+        item.appendChild(head);
+        const body = document.createElement('div');
+        body.style.cssText = 'font-size:11px;color:var(--muted);margin-top:3px;';
+        body.textContent = String(s.content || '').slice(0, 60);
+        item.appendChild(body);
+        const del = document.createElement('span');
+        del.textContent = '✕';
+        del.style.cssText = 'position:absolute;top:4px;right:6px;cursor:pointer;color:#000000;';
+        del.title = '删除配置';
+        del.onclick = () => deleteSkill(s.name);   // 闭包，无注入风险
+        item.appendChild(del);
+        sp.appendChild(item);
+      });
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'mem-item';
+      empty.textContent = '（暂无配置，输入后点击存入）';
+      sp.appendChild(empty);
+    }
   } catch (e) {}
 }
 async function deleteSkill(name) {
