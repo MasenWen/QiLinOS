@@ -226,6 +226,14 @@ class Mem0Store:
             print(f"[Mem0] ⚠ 拦截威胁内容: {fact[:30]}...")
             return
         fact = review.sanitized_text
+        # 去重检查：与 add 一致——已有高度相似记忆(>0.87)则跳过，防重复
+        try:
+            _existing = self.search(fact, user_id=user_id, top_k=2)
+            if _existing and float(_existing[0].get("score") or 0) > 0.87:
+                print(f"[Mem0] add_fact 跳过重复: {fact[:30]}...", flush=True)
+                return True
+        except Exception:
+            pass
         # 写入重试：delete_all 后 embedding 冷启动偶发向量为空(Milvus FieldData 异常)
         # → 静默丢写入（评测/连续写入时可见）。重试 2 次确保稳定。
         _last_err = None
