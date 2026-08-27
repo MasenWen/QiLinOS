@@ -681,6 +681,9 @@ HTML = r"""<!doctype html>
       <div class="banner-modal-box" style="width:360px;">
         <h3>设置</h3>
         <div class="tabpane" id="tab-skills" style="display:block;">
+          <label class="chk" style="margin:0 0 10px;">
+            <input type="checkbox" id="panelToggle"> 显示记忆 / 工具调用面板
+          </label>
           <label>配置名</label>
           <input type="text" id="skillName" placeholder="配置名">
           <label>配置内容</label>
@@ -723,7 +726,12 @@ HTML = r"""<!doctype html>
       <div class="hint">Enter 发送 · Shift+Enter 换行</div>
     </footer>
   </div>
-  <!-- 记忆/工具日志面板已隐藏（日志仍记录在服务端） -->
+  <aside class="panel" id="sidePanel" style="display:none;">
+    <h3>🧠 记忆</h3>
+    <div id="memPanel"><div class="mem-item">（加载中…）</div></div>
+    <h3>🔧 工具调用</h3>
+    <div id="toolPanel"><div class="log-item">（暂无）</div></div>
+  </aside>
 </div>
 
 <div class="banner-modal" id="addModelModal" style="display:none;">
@@ -1115,7 +1123,42 @@ function renameSession(sid, el) {
   else { const m = getNames(); delete m[sid]; localStorage.setItem(RENAME_KEY, JSON.stringify(m)); }
   refreshSessions();
 }
-// refreshPanels 已删除：记忆/工具日志面板已隐藏（日志仍在服务端记录）
+// 记忆/工具日志面板（可选项，默认隐藏；设置里可开关）
+async function refreshPanels() {
+  const panel = document.getElementById('sidePanel');
+  if (!panel || panel.style.display === 'none') return;  // 未开启时跳过
+  try {
+    const [m, t] = await Promise.all([
+      fetch('/api/memories', { headers: apiHeaders }).then(r => r.json()),
+      fetch('/api/tool_logs', { headers: apiHeaders }).then(r => r.json()),
+    ]);
+    const mp = document.getElementById('memPanel');
+    mp.innerHTML = (m.memories && m.memories.length)
+      ? m.memories.map(x => {
+          const icon = x.level === 'high' ? '🔴' : x.level === 'medium' ? '🟡' : '⚪';
+          return '<div class="mem-item">' + icon + ' ' + x.text + '</div>';
+        }).join('')
+      : '<div class="mem-item">（暂无记忆）</div>';
+    const tp = document.getElementById('toolPanel');
+    tp.innerHTML = (t.logs && t.logs.length)
+      ? t.logs.slice().reverse().map(l =>
+          '<div class="log-item ' + (l.status === 'verified' || l.status === 'success' ? 'ok' : 'err') + '">' +
+            '<span class="tool">' + l.tool + '</span> · ' + l.status + ' · ' + l.duration_ms + 'ms' +
+            (l.error ? '<br><span style="color:#111111">' + String(l.error).slice(0, 60) + '</span>' : '') +
+          '</div>').join('')
+      : '<div class="log-item">（暂无）</div>';
+  } catch (e) {}
+}
+function applyPanelPref() {
+  const panel = document.getElementById('sidePanel');
+  if (!panel) return;
+  const show = localStorage.getItem('kylinmem_panel') === '1';
+  panel.style.display = show ? '' : 'none';
+  const cb = document.getElementById('panelToggle');
+  if (cb) cb.checked = show;
+  if (show) refreshPanels();
+}
+setInterval(refreshPanels, 4000);
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
 // ---- 语言（中文/English，仿 dsh locale）----
 const I18N = {
@@ -1329,6 +1372,7 @@ document.getElementById('headerModel').onchange = async (e) => {
 loadHeaderModel();
 loadTheme();
 loadLang();
+applyPanelPref();
 
 // 模型设置已移到主页右上角模型下拉（此处移除设置弹窗内的模型栏目）
 
@@ -1406,6 +1450,11 @@ document.getElementById('floatingSettings').onclick = () => openSettings();
 
 document.getElementById('skillClose').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
+};
+// 记忆/工具面板开关：勾选显示，取消隐藏
+document.getElementById('panelToggle').onchange = (e) => {
+  localStorage.setItem('kylinmem_panel', e.target.checked ? '1' : '0');
+  applyPanelPref();
 };
 
 loadBanner();
