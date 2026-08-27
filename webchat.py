@@ -1511,6 +1511,20 @@ document.getElementById('floatingSettings').onclick = () => openSettings();
 document.getElementById('skillClose').onclick = () => {
   document.getElementById('settingsModal').style.display = 'none';
 };
+// 增强：点击弹窗遮罩(弹窗外区域)也可关闭设置
+document.getElementById('settingsModal').onclick = (e) => {
+  if (e.target === document.getElementById('settingsModal'))
+    document.getElementById('settingsModal').style.display = 'none';
+};
+// 增强：按 Esc 关闭设置弹窗
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('settingsModal').style.display = 'none';
+    document.getElementById('addModelModal').style.display = 'none';
+    document.getElementById('clearMemModal').style.display = 'none';
+    document.getElementById('bannerModal').style.display = 'none';
+  }
+});
 // 记忆/工具面板开关：勾选显示，取消隐藏
 document.getElementById('panelToggle').onchange = (e) => {
   localStorage.setItem('kylinmem_panel', e.target.checked ? '1' : '0');
