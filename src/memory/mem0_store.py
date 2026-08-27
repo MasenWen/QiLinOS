@@ -226,7 +226,19 @@ class Mem0Store:
             print(f"[Mem0] ⚠ 拦截威胁内容: {fact[:30]}...")
             return
         fact = review.sanitized_text
-        self._memory.add(fact, user_id=user_id or self._default_user)
+        # 写入重试：delete_all 后 embedding 冷启动偶发向量为空(Milvus FieldData 异常)
+        # → 静默丢写入（评测/连续写入时可见）。重试 2 次确保稳定。
+        _last_err = None
+        for _attempt in range(3):
+            try:
+                self._memory.add(fact, user_id=user_id or self._default_user)
+                return True
+            except Exception as _e:
+                _last_err = _e
+                import time as _t
+                _t.sleep(0.5 * (_attempt + 1))
+        print(f"[Mem0] add_fact 重试 3 次仍失败: {_last_err}", flush=True)
+        return False
 
     def delete_all(self, user_id: str = None):
         if self._memory is None:

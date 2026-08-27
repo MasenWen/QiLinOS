@@ -97,7 +97,7 @@ class ForgetFlow:
                     _created = st.get("created_at") or ""
                     if _created:
                         _age = (datetime.now() - datetime.fromisoformat(_created)).total_seconds()
-                        _stale = _age > 1800  # 30 分钟
+                        _stale = _age > 300   # 5 分钟（确认流程 5 分钟内完成足够，超时视为脏状态）
                 except Exception:
                     pass
                 if _stale:
@@ -265,6 +265,17 @@ class ForgetFlow:
 
     # 关键词杂质清洗：前缀（关于/跟/这些…）与后缀（的记忆/所有…）
     _KW_CLEAN_PREFIX = re.compile(r"^(?:关于|跟|与|和|以及|这些|那些|全部|所有|把)")
+    # 口语前缀剥离：「我喜欢喝X」「我住在X」「我养了X」→ 只留实体核心
+    _KW_TALK_PREFIX = re.compile(
+        r"^(?:我|他|她|你|用户)?(?:喜欢|爱好|偏爱|住在|居住|养了|养|有|是|买|用|爱喝|喝|吃|用|玩|读|看|听|去|来|在|的)?"
+        r"(?:喝|吃|住|养|用|玩|喜欢|爱)?(?:的是|的是|的|和|与)?")
+    # 修饰词剥离：「电脑品牌的记忆」「猫的名字」→ 核心实体（品牌/型号/名字等修饰词删掉）
+    _KW_MODIFIERS = (
+        "品牌", "型号", "名字", "名称", "信息", "记录", "偏好", "习惯",
+        "资料", "内容", "事项", "相关", "细节", "情况", "事项", "类别",
+        "的电脑", "的手机", "的宠物", "的猫", "的狗", "的家乡", "的住址",
+        "brand", "model", "name", "info", "record",
+    )
     _KW_CLEAN_SUFFIX = re.compile(r"(?:的记忆|记忆|的所有|所有|这些|那些|内容|信息)$")
 
     @classmethod
@@ -284,16 +295,52 @@ class ForgetFlow:
             p = p.strip(" ，,、的")
             if p and p not in out:
                 out.append(p)
-        return out[:5]
+        # 修饰词剥离：为每个关键词生成去修饰词的核心变体（如「电脑品牌」→「电脑」）
+        for p in list(out):
+            for mod in cls._KW_MODIFIERS:
+                if mod and mod in p:
+                    core = p.replace(mod, "").strip(" ，,、的")
+                    if core and core not in out:
+                        out.append(core)
+        # 口语前缀剥离：生成纯实体变体（如「我喜欢喝豆浆」→「豆浆」）
+        for p in list(out):
+            core = cls._KW_TALK_PREFIX.sub("", p).strip(" ，,、的")
+            if core and core != p and core not in out:
+                out.append(core)
+        return out[:8]
 
     # ------------------------------------------------- 候选检索（④ 多关键词）
+    # 中英对照词典：中文关键词 → 英文变体（记忆可能存为英文）
+    _EN_ALIASES = {
+        "豆浆": ["soy milk", "soymilk"], "北京": ["beijing", "peking"],
+        "上海": ["shanghai"], "联想": ["lenovo"], "华为": ["huawei"],
+        "蓝色": ["blue"], "绿色": ["green"], "仓鼠": ["hamster"], "乌龟": ["turtle", "tortoise"],
+        "足球": ["football", "soccer"], "猫": ["cat"], "狗": ["dog"],
+        "电脑": ["computer", "laptop"], "手机": ["phone", "mobile"],
+        "咖啡": ["coffee"], "茶": ["tea"], "跑步": ["running", "run"],
+        "篮球": ["basketball"], "羽毛球": ["badminton"], "健身": ["fitness", "workout", "exercise"],
+        "生日": ["birthday"], "住": ["live", "lives", "living"], "宠物": ["pet"],
+    }
+
+    def _expand_keywords(cls, keywords: list[str]) -> list[str]:
+        """扩展关键词：原文 + 英文别名（记忆可能存为英文）。"""
+        out = list(keywords)
+        for k in keywords:
+            for en in cls._EN_ALIASES.get(k, []):
+                if en not in out:
+                    out.append(en)
+        return out
+
     def _retrieve_candidates(self, keywords: list[str], limit: int = 12) -> list[dict]:
         store = self._get_store()
         if store is None:
             return []
         merged: dict[str, dict] = {}
+        # 中英扩展：原始关键词 + 英文别名
+        keywords = self._expand_keywords(keywords)
         # 语义检索相关度门槛：低于 SEMANTIC_MIN_SCORE 的记忆视为无关，不进入候选
-        SEMANTIC_MIN_SCORE = 0.65
+        # 0.75（原 0.65）：提高精度——防语义相近的干扰记忆（北京/上海、蓝/绿）误入候选
+        SEMANTIC_MIN_SCORE = 0.75
         for keyword in keywords:
             # 1) 语义检索（高分候选）
             try:
@@ -322,6 +369,15 @@ class ForgetFlow:
                         merged[mid]["score"] = max(merged[mid].get("score", 0), 0.9)
         except Exception:
             pass
+        # 2b) 语义候选复核：仅保留与关键词有字面重叠的（防干扰误入）
+        #     即语义分 ≥0.75 的候选，若关键词无任何字面命中 → 移除（避免删到语义相近干扰项）
+        if merged:
+            _kws = [k for k in keywords if k]
+            for _mid in list(merged):
+                _text = str(merged[_mid].get("text") or "").lower()
+                if merged[_mid].get("score", 0) < 0.9 and _kws:
+                    if not any(k and k.lower() in _text for k in _kws):
+                        del merged[_mid]
         # ② 敏感标记（HIGH/CRITICAL → sensitive=True，需二次确认）
         for c in merged.values():
             c["sensitive"] = self._is_sensitive(c.get("text", ""))
