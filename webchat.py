@@ -1149,12 +1149,35 @@ async function refreshPanels() {
       fetch('/api/tool_logs', { headers: apiHeaders }).then(r => r.json()),
     ]);
     const mp = document.getElementById('memPanel');
-    mp.innerHTML = (m.memories && m.memories.length)
-      ? m.memories.map(x => {
-          const icon = x.level === 'high' ? '🔴' : x.level === 'medium' ? '🟡' : '⚪';
-          return '<div class="mem-item">' + icon + ' ' + x.text + '</div>';
-        }).join('')
-      : '<div class="mem-item">（暂无记忆）</div>';
+    mp.innerHTML = '';
+    if (m.memories && m.memories.length) {
+      m.memories.forEach(x => {
+        const item = document.createElement('div');
+        item.className = 'mem-item';
+        item.style.position = 'relative';
+        const icon = x.level === 'high' ? '🔴' : x.level === 'medium' ? '🟡' : '⚪';
+        const txt = document.createElement('span');
+        txt.textContent = icon + ' ' + x.text;
+        item.appendChild(txt);
+        const del = document.createElement('span');
+        del.textContent = '🗑';
+        del.style.cssText = 'position:absolute;top:2px;right:6px;cursor:pointer;font-size:11px;opacity:.6;';
+        del.title = '删除这条记忆';
+        del.onclick = async () => {
+          if (!confirm('确定删除这条记忆？')) return;
+          await fetch('/api/mem/delete', { method: 'POST', headers: apiHeaders,
+            body: JSON.stringify({ id: x.id }) });
+          refreshPanels();
+        };
+        item.appendChild(del);
+        mp.appendChild(item);
+      });
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'mem-item';
+      empty.textContent = '（暂无记忆）';
+      mp.appendChild(empty);
+    }
     const tp = document.getElementById('toolPanel');
     tp.innerHTML = (t.logs && t.logs.length)
       ? t.logs.slice().reverse().map(l =>
@@ -2540,6 +2563,7 @@ class Handler(BaseHTTPRequestHandler):
                     raw = store.list_all(top_k=200)
                     for it in prioritize_items(raw):
                         items.append({
+                            "id": str(it.get("id") or it.get("memory_id") or ""),
                             "text": str(it.get("memory", ""))[:80],
                             "level": it.get("priority_level", "low"),
                             "score": it.get("priority", 0),
@@ -2720,6 +2744,22 @@ class Handler(BaseHTTPRequestHandler):
                 "conflict": sm.has_conflict(skill.name),
                 "note": "配置已存入长期记忆（同名更新版本化）",
             })
+
+        if self.path == "/api/mem/delete":
+            try:
+                _length = int(self.headers.get("Content-Length") or 0)
+                _body = json.loads(self.rfile.read(_length) or b"{}")
+            except Exception:
+                _body = {}
+            _mid = str(_body.get("id") or "").strip()
+            store = _get_mem0()
+            if store is None or not _mid:
+                return self._json(200, {"ok": False, "note": "无记忆或缺少 id"})
+            try:
+                store._memory.delete(memory_id=_mid)
+                return self._json(200, {"ok": True, "id": _mid})
+            except Exception as e:
+                return self._json(500, {"error": str(e)})
 
         if self.path == "/api/mem/clear":
             store = _get_mem0()
