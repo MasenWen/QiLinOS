@@ -418,27 +418,6 @@ HTML = r"""<!doctype html>
     --modal-input: #ffffff;
     --modal-label: #666;
   }
-  [data-theme="dark"] {
-    --bg: #1c1c1e;
-    --surface: rgba(255,255,255,.06);
-    --surface-2: rgba(255,255,255,.1);
-    --border: rgba(255,255,255,.14);
-    --text: #f2f2f2;
-    --muted: #a1a1a6;
-    --accent: #ffffff;
-    --accent-2: #d1d1d6;
-    --ok: #4cd964;
-    --surface-solid: #2c2c2e;
-    --header-bg: rgba(28,28,30,.85);
-    --input-bg: #2c2c2e;
-    --bubble-user: #2c2c2e;
-    --bubble-ai: rgba(255,255,255,.06);
-    --modal-bg: #2c2c2e;
-    --modal-text: #f2f2f2;
-    --modal-border: rgba(255,255,255,.16);
-    --modal-input: #3a3a3c;
-    --modal-label: #a1a1a6;
-  }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
@@ -584,7 +563,6 @@ HTML = r"""<!doctype html>
   .confirm-btns button { flex: 1; padding: 7px; border-radius: 8px; border: 1px solid var(--border);
                          cursor: pointer; font-size: 13px; background: var(--surface-2); color: var(--text); }
   .confirm-btns .confirm-yes { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-  [data-theme="dark"] .confirm-btns .confirm-yes { background: #fff; color: #1c1c1e; }
   .sidebar .brand { padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .sidebar .newchat { margin: 10px 12px; padding: 8px; border: 1px solid var(--accent);
              border-radius: 8px; background: rgba(0,0,0,.05); color: var(--text);
@@ -708,7 +686,6 @@ HTML = r"""<!doctype html>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
       <button class="theme-btn" id="panelBtn" title="显示/隐藏记忆与工具面板">📊</button>
-      <button class="theme-btn" id="themeToggle" title="切换主题">🌙</button>
       <button class="icon-btn" id="clearMem" title="清空记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
     </header>
@@ -1232,23 +1209,6 @@ function applyLang() {
 function loadLang() { applyLang(); }  // 取消中英切换：固定中文
 
 // ---- 主题（深色/浅色/跟随系统）----
-function applyTheme(t) {
-  if (t === 'auto') {
-    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('themeToggle').textContent = t === 'dark' ? '☀️' : '🌙';
-}
-function loadTheme() {
-  const t = localStorage.getItem('aichat_theme') || 'light';
-  applyTheme(t);
-}
-document.getElementById('themeToggle').onclick = () => {
-  const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('aichat_theme', next);
-  applyTheme(next);
-};
 
 // ---- 顶栏模型选择器 ----
 async function loadHeaderModel() {
@@ -1411,7 +1371,6 @@ document.getElementById('headerModel').onchange = async (e) => {
   } catch (err) {}
 };
 loadHeaderModel();
-loadTheme();
 loadLang();
 applyPanelPref();
 
