@@ -54,14 +54,14 @@ SAFETY_MARKERS = (
     "never send",
 )
 OUTPUT_STYLE_VALUES = {
-    "简洁": "concise",
-    "精简": "concise",
-    "concise": "concise",
-    "详细": "detailed",
-    "详尽": "detailed",
-    "detailed": "detailed",
-    "要点": "bullet_points",
-    "bullet": "bullet_points",
+    "简洁": "简洁",
+    "精简": "简洁",
+    "concise": "简洁",
+    "详细": "详细",
+    "详尽": "详细",
+    "detailed": "详细",
+    "要点": "要点式",
+    "bullet": "要点式",
 }
 CURRENCY_VALUES = {
     "usd": "USD",

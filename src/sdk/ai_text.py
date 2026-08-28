@@ -15,6 +15,7 @@ from .base import load_library, _decode_cstring, declare, IS_KYLIN
 
 _LIB = None
 _lock = threading.Lock()
+_LLM_LOCK = threading.Lock()  # 2026-08-28：SDK 非线程安全 → 串行化文本生成
 
 # void (*ChatResultCallback)(ChatResult*, void*)
 _ChatResultCallback = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p)
@@ -166,19 +167,25 @@ def _run_async(lib, session, text, chat_mode):
 
 
 def generate_text(prompt, session=None):
-    """Generate text from a prompt. Returns generated text."""
+    """Generate text from a prompt. Returns generated text.
+
+    2026-08-28 修复：麒麟 SDK 非线程安全——多线程并发调用（mem0 提取 +
+    会话标题生成等）会在 C 层 abort（Fatal Python error: Aborted）。
+    全局锁串行化所有 SDK 文本生成调用。
+    """
     if not prompt:
         return ""
-    lib = _get_lib()
-    if lib and session:
-        try:
-            _declare(lib)
-            result = _run_async(lib, session, prompt, chat_mode=False)
-            if result:
-                return result
-        except Exception:
-            pass
-    return _fallback_generate(prompt)
+    with _LLM_LOCK:
+        lib = _get_lib()
+        if lib and session:
+            try:
+                _declare(lib)
+                result = _run_async(lib, session, prompt, chat_mode=False)
+                if result:
+                    return result
+            except Exception:
+                pass
+        return _fallback_generate(prompt)
 
 
 def _fallback_generate(prompt):
