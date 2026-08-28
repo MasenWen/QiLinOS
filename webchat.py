@@ -1706,7 +1706,7 @@ def _retrieve_memory(query: str) -> str:
         if _mstore is not None:
             try:
                 _st = _mstore.memory_status_by_text(mem)
-                if _st in ("deleted", "blocked", "historical"):
+                if _st in ("deleted", "blocked", "historical", "archive"):
                     print(f"[记忆仲裁] 剔除({_st}): {mem[:30]}", flush=True)
                     continue
             except Exception:
@@ -1873,6 +1873,16 @@ def _remember(messages):
             trigger_rotation()
         except Exception as _re:
             print(f"[mem] 流转跳过: {_re}", flush=True)
+        # ⑦ 四层生命周期自动流转（参考 strict lifecycle：candidate→stable→archive，
+        #    老化归档；内部节流 1 小时）
+        try:
+            from src.memory_engine.lifecycle_flow import maybe_run
+            _lc_events = maybe_run()
+            for _ev in _lc_events:
+                print(f"[生命周期] {_ev['from']}→{_ev['to']}: {_ev['text']} ({_ev['reason']})",
+                      flush=True)
+        except Exception:
+            pass
     except Exception as e:
         print(f"[mem] 写入失败: {e}", flush=True)
 
@@ -2330,7 +2340,7 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                         # 四层状态过滤（historical/deleted/blocked）
                         try:
                             _st = _get_mstore().memory_status_by_text(_t) if _get_mstore() else None
-                            if _st in ("deleted", "blocked", "historical"):
+                            if _st in ("deleted", "blocked", "historical", "archive"):
                                 continue
                         except Exception:
                             pass

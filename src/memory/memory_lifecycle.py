@@ -415,6 +415,15 @@ def review_and_save_memory(user_input: str, assistant_output: str,
                 if not is_safe(fact):
                     logger.warning("[审查] 跳过疑似威胁内容: %s", fact[:60])
                     continue
+                # 准入判定（参考 strict admission）：瞬时信息（明天/待办/会议…）
+                # 不写入长期记忆，防污染（「明天有会议」不该成为持久偏好）
+                try:
+                    from src.memory.memory_admission import should_persist
+                    if not should_persist(fact):
+                        logger.info("[审查] 瞬时信息跳过: %s", fact[:50])
+                        continue
+                except Exception:
+                    pass
                 mem0_store_obj.add([
                     {"role": "user", "content": fact},
                     {"role": "assistant", "content": "已记录"},

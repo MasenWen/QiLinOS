@@ -226,6 +226,14 @@ class Mem0Store:
             print(f"[Mem0] ⚠ 拦截威胁内容: {fact[:30]}...")
             return
         fact = review.sanitized_text
+        # 准入判定（参考 strict admission）：瞬时信息不持久化
+        try:
+            from src.memory.memory_admission import should_persist
+            if not should_persist(fact):
+                print(f"[Mem0] 瞬时信息跳过: {fact[:30]}...", flush=True)
+                return True
+        except Exception:
+            pass
         # 去重检查：与 add 一致——已有高度相似记忆(>0.87)则跳过，防重复
         try:
             _existing = self.search(fact, user_id=user_id, top_k=2)
