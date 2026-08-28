@@ -142,6 +142,42 @@ def scan_conflicts(
     return resolved
 
 
+def slot_winners(
+    store: MemoryEngineStore | None = None,
+    user_id: str = "nex_user",
+) -> dict[str, str]:
+    """{单值槽位: winner 文本}：从已裁决冲突组提取。
+
+    槽位级仲裁用——检索文本若属于某单值槽位且不是 winner 文本，
+    一律视为矛盾旧值剔除（覆盖变体文本：如「用户小张住在杭州，使用
+    银河麒麟操作系统」vs winner「用户住在深圳」，文本匹配不上但槽位相同）。
+    """
+    store = store or MemoryEngineStore()
+    memories = {m.memory_id: m for m in (store.list_memories(user_id) or [])}
+    result: dict[str, str] = {}
+    for group in scan_conflicts(store, user_id):
+        if group.status != "resolved" or not group.winner_memory_id:
+            continue
+        if group.slot_key not in _SINGLE_VALUE_SLOTS:
+            continue
+        winner = memories.get(group.winner_memory_id)
+        if winner is not None:
+            result[group.slot_key] = str(winner.semantic_value)
+    return result
+
+
+def slot_for_text(text: str) -> str | None:
+    """文本 → 单值规则槽位（非单值槽位返回 None）。"""
+    text = (text or "").strip()
+    if not text:
+        return None
+    try:
+        slot = _slot_for_fact(text)
+    except Exception:
+        return None
+    return slot if slot in _SINGLE_VALUE_SLOTS else None
+
+
 def loser_for_text(
     text: str,
     store: MemoryEngineStore | None = None,

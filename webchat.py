@@ -1653,6 +1653,20 @@ def _retrieve_memory(query: str) -> str:
                 continue
         except Exception:
             pass
+        # 槽位级仲裁（覆盖变体文本：long 库「用户小张住在杭州，使用…」vs winner「住在深圳」；
+        # winner 自身的变体文本豁免——归一化后相等视为同一事实）
+        try:
+            from src.memory_engine.conflict_adapter import slot_winners, slot_for_text
+            from src.memory_engine.store import _normalize_mem_text
+            _slot = slot_for_text(mem)
+            if _slot:
+                _winners = slot_winners()
+                _wv = _winners.get(_slot)
+                if _wv and _normalize_mem_text(mem) != _normalize_mem_text(_wv):
+                    print(f"[记忆仲裁] 槽位 loser 剔除({_slot}): {mem[:30]} → winner: {_wv[:30]}", flush=True)
+                    continue
+        except Exception:
+            pass
         seen.add(mem)
         lines.append(f"- {mem}")
     return "[用户相关记忆]\n" + "\n".join(lines) if lines else ""
@@ -2213,6 +2227,17 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                     # 冲突 loser 过滤
                     if _t in _losers:
                         continue
+                    # 槽位级仲裁（同记忆块：单值槽位非 winner 变体剔除，winner 变体豁免）
+                    try:
+                        from src.memory_engine.conflict_adapter import slot_winners, slot_for_text
+                        from src.memory_engine.store import _normalize_mem_text
+                        _slot = slot_for_text(_t)
+                        if _slot:
+                            _wv = slot_winners().get(_slot)
+                            if _wv and _normalize_mem_text(_t) != _normalize_mem_text(_wv):
+                                continue
+                    except Exception:
+                        pass
                     _m_lines.append(f"- [{_p or _c}] {_t[:80]}")
                 if _m_lines:
                     sections.append("## 结构化匹配（条件-偏好标签）\n" + "\n".join(_m_lines[:3]))
