@@ -400,6 +400,12 @@ class ClosedLoopExecutor:
             # -----------------------------------
 
             engine.ingest_event(event, segment=True)
+            # 工具轮结束即收尾 episode → 立即触发证据抽取（observation → evidence 落库），
+            # 避免所有工具结果长期堆积在同一个 open episode（60min 才自动 split）
+            try:
+                engine.close_episode("auto", reason="tool_round_end")
+            except Exception:
+                pass
             logger.debug("[%s] tool result recorded to memory engine", tool_name)
         except Exception:
             logger.debug("[%s] memory recording skipped", tool_name, exc_info=True)

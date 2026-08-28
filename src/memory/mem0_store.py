@@ -237,17 +237,24 @@ class Mem0Store:
         # 写入重试：delete_all 后 embedding 冷启动偶发向量为空(Milvus FieldData 异常)
         # → 静默丢写入（评测/连续写入时可见）。重试 2 次确保稳定。
         # 注意：必须用双消息格式（mem0 单字符串 add 不提取记忆 → get_all 0 条静默丢）
+        # 2025-08 修复：冷启动时 add 还可能【静默返回空结果】（不抛异常，重试不触发，
+        # 表现为 add_fact 返回 True 但 get_all 查不到）→ 检查返回值，空结果视为失败重试。
         _msgs = [{"role": "user", "content": fact},
                  {"role": "assistant", "content": "已记录"}]
         _last_err = None
         for _attempt in range(3):
             try:
-                self._memory.add(_msgs, user_id=user_id or self._default_user)
-                return True
+                result = self._memory.add(_msgs, user_id=user_id or self._default_user)
+                # mem0 返回 dict{"results":[...]}（提取的记忆列表）；空 results =
+                # 冷启动静默丢写入 → 视为失败重试
+                _res = result.get("results") if isinstance(result, dict) else result
+                if isinstance(_res, list) and len(_res) >= 1:
+                    return True
+                _last_err = "empty_result(embedding冷启动)"
             except Exception as _e:
                 _last_err = _e
-                import time as _t
-                _t.sleep(0.5 * (_attempt + 1))
+            import time as _t
+            _t.sleep(0.5 * (_attempt + 1))
         print(f"[Mem0] add_fact 重试 3 次仍失败: {_last_err}", flush=True)
         return False
 

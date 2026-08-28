@@ -190,6 +190,11 @@ def _flow_after_chat(session_id: str, prompt: str, reply: str) -> dict:
         # 溢出项（重要性达标）自动提升到中期
         if overflow:
             flow.promote(session_id, overflow)
+        # 中→短回流：按本轮查询把相关中期记忆拉回短期（下次对话直接注入）
+        try:
+            flow.demote(session_id, prompt, top_k=3)
+        except Exception:
+            pass
         # 中期容量/老化检查 → 归档长期
         flow.consolidate(session_id, capacity=50, max_age_days=30)
         return {"short": len(flow._short), "midterm": flow.midterm_count(session_id),
@@ -1579,14 +1584,14 @@ def _clean_json(raw: str) -> str:
 
 
 def _retrieve_memory(query: str) -> str:
-    """召回记忆，去重后拼成提示文本。"""
-    store = _get_mem0()
-    if store is None:
-        return ""
+    """召回记忆（中期+长期联合），去重 + 遗忘曲线过滤后拼成提示文本。"""
     try:
-        items = store.search(query)
+        from src.memory.memory_lifecycle import search_both
+        items = search_both(query, top_k=5)
     except Exception as e:
         print(f"[mem] 检索失败: {e}", flush=True)
+        return ""
+    if not items:
         return ""
     # 遗忘曲线开关与阈值（默认开，阈值 0.3）
     _decay_on = os.getenv("NEX_FORGET_DECAY", "1").strip().lower() not in ("0", "false", "off")
@@ -1619,6 +1624,34 @@ def _retrieve_memory(query: str) -> str:
     return "[用户相关记忆]\n" + "\n".join(lines) if lines else ""
 
 
+_engine_inst = None  # MemoryEngine 四层管线全局惰性实例
+
+
+def _get_memory_engine():
+    """惰性获取 MemoryEngine（Observation→Evidence→Memory 四层管线）。
+
+    检索后端接 mem0 语义搜索（engine.retrieve/retrieve_matched 的数据源）。
+    初始化失败返回 None（记忆增强静默降级，不阻塞对话）。
+    """
+    global _engine_inst
+    if _engine_inst is None:
+        try:
+            from src.memory_engine.engine import MemoryEngine
+            from src.memory.mem0_store import mem0_store
+
+            def _backend(query, user_id, limit):
+                try:
+                    return mem0_store.search(query, user_id=user_id, top_k=limit)
+                except Exception:
+                    return []
+
+            _engine_inst = MemoryEngine(search_backend=_backend)
+        except Exception as _e:
+            print(f"[mem] MemoryEngine 初始化失败: {_e}", flush=True)
+            _engine_inst = False
+    return _engine_inst if _engine_inst is not False else None
+
+
 def _remember(messages):
     store = _get_mem0()
     if store is None:
@@ -1632,7 +1665,18 @@ def _remember(messages):
             _a = str((messages or [{}])[1].get("content") or "").strip() if len(messages or []) > 1 else ""
             # 仅对正常对话做审查（工具结果/快照跳过，避免污染）
             if _u and not any(mk in _a for mk in ("✅ 工具", "❌", "状态：", "**输出**")):
-                review_and_save_memory(_u, _a, store)
+                _saved = review_and_save_memory(_u, _a, store)
+                # ⑤ 审查出的事实同步写入 MemoryEngine 四层管线
+                # （Observation→Evidence→Memory + 安全审查 + 四主标签 + KG slot，
+                #   与 mem0 主库并行，供结构化匹配检索）
+                if isinstance(_saved, dict) and _saved.get("facts"):
+                    _engine = _get_memory_engine()
+                    if _engine is not None:
+                        for _fact in _saved["facts"]:
+                            try:
+                                _engine.remember_fact(_fact, source_text=_u)
+                            except Exception as _fe:
+                                print(f"[mem] remember_fact 跳过: {_fe}", flush=True)
     except Exception as _e:
         print(f"[mem] 审查跳过: {_e}", flush=True)
     try:
@@ -1655,6 +1699,12 @@ def _remember(messages):
                 _kg.save(_kg_path)
         except Exception:
             pass
+        # ⑥ 三档流转：中期记忆 ≥ 阈值时 LLM 判断压缩为长期（内部有节流+线程锁）
+        try:
+            from src.memory.memory_lifecycle import trigger_rotation
+            trigger_rotation()
+        except Exception as _re:
+            print(f"[mem] 流转跳过: {_re}", flush=True)
     except Exception as e:
         print(f"[mem] 写入失败: {e}", flush=True)
 
@@ -2075,6 +2125,33 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
     else:
         sections.append("## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
                         f"{memory or '（暂无）'}")
+    # ⑥ 结构化匹配（MemoryEngine 四层管线 retrieve_matched：条件-对象-偏好标签）——仅非工具请求注入
+    if not is_tool:
+        try:
+            _engine = _get_memory_engine()
+            if _engine is not None:
+                _matched = _engine.retrieve_matched(message, top_k=3)
+                _m_lines = []
+                for _mt in _matched:
+                    _t = str(getattr(_mt, "text_input", "") or "").strip()
+                    _p = str(getattr(_mt, "preference", "") or "").strip()
+                    _c = str(getattr(_mt, "condition", "") or "").strip()
+                    if _t and (_p or _c):
+                        _m_lines.append(f"- [{_p or _c}] {_t[:80]}")
+                if _m_lines:
+                    sections.append("## 结构化匹配（条件-偏好标签）\n" + "\n".join(_m_lines[:3]))
+        except Exception:
+            pass
+        # ⑦ 短期活跃记忆（memory_flow 短档：本会话近期沉淀，可直接引用）
+        try:
+            _flow = _get_flow()
+            _short_items = [it.content for it in _flow._short
+                            if getattr(it, "session_id", "") == session_id and it.content][:5]
+            if _short_items:
+                sections.append("## 短期活跃记忆（本会话近期沉淀，可直接引用）\n" +
+                                "\n".join(f"- {s[:100]}" for s in _short_items))
+        except Exception:
+            pass
     # 用户偏好（mem0 提取，优先于 MySQL 画像——偏好是记忆系统的核心价值）
     try:
         from src.memory.preferences import preferences_prompt_block

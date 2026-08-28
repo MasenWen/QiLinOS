@@ -140,6 +140,23 @@ class MemoryEngine:
             for item in evidence:
                 if store.put_evidence(item):
                     created_ids.append(item.evidence_id)
+        # 消费方：恢复案例（recovery_case）证据沉淀到知识图谱（工具经验复用）。
+        # evidence 表本身是 shadow 审计用途（工具结果不进长期记忆，防污染），
+        # 但"失败→恢复"案例有长期复用价值 → 写入 KG → _kg_prompt_block 注入对话。
+        try:
+            _kg = self._get_kg()
+            _added = 0
+            for item in evidence:
+                if getattr(item, "memory_category", "") == "recovery_case":
+                    _cond = dict(getattr(item, "condition", None) or {})
+                    _text = f"{getattr(item, 'claim_value', '')}（错误: {_cond.get('error_signature', '')}）"
+                    _kg.add_node(label="recovery_case", text=_text[:100], strength=0.6)
+                    _added += 1
+            if _added:
+                _kg.save(self._kg_path)
+                print(f"[MemoryEngine] {_added} 条恢复案例 → 知识图谱", flush=True)
+        except Exception as _e:
+            print(f"[MemoryEngine] recovery_case→KG 跳过: {_e}", flush=True)
 
         run_id = self._stable_id(
             "run",

@@ -340,54 +340,62 @@ class ForgetFlow:
                     out.append(en)
         return out
 
+    # LLM 审查匹配提示词：判断记忆是否与遗忘目标相关
+    _MATCH_PROMPT = (
+        "你是记忆审查器。用户想遗忘某个主题，以下是用户记忆库中的全部记忆。\n"
+        "请判断哪些记忆与遗忘目标相关（应被删除），哪些不相关（应保留）。\n\n"
+        "【遗忘目标】\n{keywords}\n\n"
+        "【记忆列表】\n{memories}\n\n"
+        "【判定标准】\n"
+        "- 相关：记忆的**核心主题/实体**就是遗忘目标（如目标「蓝色」→ 记忆「用户喜欢蓝色」）\n"
+        "- 不相关：记忆的核心主题是其他实体（如目标「蓝色」→ 记忆「用户喜欢绿色」），"
+        "即使记忆文本中顺带出现过目标词，只要主题不是目标就不相关\n"
+        "- 语义相近也判不相关：北京/上海、蓝/绿 是不同实体，互不相关\n\n"
+        "只输出 JSON：{{\"match_ids\": [\"记忆id列表\"]}}\n"
+        "没有相关记忆时输出：{{\"match_ids\": []}}"
+    )
+
     def _retrieve_candidates(self, keywords: list[str], limit: int = 12) -> list[dict]:
         store = self._get_store()
         if store is None:
             return []
-        merged: dict[str, dict] = {}
-        # 中英扩展：原始关键词 + 英文别名
-        keywords = self._expand_keywords(keywords)
-        # 语义检索相关度门槛：低于 SEMANTIC_MIN_SCORE 的记忆视为无关，不进入候选
-        # 0.75（原 0.65）：提高精度——防语义相近的干扰记忆（北京/上海、蓝/绿）误入候选
-        SEMANTIC_MIN_SCORE = 0.75
-        for keyword in keywords:
-            # 1) 语义检索（高分候选）
-            try:
-                for it in store.search(keyword, top_k=10) or []:
-                    mid = it.get("id") or it.get("memory_id")
-                    score = float(it.get("score") or 0)
-                    if not mid or score < SEMANTIC_MIN_SCORE:
-                        continue
-                    if mid not in merged:
-                        merged[mid] = {"id": mid, "text": str(it.get("memory") or ""), "score": score}
-                    else:
-                        merged[mid]["score"] = max(merged[mid].get("score", 0), score)
-            except Exception:
-                pass
-        # 2) 文本包含匹配（任一关键词精准命中 → 给 0.9，排在语义结果之前）
+        # 需求：进记忆系统前不用文本检索——直接 LLM 审查匹配
+        # 步骤：list_all 拉全量记忆 → LLM 判断哪些与遗忘目标相关
         try:
-            for it in store.list_all(top_k=300) or []:
-                text = str(it.get("memory") or "")
-                mid = it.get("id") or it.get("memory_id")
-                low_text = text.lower()
-                if mid and any(k and k.lower() in low_text for k in keywords):
-                    if mid not in merged:
-                        merged[mid] = {"id": mid, "text": text, "score": 0.9}
-                    else:
-                        merged[mid]["text"] = text
-                        merged[mid]["score"] = max(merged[mid].get("score", 0), 0.9)
+            all_items = store.list_all(top_k=300) or []
         except Exception:
-            pass
-        # 2b) 语义候选复核：仅保留与关键词有字面重叠的（防干扰误入）
-        #     即语义分 ≥0.75 的候选，若关键词无任何字面命中 → 移除（避免删到语义相近干扰项）
-        if merged:
-            _kws = [k for k in keywords if k]
-            for _mid in list(merged):
-                _text = str(merged[_mid].get("text") or "").lower()
-                if merged[_mid].get("score", 0) < 0.9 and _kws:
-                    if not any(k and k.lower() in _text for k in _kws):
-                        del merged[_mid]
-        # ② 敏感标记（HIGH/CRITICAL → sensitive=True，需二次确认）
+            all_items = []
+        if not all_items:
+            return []
+        # 记忆文本压缩（防止提示词超长）
+        mem_lines = []
+        for it in all_items:
+            mid = it.get("id") or it.get("memory_id")
+            text = str(it.get("memory") or "")
+            if mid and text:
+                mem_lines.append(f"- id={mid} | {text[:120]}")
+        if not mem_lines:
+            return []
+        kw_text = "、".join(k for k in keywords if k)
+        prompt = self._MATCH_PROMPT.format(
+            keywords=kw_text,
+            memories="\n".join(mem_lines[:150]),   # 最多 150 条
+        )
+        match_ids: set[str] = set()
+        try:
+            raw = self._llm(prompt)
+            m = re.search(r"\{.*\}", raw, re.DOTALL)
+            if m:
+                obj = json.loads(m.group(0))
+                match_ids = {str(i) for i in (obj.get("match_ids") or []) if str(i)}
+        except Exception:
+            pass  # LLM 失败 → 无候选（安全：不误删）
+        merged: dict[str, dict] = {}
+        for it in all_items:
+            mid = it.get("id") or it.get("memory_id")
+            if mid and str(mid) in match_ids:
+                merged[str(mid)] = {"id": str(mid), "text": str(it.get("memory") or ""), "score": 0.9}
+        # 敏感标记（HIGH/CRITICAL → sensitive=True，需二次确认）
         for c in merged.values():
             c["sensitive"] = self._is_sensitive(c.get("text", ""))
         items = sorted(merged.values(), key=lambda x: (x.get("sensitive", False), x["score"]), reverse=True)

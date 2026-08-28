@@ -13,6 +13,9 @@ Fallback chain:
   4. Enhanced BM25 (last resort, no embedding vector)
 """
 
+# ============================================================
+# ⚠️ 预留组件（2025-08 审计）：未接入主流程，保留供后续启用；勿假设其生效
+# ============================================================
 from __future__ import annotations
 
 import ctypes

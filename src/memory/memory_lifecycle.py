@@ -166,7 +166,7 @@ def trigger_rotation():
         if len(items) < THRESHOLD:
             return
 
-        text = "\n".join(f"- {m[memory]}" for m in items)
+        text = "\n".join(f"- {m['memory']}" for m in items)
 
         # LLM 判断是否值得压缩
         try:
@@ -195,7 +195,7 @@ def trigger_rotation():
                 _rotation_last_run = time.time()
                 return
 
-            text = "\n".join(f"- {m[memory]}" for m in items)
+            text = "\n".join(f"- {m['memory']}" for m in items)
             item_ids = [m.get("id") for m in items if m.get("id")]
 
             try:
@@ -282,7 +282,7 @@ def curator_check():
                                        user_id="nex_user")
                     mem_instance.delete(item["id"])
                     logger.info("[老化] %s... → 归档", str(item["memory"])[:30])
-                    print(f"[老化] {str(item[memory])[:30]}... → 归档")
+                    print(f"[老化] {str(item['memory'])[:30]}... → 归档")
 
         # 中期过期（> ARCHIVE_DAYS 未更新的旧记忆直接丢弃）
         r = mem0_store._memory.get_all(filters={"user_id": "nex_user"})
@@ -299,7 +299,7 @@ def curator_check():
             if (now - created).days > ARCHIVE_DAYS:
                 mem0_store._memory.delete(item["id"])
                 logger.info("[清理] 过期中期记忆: %s...", str(item["memory"])[:30])
-                print(f"[清理] 过期中期记忆: {str(item[memory])[:30]}...")
+                print(f"[清理] 过期中期记忆: {str(item['memory'])[:30]}...")
     except Exception as e:
         logger.warning("[老化] 检查失败: %s", e)
 
@@ -307,28 +307,43 @@ def curator_check():
 # ============================================================
 # 检索：中期 + 长期联合召回
 # ============================================================
-def search_both(query: str, top_k: int = 5) -> str:
-    """联合检索中期 + 长期记忆，拼成提示文本。"""
+def search_both(query: str, top_k: int = 5) -> list[dict]:
+    """联合检索中期（主库）+ 长期（mem0_longterm）记忆。
+
+    返回结构化列表（供下游遗忘曲线等过滤后再拼提示文本）：
+        [{"memory": str, "created_at": str|None, "source": "mid"|"long",
+          "score": float}, ...]
+    中期取 min(3, top_k) 条、长期取 min(2, top_k) 条，按 memory 文本去重。
+    """
     from src.memory.mem0_store import mem0_store
     if not _store_ok(mem0_store):
-        return ""
-    parts = []
+        return []
+    parts: list[dict] = []
+    seen: set[str] = set()
     try:
         mid = mem0_store.search(query, user_id="nex_user", top_k=min(3, top_k))
         for m in mid:
-            parts.append(str(m.get("memory", "")))
+            text = str(m.get("memory", "")).strip()
+            if text and text not in seen:
+                seen.add(text)
+                parts.append({"memory": text,
+                              "created_at": m.get("created_at") or m.get("updated_at"),
+                              "source": "mid", "score": float(m.get("score") or 0.0)})
     except Exception:
         pass
     try:
         r = _get_long().search(query, filters={"user_id": "nex_user"},
                                limit=min(2, top_k), threshold=0.5)
         for m in (r.get("results", []) if isinstance(r, dict) else []):
-            parts.append(str(m.get("memory", "")))
+            text = str(m.get("memory", "")).strip()
+            if text and text not in seen:
+                seen.add(text)
+                parts.append({"memory": text,
+                              "created_at": m.get("created_at") or m.get("updated_at"),
+                              "source": "long", "score": float(m.get("score") or 0.0)})
     except Exception:
         pass
-    if not parts:
-        return ""
-    return "[用户相关记忆]\n" + "\n".join(f"- {p}" for p in dict.fromkeys(parts))
+    return parts
 
 
 # ============================================================

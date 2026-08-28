@@ -139,10 +139,17 @@ class MemoryFlow:
             return [b for b in _re.findall(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]+", (s or "").lower()) if len(b) > 1]
 
         def _overlap(a, b):
-            # 2-gram 交叠（中文/英文通用）
+            # 2-gram 交叠（强信号，中文/英文通用）
             ga = {a[i:i + 2] for i in range(max(0, len(a) - 1))}
             gb = {b[i:i + 2] for i in range(max(0, len(b) - 1))}
-            return len(ga & gb)
+            bigram = len(ga & gb)
+            if bigram:
+                return bigram + 1.0
+            # 长句场景退化：单字交集弱信号（"我想喝什么茶" vs "用户喜欢喝茉莉花茶"
+            # 无共享 2-gram 但共享 {喝,茶} → 0.5×2=1.0 命中；停用字不参与）
+            _STOP = set("的了是在有和与就都很也吗呢吧啊")
+            unigram = len((set(a) & set(b)) - _STOP)
+            return 0.5 * unigram
 
         q_blocks = _blocks(query)
         scored: list[tuple[float, FlowItem]] = []
