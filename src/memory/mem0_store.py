@@ -241,10 +241,19 @@ class Mem0Store:
         # 表现为 add_fact 返回 True 但 get_all 查不到）→ 检查返回值，空结果视为失败重试。
         _msgs = [{"role": "user", "content": fact},
                  {"role": "assistant", "content": "已记录"}]
+        # 2025-08 修复：add_fact 必须传中文提取 prompt——mem0 默认 prompt 会把
+        # 中文事实提取成英文且可能联想改写（如「用户喜欢绿色」→
+        # "User switched from liking the color blue to green"，混入目标词，
+        # 导致精准遗忘误删干扰记忆）。与 add() 一致的中文指令 + 禁止联想/改写。
+        _PROMPT = (
+            "请用中文提取并存储用户明确表达的事实信息，只提取用户明确表达的个人偏好/习惯/信息，"
+            "不要记录系统的猜测、推荐、提醒或临时任务。"
+            "只描述本条消息中的事实，禁止联想、推断或改写为其他记忆的转换关系（如 switched from）。"
+        )
         _last_err = None
         for _attempt in range(3):
             try:
-                result = self._memory.add(_msgs, user_id=user_id or self._default_user)
+                result = self._memory.add(_msgs, user_id=user_id or self._default_user, prompt=_PROMPT)
                 # mem0 返回 dict{"results":[...]}（提取的记忆列表）；空 results =
                 # 冷启动静默丢写入 → 视为失败重试
                 _res = result.get("results") if isinstance(result, dict) else result

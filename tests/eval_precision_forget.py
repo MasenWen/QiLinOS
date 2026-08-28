@@ -4,11 +4,29 @@
 
 v3 修正：记忆经 LLM 审查可能存为英文（如「仓鼠」→ hamster），
 验证改为 list_all 全量扫描 + 关键词中英对照，避免误判。
+
+v4（2026-08-28）：评测强制使用临时记忆库（MEM0_DB_PATH/MEM0_DIR），
+防止 delete_all 反复操作清空/损坏生产库（此前审计中生产测试数据因此丢失）。
+显式设置 MEM0_DB_PATH/MEM0_DIR 环境变量可覆盖（如指向已备好的测试库）。
 """
-import sys, os, json, time, argparse
+import sys, os, json, time, argparse, shutil
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["MEM0_TELEMETRY"] = "False"
+
+# ---- 评测隔离：强制临时库（在 import webchat 之前设置，mem0_store 初始化时读取）----
+_EVAL_DB = os.environ.get("MEM0_DB_PATH") or "/tmp/eval_mem0_precision.db"
+_EVAL_DIR = os.environ.get("MEM0_DIR") or "/tmp/eval_mem0_precision"
+os.environ["MEM0_DB_PATH"] = _EVAL_DB
+os.environ["MEM0_DIR"] = _EVAL_DIR
+# 每次评测用全新库：清理旧临时库（避免上轮 delete_all 累积损坏）
+for _p in (_EVAL_DB, _EVAL_DIR):
+    try:
+        if os.path.exists(_p):
+            shutil.rmtree(_p, ignore_errors=True) if os.path.isdir(_p) else os.remove(_p)
+    except Exception:
+        pass
+print(f"[eval] 评测隔离库: {_EVAL_DB}（生产库不受影响）", flush=True)
 
 import webchat
 from src.memory.mem0_store import mem0_store
