@@ -26,6 +26,12 @@ def _slot_for_fact(fact: str) -> str:
         (("标题", "字体", "字号"), "preference:document_style"),
         (("图表", "折线图", "柱状图"), "preference:chart_type"),
         (("vscode", "terminal", "终端", "git status"), "preference:development_workflow"),
+        # ---- 2026-08-28 C 方案：单值属性语义归类槽位（供冲突分组，如「住深圳 vs 住杭州」）----
+        # 注意：只归【单值属性】（地点/宠物/职业）——多值偏好（运动/饮食/音乐等）
+        # 不归类（「喜欢打网球」与「喜欢踢足球」可并存，归同槽会误判冲突）
+        (("住在", "居住", "家在", "工作地点", "工作地在", "搬到", "搬家到", "现居", "目前住"), "personal:location"),
+        (("养了", "养一只", "养了只", "宠物是", "宠物叫", "养猫", "养狗", "养了条"), "personal:pet"),
+        (("是一名", "是名", "我的职业", "职业是", "工作是", "从事", "任职", "在.*上班", "是位"), "personal:occupation"),
     )
     for markers, slot in rules:
         if any(marker in normalized for marker in markers):

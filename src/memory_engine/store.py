@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -12,6 +13,31 @@ from typing import Any, Iterator
 from .models import Episode, Evidence, MemoryRecord, Observation
 
 logger = logging.getLogger(__name__)
+
+# ---- 记忆文本归一化（仲裁匹配用，2026-08-28 C 方案）----
+_MEM_NORM_PATTERNS = (
+    re.compile(r"\d{4}年\d{1,2}月\d{1,2}日"),
+    re.compile(r"\d{4}-\d{2}-\d{2}"),
+    re.compile(r"于\d{4}"),
+    re.compile(r"(目前|现在|之前|以前|已经|已|该信息|信息|更新|时间|记录|于)"),
+)
+
+
+def _normalize_mem_text(text: str) -> str:
+    """去时间戳/状态修饰词，用于 mem0 变体文本与四层语义值的对齐匹配。"""
+    s = (text or "")
+    for pattern in _MEM_NORM_PATTERNS:
+        s = pattern.sub("", s)
+    s = re.sub(r"[\s，。、,.;；:：!！?？\"']+", "", s)
+    return s
+
+
+def _core_block(text: str) -> str:
+    """取文本中最长的中文字块（用于 LIKE 粗筛）。"""
+    blocks = re.findall(r"[\u4e00-\u9fff]{2,}", text or "")
+    if not blocks:
+        return ""
+    return max(blocks, key=len)
 
 
 SCHEMA_VERSION = "memory_engine.sqlite.v1"
@@ -531,20 +557,45 @@ class MemoryEngineStore:
 
         返回 active/candidate/stable/historical/deleted/blocked 之一；
         无匹配返回 None（该记忆不受四层状态约束）。
+        匹配策略（mem0 提取文本常是四层语义值的扩展/插入修饰，如
+        「用户目前住在杭州，该信息更新于2026年8月28日」vs「用户住在杭州」）：
+        ① 精确匹配 → ② 归一化匹配（去时间戳/修饰词）→ ③ 核心块 LIKE 粗筛 + 归一化比较
         """
         text = (text or "").strip()
         if not text:
             return None
+        norm = _normalize_mem_text(text)
         with self.connection() as connection:
+            # ① 精确匹配
             row = connection.execute(
-                """
-                SELECT status FROM memories
-                WHERE semantic_value = ?
-                ORDER BY updated_at DESC LIMIT 1
-                """,
+                "SELECT status, semantic_value FROM memories WHERE semantic_value = ? "
+                "ORDER BY updated_at DESC LIMIT 1",
                 (text,),
             ).fetchone()
-        return row["status"] if row else None
+            if row:
+                return row["status"]
+            # ② 归一化匹配（去时间戳/修饰词后相等）
+            rows = connection.execute(
+                "SELECT status, semantic_value FROM memories "
+                "WHERE user_id = ? ORDER BY updated_at DESC LIMIT 200",
+                ("nex_user",),
+            ).fetchall()
+            for r in rows:
+                if _normalize_mem_text(r["semantic_value"]) == norm:
+                    return r["status"]
+            # ③ 核心块粗筛 + 归一化互含（插入词场景：用户目前住在杭州…）
+            core = _core_block(norm)
+            if core and len(core) >= 2:
+                rows = connection.execute(
+                    "SELECT status, semantic_value FROM memories "
+                    "WHERE semantic_value LIKE ? ORDER BY LENGTH(semantic_value) DESC LIMIT 20",
+                    (f"%{core}%",),
+                ).fetchall()
+                for r in rows:
+                    rn = _normalize_mem_text(r["semantic_value"])
+                    if rn and (rn in norm or norm in rn):
+                        return r["status"]
+        return None
 
     def set_memory_status(self, memory_id: str, status: str, updated_at: str) -> MemoryRecord | None:
         records = self.get_memories([memory_id])
