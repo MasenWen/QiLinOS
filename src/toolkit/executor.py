@@ -33,6 +33,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
@@ -355,11 +356,23 @@ class ClosedLoopExecutor:
     # ------------------------------------------------------------------
 
     def _get_memory_engine(self):
-        """Lazily initialize the memory engine for recording tool results."""
+        """Lazily initialize the memory engine for recording tool results.
+
+        A 方案（NEX_STRICT_ENGINE=1）：strict 引擎（麒麟语义打分器）。
+        """
         if self._memory_engine is None:
             try:
-                from src.memory_engine.engine import MemoryEngine
-                self._memory_engine = MemoryEngine()
+                import os as _os
+                if _os.getenv("NEX_STRICT_ENGINE", "0").strip().lower() not in ("0", "false", "off"):
+                    from src.memory_engine.strict import StrictMemoryEngine, StrictMemoryEngineConfig
+                    from src.memory_engine.strict.kylin import KylinSDKSemanticScorer
+                    self._memory_engine = StrictMemoryEngine(
+                        config=StrictMemoryEngineConfig.load(),
+                        semantic_scorer=KylinSDKSemanticScorer(),
+                    )
+                else:
+                    from src.memory_engine.engine import MemoryEngine
+                    self._memory_engine = MemoryEngine()
             except Exception:
                 self._memory_engine = False  # sentinel: unavailable
         return self._memory_engine if self._memory_engine is not False else None
@@ -399,13 +412,24 @@ class ClosedLoopExecutor:
             event = filtered
             # -----------------------------------
 
-            engine.ingest_event(event, segment=True)
-            # 工具轮结束即收尾 episode → 立即触发证据抽取（observation → evidence 落库），
-            # 避免所有工具结果长期堆积在同一个 open episode（60min 才自动 split）
-            try:
-                engine.close_episode("auto", reason="tool_round_end")
-            except Exception:
-                pass
+            # A 方案：strict 引擎用 ingest_observation 全管线（无 episode 概念）；
+            # 默认引擎用 ingest_event + close_episode（episode 证据抽取）
+            if hasattr(engine, "ingest_observation"):
+                # tool_result 事件缺 strict normalizer 必填字段（source_event_id/event_time）
+                ev = dict(event)
+                ev.setdefault("source_event_id",
+                              f"tool-{tool_name}-{int(time.time() * 1000)}")
+                ev.setdefault("event_time",
+                              datetime.now(timezone.utc).isoformat())
+                engine.ingest_observation(ev, stage_limit="lifecycle")
+            else:
+                engine.ingest_event(event, segment=True)
+                # 工具轮结束即收尾 episode → 立即触发证据抽取（observation → evidence 落库），
+                # 避免所有工具结果长期堆积在同一个 open episode（60min 才自动 split）
+                try:
+                    engine.close_episode("auto", reason="tool_round_end")
+                except Exception:
+                    pass
             logger.debug("[%s] tool result recorded to memory engine", tool_name)
         except Exception:
             logger.debug("[%s] memory recording skipped", tool_name, exc_info=True)

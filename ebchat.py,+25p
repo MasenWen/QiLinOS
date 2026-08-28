@@ -1654,9 +1654,8 @@ def _retrieve_memory_strict(query: str) -> str:
 def _retrieve_memory(query: str) -> str:
     """召回记忆。strict 模式（NEX_STRICT_ENGINE=1）：strict.retrieve 主源（阶段 2）；
     默认模式：mem0 中期+长期联合检索 + 遗忘曲线/状态/冲突仲裁过滤。"""
-    # 阶段 5 决策（2026-08-28）：strict 主源检索不转正——
-    # 扩展对比 strict 12/15(80%) < mem0 14/15(93%)，且 strict 检索 3.7-5.9s/次
-    # （麒麟 embedding 每次初始化）vs mem0 95-250ms → 回退 mem0 主源（B 方案状态）
+    if _strict_mode():
+        return _retrieve_memory_strict(query)
     try:
         from src.memory.memory_lifecycle import search_both
         items = search_both(query, top_k=5)
@@ -2311,7 +2310,19 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
             if _engine is not None:
                 _m_lines = []
                 _is_strict = hasattr(_engine, "ingest_observation")
-                if not _is_strict:
+                if _is_strict:
+                    # ---- strict 检索（麒麟语义精排）----
+                    try:
+                        _r = _engine.retrieve(message, {"user_id": "nex_user"}, top_k=3)
+                        for _it in (_r.get("items") or [])[:3]:
+                            _t = str(_it.get("text") or _it.get("semantic_value")
+                                     or _it.get("memory") or "").strip()
+                            _score = float(_it.get("score") or _it.get("activation") or 0)
+                            if _t:
+                                _m_lines.append(f"- [strict {_score:.2f}] {_t[:80]}")
+                    except Exception as _re:
+                        print(f"[mem] strict retrieve 失败: {_re}", flush=True)
+                else:
                     _matched = _engine.retrieve_matched(message, top_k=5)
                     # 匹配块数据源是 mem0（不经四层仲裁）→ 补状态/冲突过滤，
                     # 防 historical/deleted/loser 记忆从匹配通道复活
