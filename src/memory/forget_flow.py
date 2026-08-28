@@ -222,24 +222,18 @@ class ForgetFlow:
     )
 
     def _route_forget_intent(self, msg: str) -> tuple[bool, list[str]]:
-        # 规则优先：动词表命中即遗忘意图（零 LLM 成本、稳定）
-        target = extract_forget_target(msg)
-        if target:
-            return True, self._split_keywords(target)
-        # 收紧：只用完整动词（删除/清除等），去掉单字"忘"——
-        # "忘"会误判「别忘了明天开会」「难以忘怀」等自然语言；
-        # 完整遗忘动词（忘记/忘掉/忘了）已由上方 extract_forget_target 覆盖
-        if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
-                w in msg for w in ("删除", "删掉", "清除", "移除", "清空",
-                                   "remove", "delete", "forget")):
-            return True, self._extract_keywords(msg)
-        # 修复：问句拦截——含疑问词的句子不判为遗忘意图（防「我的狗叫什么？」误判）
-        # 疑问词优先于 LLM 兜底，规则层直接放行
+        # ========== 判断是否遗忘：LLM 优先 ==========
+        # 先用 LLM 判断是否遗忘意图；LLM 判定 forget 后才进入记忆流程
+        # （ForgetFlow 候选检索/确认/删除）。规则层降为回退（LLM 失败/关闭时）。
         _Q = ("？", "?", "吗", "呢", "什么", "怎么", "为啥", "为何", "是否", "哪", "谁",
               "多少", "几", "how", "what", "why", "which", "where", "when")
+        # 安全防线（仍在前）：问句/否定语境绝不判遗忘
         if any(q in msg for q in _Q):
             return False, []
-        # LLM 路由兜底（handoff_to_forget）— ⑤ 可通过 FORGET_LLM_ROUTING=0 关闭
+        if any(n in msg for n in ("别忘", "别忘了", "不要忘", "不要忘记", "没忘", "不忘",
+                                  "难忘", "难以忘", "别忘记", "别忘掉")):
+            return False, []
+        # LLM 主判断（默认开，FORGET_LLM_ROUTING=0 关闭时走规则回退）
         if self._llm_routing:
             try:
                 raw = self._llm(self._ROUTE_PROMPT + "\n用户消息：" + msg)
@@ -248,9 +242,24 @@ class ForgetFlow:
                     obj = json.loads(m.group(0))
                     if obj.get("forget"):
                         kws = [str(k).strip() for k in (obj.get("keywords") or []) if str(k).strip()]
-                        return True, kws or self._extract_keywords(msg)
+                        # LLM 原始关键词过清洗链：口语前缀/修饰词剥离 → 中英别名扩展
+                        # （否则「我最喜欢的歌手」整串检索，记忆「用户最喜欢的歌手是周杰伦」字面不命中）
+                        cleaned = []
+                        for k in kws:
+                            cleaned.extend(self._split_keywords(k))
+                        cleaned = [k for k in cleaned if k]
+                        return True, cleaned or self._extract_keywords(msg)
+                    return False, []
             except Exception:
-                pass
+                pass  # LLM 失败 → 规则回退
+        # ========== 规则回退（LLM 关闭/失败时）==========
+        target = extract_forget_target(msg)
+        if target:
+            return True, self._split_keywords(target)
+        if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
+                w in msg for w in ("删除", "删掉", "清除", "移除", "清空",
+                                   "remove", "delete", "forget")):
+            return True, self._extract_keywords(msg)
         return False, []
 
     # ------------------------------------------------- 关键词提取（④ 批量）
@@ -318,7 +327,7 @@ class ForgetFlow:
         "足球": ["football", "soccer"], "猫": ["cat"], "狗": ["dog"],
         "电脑": ["computer", "laptop"], "手机": ["phone", "mobile"],
         "咖啡": ["coffee"], "茶": ["tea"], "跑步": ["running", "run"],
-        "篮球": ["basketball"], "羽毛球": ["badminton"], "健身": ["fitness", "workout", "exercise"],
+        "篮球": ["basketball"], "羽毛球": ["badminton"], "健身": ["fitness", "workout", "exercise"], "歌手": ["singer", "musician"], "音乐": ["music", "song"],
         "生日": ["birthday"], "住": ["live", "lives", "living"], "宠物": ["pet"],
     }
 

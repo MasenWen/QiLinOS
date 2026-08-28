@@ -236,10 +236,13 @@ class Mem0Store:
             pass
         # 写入重试：delete_all 后 embedding 冷启动偶发向量为空(Milvus FieldData 异常)
         # → 静默丢写入（评测/连续写入时可见）。重试 2 次确保稳定。
+        # 注意：必须用双消息格式（mem0 单字符串 add 不提取记忆 → get_all 0 条静默丢）
+        _msgs = [{"role": "user", "content": fact},
+                 {"role": "assistant", "content": "已记录"}]
         _last_err = None
         for _attempt in range(3):
             try:
-                self._memory.add(fact, user_id=user_id or self._default_user)
+                self._memory.add(_msgs, user_id=user_id or self._default_user)
                 return True
             except Exception as _e:
                 _last_err = _e
