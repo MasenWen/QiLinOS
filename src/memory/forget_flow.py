@@ -149,7 +149,11 @@ class ForgetFlow:
             if need_sensitive_confirm and any(i in sensitive_ids for i in ids):
                 return ("⚠️ 候选包含敏感信息（手机号/身份证/密码/密钥等）。"
                         "如确认删除，请回复「确认删除敏感记忆」。"), True
-            deleted = self._execute_delete(ids)
+            deleted = self._execute_delete(
+                ids,
+                [c.get("text", "") for c in candidates if c.get("id") in ids],
+                st.get("keywords") or [],
+            )
             self._audit("delete", st, ids=deleted)
             self._save_state({"active": False, "candidates": [],
                               "keywords": st.get("keywords") or [],
@@ -452,7 +456,8 @@ class ForgetFlow:
         return "", []
 
     # ------------------------------------------------- 执行删除
-    def _execute_delete(self, ids: list[str]) -> list[str]:
+    def _execute_delete(self, ids: list[str], texts: list[str] | None = None,
+                        keywords: list[str] | None = None) -> list[str]:
         store = self._get_store()
         deleted: list[str] = []
         if store is None:
@@ -463,7 +468,61 @@ class ForgetFlow:
                 deleted.append(mid)
             except Exception:
                 continue
+        # ---- 遗忘联动（2026-08-28 融合）：mem0 删除后同步四层状态 + KG 节点 ----
+        # 否则四层/KG 通道会把「已遗忘」的记忆重新注入对话（遗忘复活）
+        # 匹配用关键词（包含匹配，覆盖同义改写文本：候选「用户喜欢打网球」+
+        # 审查提取「喜欢打网球」→ 关键词「打网球」两者都命中）
+        _kws = [k for k in (list(keywords or []) + [t for t in (texts or []) if t]) if k]
+        if _kws:
+            try:
+                self._linkage_delete(_kws)
+            except Exception:
+                pass
         return deleted
+
+    def _linkage_delete(self, keywords: list[str]) -> None:
+        """遗忘联动：按关键词包含匹配——四层 memories 标记 deleted + KG 节点删除。"""
+        # ① 四层 memories 状态标记（读侧仲裁据此过滤，防遗忘复活）
+        try:
+            from src.memory_engine.store import MemoryEngineStore
+            from datetime import datetime as _dt
+            mstore = MemoryEngineStore()
+            for t in keywords:
+                t = (t or "").strip()
+                if not t:
+                    continue
+                try:
+                    for m in mstore.search_memories("nex_user", t[:40]) or []:
+                        if m.status in ("deleted", "blocked"):
+                            continue
+                        mstore.set_memory_status(m.memory_id, "deleted",
+                                                 _dt.now().isoformat(timespec="seconds"))
+                        print(f"[遗忘联动] 四层记忆标记 deleted: {m.semantic_value[:40]}",
+                              flush=True)
+                except Exception:
+                    pass
+        except Exception as _e:
+            print(f"[遗忘联动] 四层标记跳过: {_e}", flush=True)
+        # ② 知识图谱节点删除（KG 通道同样会注入对话；包含匹配防同义节点残留）
+        try:
+            from src.memory_engine.knowledge_graph import KnowledgeGraph
+            kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
+            kg = KnowledgeGraph.load(kg_path) if os.path.exists(kg_path) else KnowledgeGraph()
+            removed = 0
+            for t in keywords:
+                t = (t or "").strip()
+                if not t:
+                    continue
+                for nid, node in list(kg._nodes.items()):
+                    _text = str(node.text or "")
+                    if t in _text or _text in t:
+                        kg.remove_node_by_id(nid)
+                        removed += 1
+                        print(f"[遗忘联动] KG 节点删除: {_text[:40]}", flush=True)
+            if removed:
+                kg.save(kg_path)
+        except Exception as _e:
+            print(f"[遗忘联动] KG 删除跳过: {_e}", flush=True)
 
     # ------------------------------------------------- 删除审计（③）
     def _audit(self, action: str, st: dict, ids: list[str]):

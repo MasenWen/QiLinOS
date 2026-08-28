@@ -69,6 +69,25 @@ class KnowledgeGraph:
     def get_node(self, nid: str) -> KGNode | None:
         return self._nodes.get(nid)
 
+    def remove_node_by_text(self, text: str) -> bool:
+        """按文本删除节点及其关联边（遗忘联动用：遗忘某事实时同步清 KG，防「遗忘复活」）。
+
+        节点 id = _nid(text)，按 id 删除并清理所有指向它的边。
+        """
+        nid = _nid(text or "")
+        if nid not in self._nodes:
+            return False
+        del self._nodes[nid]
+        self._edges = [e for e in self._edges if e.source != nid and e.target != nid]
+        return True
+
+    def remove_node_by_id(self, nid: str) -> bool:
+        if nid not in self._nodes:
+            return False
+        del self._nodes[nid]
+        self._edges = [e for e in self._edges if e.source != nid and e.target != nid]
+        return True
+
     # ---- 边 ----
     def add_edge(
         self,

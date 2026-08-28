@@ -526,6 +526,26 @@ class MemoryEngineStore:
             ).fetchall()
         return [self._memory_from_row(row) for row in rows]
 
+    def memory_status_by_text(self, text: str) -> str | None:
+        """按记忆文本查最新状态（读侧仲裁用）。
+
+        返回 active/candidate/stable/historical/deleted/blocked 之一；
+        无匹配返回 None（该记忆不受四层状态约束）。
+        """
+        text = (text or "").strip()
+        if not text:
+            return None
+        with self.connection() as connection:
+            row = connection.execute(
+                """
+                SELECT status FROM memories
+                WHERE semantic_value = ?
+                ORDER BY updated_at DESC LIMIT 1
+                """,
+                (text,),
+            ).fetchone()
+        return row["status"] if row else None
+
     def set_memory_status(self, memory_id: str, status: str, updated_at: str) -> MemoryRecord | None:
         records = self.get_memories([memory_id])
         memory = records.get(memory_id)

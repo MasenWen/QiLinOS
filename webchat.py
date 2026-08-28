@@ -1604,6 +1604,10 @@ def _retrieve_memory(query: str) -> str:
         except Exception:
             _curve = None
     seen, lines = set(), []
+    # 状态仲裁 store（惰性）：四层库标记 non-active 的记忆不注入——
+    # ① 遗忘联动（ForgetFlow 删除时标记 deleted）防「遗忘复活」
+    # ② 矛盾降级（同槽位新事实使旧值 historical）自动生效
+    _mstore = _get_mstore()
     for it in items:
         mem = str(it.get("memory", "")).strip()
         if not mem or mem in seen:
@@ -1619,18 +1623,41 @@ def _retrieve_memory(query: str) -> str:
                     continue
             except Exception:
                 pass
+        # 四层状态仲裁（deleted/blocked/historical 不注入）
+        if _mstore is not None:
+            try:
+                _st = _mstore.memory_status_by_text(mem)
+                if _st in ("deleted", "blocked", "historical"):
+                    print(f"[记忆仲裁] 剔除({_st}): {mem[:30]}", flush=True)
+                    continue
+            except Exception:
+                pass
         seen.add(mem)
         lines.append(f"- {mem}")
     return "[用户相关记忆]\n" + "\n".join(lines) if lines else ""
 
 
 _engine_inst = None  # MemoryEngine 四层管线全局惰性实例
+_mstore_inst = None  # 四层状态仲裁 store（惰性单例）
+
+
+def _get_mstore():
+    """惰性获取四层 MemoryEngineStore（读侧状态仲裁用）。"""
+    global _mstore_inst
+    if _mstore_inst is None:
+        try:
+            from src.memory_engine.store import MemoryEngineStore
+            _mstore_inst = MemoryEngineStore()
+        except Exception:
+            _mstore_inst = False
+    return _mstore_inst if _mstore_inst is not False else None
 
 
 def _get_memory_engine():
     """惰性获取 MemoryEngine（Observation→Evidence→Memory 四层管线）。
 
     检索后端接 mem0 语义搜索（engine.retrieve/retrieve_matched 的数据源）。
+    candidate_top_k=10：匹配块每轮只取 top 3，候选 50 纯属浪费（规则打分开销）。
     初始化失败返回 None（记忆增强静默降级，不阻塞对话）。
     """
     global _engine_inst
@@ -1645,7 +1672,7 @@ def _get_memory_engine():
                 except Exception:
                     return []
 
-            _engine_inst = MemoryEngine(search_backend=_backend)
+            _engine_inst = MemoryEngine(search_backend=_backend, candidate_top_k=10)
         except Exception as _e:
             print(f"[mem] MemoryEngine 初始化失败: {_e}", flush=True)
             _engine_inst = False
