@@ -333,6 +333,11 @@ class ForgetFlow:
         "咖啡": ["coffee"], "茶": ["tea"], "跑步": ["running", "run"],
         "篮球": ["basketball"], "羽毛球": ["badminton"], "健身": ["fitness", "workout", "exercise"], "歌手": ["singer", "musician"], "音乐": ["music", "song"],
         "生日": ["birthday"], "住": ["live", "lives", "living"], "宠物": ["pet"],
+        # 城市（mem0 提取可能用英文城市名：User's ... residence is Guangzhou）
+        "广州": ["guangzhou"], "深圳": ["shenzhen"], "杭州": ["hangzhou"],
+        "南京": ["nanjing"], "成都": ["chengdu"], "武汉": ["wuhan"],
+        "重庆": ["chongqing"], "西安": ["xian", "xi'an"], "苏州": ["suzhou"],
+        "天津": ["tianjin"], "长沙": ["changsha"], "青岛": ["qingdao"],
     }
 
     def _expand_keywords(cls, keywords: list[str]) -> list[str]:
@@ -523,6 +528,55 @@ class ForgetFlow:
                 kg.save(kg_path)
         except Exception as _e:
             print(f"[遗忘联动] KG 删除跳过: {_e}", flush=True)
+        # ③ strict 库联动（B 方案：NEX_STRICT_ENGINE 启用时 strict 记忆同样注入对话，
+        #   必须同步删除，防「遗忘复活」）
+        try:
+            from src.memory_engine.strict import StrictMemoryEngine, StrictMemoryEngineConfig
+            seng = StrictMemoryEngine(config=StrictMemoryEngineConfig.load())
+            for t in keywords:
+                t = (t or "").strip()
+                if not t:
+                    continue
+                try:
+                    _res = seng.forget({"user_id": "nex_user", "keyword": t}, dry_run=False)
+                    if _res.get("candidate_memory_ids"):
+                        print(f"[遗忘联动] strict 记忆删除: {t[:30]} "
+                              f"({len(_res['candidate_memory_ids'])} 条)", flush=True)
+                except Exception:
+                    pass
+        except Exception as _e:
+            print(f"[遗忘联动] strict 删除跳过: {_e}", flush=True)
+        # ④ long 库联动（三档流转后主库记忆在 long 库；遗忘只删主库会漏 long 残留，
+        #   英文变体如 "User's ... residence is Guangzhou" 从 search_both 通道复活）
+        #   安全：中英别名扩展 + 文本包含过滤，防误删不相关记忆
+        try:
+            from src.memory.memory_lifecycle import _get_long
+            long_mem = _get_long()
+            for t in keywords:
+                t = (t or "").strip()
+                if not t:
+                    continue
+                for kw in self._expand_keywords([t]):
+                    kw = (kw or "").strip()
+                    if not kw or len(kw) < 2:
+                        continue
+                    try:
+                        _r = long_mem.search(kw, filters={"user_id": "nex_user"},
+                                             limit=10, threshold=0.5)
+                        _hits = _r.get("results", []) if isinstance(_r, dict) else []
+                        for _it in _hits:
+                            _txt = str(_it.get("memory", "") or "")
+                            if kw.lower() not in _txt.lower():
+                                continue
+                            try:
+                                long_mem.delete(_it.get("id"))
+                                print(f"[遗忘联动] long 库记忆删除: {_txt[:40]}", flush=True)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+        except Exception as _e:
+            print(f"[遗忘联动] long 删除跳过: {_e}", flush=True)
 
     # ------------------------------------------------- 删除审计（③）
     def _audit(self, action: str, st: dict, ids: list[str]):

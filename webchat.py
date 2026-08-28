@@ -20,7 +20,7 @@ import sys
 import threading
 import time
 from collections import OrderedDict
-from datetime import datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
@@ -1689,27 +1689,38 @@ def _get_mstore():
 
 
 def _get_memory_engine():
-    """惰性获取 MemoryEngine（Observation→Evidence→Memory 四层管线）。
+    """惰性获取记忆引擎（B 方案实验开关：NEX_STRICT_ENGINE=1 → StrictMemoryEngine）。
 
-    检索后端接 mem0 语义搜索（engine.retrieve/retrieve_matched 的数据源）。
-    candidate_top_k=10：匹配块每轮只取 top 3，候选 50 纯属浪费（规则打分开销）。
+    默认：MemoryEngine（Observation→Evidence→Memory 四层管线），检索后端接 mem0。
+    strict 模式：StrictMemoryEngine（独立 strict 库 + 麒麟语义打分精排），
+    用于实验对比；strict 引擎不可用或初始化失败时静默回退默认引擎。
     初始化失败返回 None（记忆增强静默降级，不阻塞对话）。
     """
     global _engine_inst
     if _engine_inst is None:
+        _strict_on = os.getenv("NEX_STRICT_ENGINE", "0").strip().lower() not in ("0", "false", "off")
         try:
-            from src.memory_engine.engine import MemoryEngine
-            from src.memory.mem0_store import mem0_store
+            if _strict_on:
+                from src.memory_engine.strict import StrictMemoryEngine, StrictMemoryEngineConfig
+                from src.memory_engine.strict.kylin import KylinSDKSemanticScorer
+                _engine_inst = StrictMemoryEngine(
+                    config=StrictMemoryEngineConfig.load(),
+                    semantic_scorer=KylinSDKSemanticScorer(),
+                )
+                print("[mem] strict 引擎已启用（NEX_STRICT_ENGINE）", flush=True)
+            else:
+                from src.memory_engine.engine import MemoryEngine
+                from src.memory.mem0_store import mem0_store
 
-            def _backend(query, user_id, limit):
-                try:
-                    return mem0_store.search(query, user_id=user_id, top_k=limit)
-                except Exception:
-                    return []
+                def _backend(query, user_id, limit):
+                    try:
+                        return mem0_store.search(query, user_id=user_id, top_k=limit)
+                    except Exception:
+                        return []
 
-            _engine_inst = MemoryEngine(search_backend=_backend, candidate_top_k=10)
+                _engine_inst = MemoryEngine(search_backend=_backend, candidate_top_k=10)
         except Exception as _e:
-            print(f"[mem] MemoryEngine 初始化失败: {_e}", flush=True)
+            print(f"[mem] 记忆引擎初始化失败: {_e}", flush=True)
             _engine_inst = False
     return _engine_inst if _engine_inst is not False else None
 
@@ -1728,17 +1739,35 @@ def _remember(messages):
             # 仅对正常对话做审查（工具结果/快照跳过，避免污染）
             if _u and not any(mk in _a for mk in ("✅ 工具", "❌", "状态：", "**输出**")):
                 _saved = review_and_save_memory(_u, _a, store)
-                # ⑤ 审查出的事实同步写入 MemoryEngine 四层管线
-                # （Observation→Evidence→Memory + 安全审查 + 四主标签 + KG slot，
-                #   与 mem0 主库并行，供结构化匹配检索）
+                # ⑤ 审查出的事实同步写入记忆引擎（与 mem0 主库并行，供结构化检索）
+                # 默认：MemoryEngine 四层管线（remember_fact）；
+                # strict 模式（NEX_STRICT_ENGINE=1）：StrictMemoryEngine 全管线
+                # （ingest_observation → lifecycle，含冲突/置信度/生命周期）
                 if isinstance(_saved, dict) and _saved.get("facts"):
                     _engine = _get_memory_engine()
                     if _engine is not None:
                         for _fact in _saved["facts"]:
                             try:
-                                _engine.remember_fact(_fact, source_text=_u)
+                                if hasattr(_engine, "ingest_observation"):
+                                    # strict 的 claim 准入只提取带长期标记的文本
+                                    # （LONG_TERM_MARKERS：记住/总是/一直…）——审查通过的
+                                    # fact 本就是用户明确表达的持久信息，加「请记住：」前缀
+                                    _engine.ingest_observation({
+                                        "source_type": "dialogue",
+                                        "actor": "user",
+                                        "user_id": "nex_user",
+                                        "session_id": "strict",
+                                        "content": f"请记住：{_fact}",
+                                        "source_event_id": (
+                                            f"strict-{int(time.time() * 1000)}-"
+                                            f"{abs(hash(_fact)) % 100000}"
+                                        ),
+                                        "event_time": datetime.now(timezone.utc).isoformat(),
+                                    }, stage_limit="lifecycle")
+                                else:
+                                    _engine.remember_fact(_fact, source_text=_u)
                             except Exception as _fe:
-                                print(f"[mem] remember_fact 跳过: {_fe}", flush=True)
+                                print(f"[mem] 记忆引擎写入跳过: {_fe}", flush=True)
     except Exception as _e:
         print(f"[mem] 审查跳过: {_e}", flush=True)
     try:
@@ -2196,49 +2225,65 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
     else:
         sections.append("## 用户已知记忆（⚠️ 仅供背景参考：其中数值已可能过期，查询类问题严禁引用记忆中的数字，必须以工具实时返回为准）\n"
                         f"{memory or '（暂无）'}")
-    # ⑥ 结构化匹配（MemoryEngine 四层管线 retrieve_matched：条件-对象-偏好标签）——仅非工具请求注入
+    # ⑥ 结构化匹配（记忆引擎检索）——仅非工具请求注入
+    # 默认：MemoryEngine retrieve_matched（条件-对象-偏好标签）；
+    # strict 模式：StrictMemoryEngine.retrieve（麒麟语义精排 + HNSW/BM25）
     if not is_tool:
         try:
             _engine = _get_memory_engine()
             if _engine is not None:
-                _matched = _engine.retrieve_matched(message, top_k=5)
-                # 匹配块数据源是 mem0（不经四层仲裁）→ 补状态/冲突过滤，
-                # 防 historical/deleted/loser 记忆从匹配通道复活
-                _losers = {}
-                try:
-                    from src.memory_engine.conflict_adapter import losers_map
-                    _losers = losers_map()
-                except Exception:
-                    pass
                 _m_lines = []
-                for _mt in _matched:
-                    _t = str(getattr(_mt, "text_input", "") or "").strip()
-                    _p = str(getattr(_mt, "preference", "") or "").strip()
-                    _c = str(getattr(_mt, "condition", "") or "").strip()
-                    if not _t or not (_p or _c):
-                        continue
-                    # 四层状态过滤（historical/deleted/blocked）
+                _is_strict = hasattr(_engine, "ingest_observation")
+                if _is_strict:
+                    # ---- strict 检索（麒麟语义精排）----
                     try:
-                        _st = _get_mstore().memory_status_by_text(_t) if _get_mstore() else None
-                        if _st in ("deleted", "blocked", "historical"):
+                        _r = _engine.retrieve(message, {"user_id": "nex_user"}, top_k=3)
+                        for _it in (_r.get("items") or [])[:3]:
+                            _t = str(_it.get("text") or _it.get("semantic_value")
+                                     or _it.get("memory") or "").strip()
+                            _score = float(_it.get("score") or _it.get("activation") or 0)
+                            if _t:
+                                _m_lines.append(f"- [strict {_score:.2f}] {_t[:80]}")
+                    except Exception as _re:
+                        print(f"[mem] strict retrieve 失败: {_re}", flush=True)
+                else:
+                    _matched = _engine.retrieve_matched(message, top_k=5)
+                    # 匹配块数据源是 mem0（不经四层仲裁）→ 补状态/冲突过滤，
+                    # 防 historical/deleted/loser 记忆从匹配通道复活
+                    _losers = {}
+                    try:
+                        from src.memory_engine.conflict_adapter import losers_map
+                        _losers = losers_map()
+                    except Exception:
+                        pass
+                    for _mt in _matched:
+                        _t = str(getattr(_mt, "text_input", "") or "").strip()
+                        _p = str(getattr(_mt, "preference", "") or "").strip()
+                        _c = str(getattr(_mt, "condition", "") or "").strip()
+                        if not _t or not (_p or _c):
                             continue
-                    except Exception:
-                        pass
-                    # 冲突 loser 过滤
-                    if _t in _losers:
-                        continue
-                    # 槽位级仲裁（同记忆块：单值槽位非 winner 变体剔除，winner 变体豁免）
-                    try:
-                        from src.memory_engine.conflict_adapter import slot_winners, slot_for_text
-                        from src.memory_engine.store import _normalize_mem_text
-                        _slot = slot_for_text(_t)
-                        if _slot:
-                            _wv = slot_winners().get(_slot)
-                            if _wv and _normalize_mem_text(_t) != _normalize_mem_text(_wv):
+                        # 四层状态过滤（historical/deleted/blocked）
+                        try:
+                            _st = _get_mstore().memory_status_by_text(_t) if _get_mstore() else None
+                            if _st in ("deleted", "blocked", "historical"):
                                 continue
-                    except Exception:
-                        pass
-                    _m_lines.append(f"- [{_p or _c}] {_t[:80]}")
+                        except Exception:
+                            pass
+                        # 冲突 loser 过滤
+                        if _t in _losers:
+                            continue
+                        # 槽位级仲裁（同记忆块：单值槽位非 winner 变体剔除，winner 变体豁免）
+                        try:
+                            from src.memory_engine.conflict_adapter import slot_winners, slot_for_text
+                            from src.memory_engine.store import _normalize_mem_text
+                            _slot = slot_for_text(_t)
+                            if _slot:
+                                _wv = slot_winners().get(_slot)
+                                if _wv and _normalize_mem_text(_t) != _normalize_mem_text(_wv):
+                                    continue
+                        except Exception:
+                            pass
+                        _m_lines.append(f"- [{_p or _c}] {_t[:80]}")
                 if _m_lines:
                     sections.append("## 结构化匹配（条件-偏好标签）\n" + "\n".join(_m_lines[:3]))
         except Exception:
