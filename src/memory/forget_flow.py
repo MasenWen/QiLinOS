@@ -530,20 +530,58 @@ class ForgetFlow:
             print(f"[遗忘联动] KG 删除跳过: {_e}", flush=True)
         # ③ strict 库联动（B 方案：NEX_STRICT_ENGINE 启用时 strict 记忆同样注入对话，
         #   必须同步删除，防「遗忘复活」）
+        #   匹配：全量扫描 + 关键词变体（去「的」/去后缀）包含匹配——
+        #   严格子串会漏（「平面设计的工作」vs「请记住：用户工作是平面设计」）
         try:
             from src.memory_engine.strict import StrictMemoryEngine, StrictMemoryEngineConfig
             seng = StrictMemoryEngine(config=StrictMemoryEngineConfig.load())
+
+            def _kw_variants(k: str) -> set[str]:
+                k = (k or "").strip()
+                if not k:
+                    return set()
+                vs = {k, k.replace("的", "")}
+                for suf in ("的记忆", "记忆", "的工作", "工作", "偏好", "的信息", "信息"):
+                    if k.endswith(suf) and len(k) > len(suf) + 1:
+                        vs.add(k[: -len(suf)])
+                        vs.add(k[: -len(suf)].replace("的", ""))
+                return vs
+
+            all_variants: set[str] = set()
             for t in keywords:
-                t = (t or "").strip()
-                if not t:
+                all_variants |= _kw_variants(t)
+            all_variants = {v for v in all_variants if len(v) >= 2}
+            # 核心词集合（无序全含匹配，解决倒序：关键词「平面设计的工作」
+            # vs 记忆「用户工作是平面设计」——子串无解，词级判定）
+            _tokens: set[str] = set()
+            for v in all_variants:
+                for _b in re.findall(r"[\u4e00-\u9fff]{2,}", v):
+                    if len(_b) >= 2:
+                        _tokens.add(_b)
+            _ids: list[str] = []
+            try:
+                _mems = seng.store.list_memories("nex_user") or []
+            except Exception:
+                _mems = []
+            for m in _mems:
+                sv = str(getattr(m, "semantic_value", "") or "")
+                if not _tokens:
                     continue
-                try:
-                    _res = seng.forget({"user_id": "nex_user", "keyword": t}, dry_run=False)
-                    if _res.get("candidate_memory_ids"):
-                        print(f"[遗忘联动] strict 记忆删除: {t[:30]} "
-                              f"({len(_res['candidate_memory_ids'])} 条)", flush=True)
-                except Exception:
-                    pass
+                _hit = False
+                # ① 变体子串匹配（语序一致场景）
+                for v in all_variants:
+                    if v in sv or sv in v:
+                        _hit = True
+                        break
+                # ② 核心词全含匹配（倒序/虚词差异场景）
+                if not _hit and all(_tk in sv for _tk in _tokens):
+                    _hit = True
+                if _hit:
+                    _ids.append(m.memory_id)
+            if _ids:
+                _res = seng.forget({"user_id": "nex_user", "memory_ids": _ids}, dry_run=False)
+                print(f"[遗忘联动] strict 记忆删除: {len(_ids)} 条 ({_res.get('status', '')})",
+                      flush=True)
         except Exception as _e:
             print(f"[遗忘联动] strict 删除跳过: {_e}", flush=True)
         # ④ long 库联动（三档流转后主库记忆在 long 库；遗忘只删主库会漏 long 残留，

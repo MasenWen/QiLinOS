@@ -1583,8 +1583,50 @@ def _clean_json(raw: str) -> str:
     return s
 
 
+def _retrieve_memory_strict(query: str) -> str:
+    """strict 模式主源检索（阶段 2：A 方案主从切换）。
+
+    strict.retrieve（BM25 + 麒麟语义精排，已 hard_filter 排除 deleted/blocked/archive）
+    作为主源；无结果时 mem0 search_both 兜底（避免空记忆块）。
+    """
+    try:
+        _engine = _get_memory_engine()
+        if _engine is None or not hasattr(_engine, "retrieve"):
+            return ""
+        _r = _engine.retrieve(query, {"user_id": "nex_user"}, top_k=5)
+        items = _r.get("items") or []
+        seen, lines = set(), []
+        for _it in items:
+            _t = str(_it.get("semantic_value") or _it.get("text") or "").strip()
+            if not _t or _t in seen:
+                continue
+            _st = str(_it.get("status") or "")
+            if _st in ("deleted", "blocked", "archive"):
+                continue
+            seen.add(_t)
+            lines.append(f"- {_t}")
+        # 兜底：strict 无命中时用 mem0 联合检索（历史记忆/未迁移数据）
+        if not lines:
+            try:
+                from src.memory.memory_lifecycle import search_both
+                for _it in search_both(query, top_k=3) or []:
+                    _t = str(_it.get("memory", "")).strip()
+                    if _t and _t not in seen:
+                        seen.add(_t)
+                        lines.append(f"- {_t}")
+            except Exception:
+                pass
+        return "[用户相关记忆]\n" + "\n".join(lines) if lines else ""
+    except Exception as e:
+        print(f"[mem] strict 检索失败: {e}", flush=True)
+        return ""
+
+
 def _retrieve_memory(query: str) -> str:
-    """召回记忆（中期+长期联合），去重 + 遗忘曲线过滤后拼成提示文本。"""
+    """召回记忆。strict 模式（NEX_STRICT_ENGINE=1）：strict.retrieve 主源（阶段 2）；
+    默认模式：mem0 中期+长期联合检索 + 遗忘曲线/状态/冲突仲裁过滤。"""
+    if os.getenv("NEX_STRICT_ENGINE", "0").strip().lower() not in ("0", "false", "off"):
+        return _retrieve_memory_strict(query)
     try:
         from src.memory.memory_lifecycle import search_both
         items = search_both(query, top_k=5)
