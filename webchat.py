@@ -236,7 +236,7 @@ MAX_TURN_CHARS = 1000     # 单条历史消息截断长度，控制 prompt 体�
 COMPACT_THRESHOLD = 24   # 历史超过 12 轮时触发早期压缩（dsh compaction）
 COMPACT_KEEP = 12         # 压缩时移出的早期轮次数量（保留最近轮做总结上下文）
 # ---- DSH 式 token 压力驱动上下文管理（学习 dsh-compaction-basic）----
-CTX_WINDOW = 8000                # 估算上下文窗口（token，近似值，按实际模型调整）
+CTX_WINDOW = 30000                # 估算上下文窗口（token，近似值，按实际模型调整）
 CTX_THRESHOLD_RATIO = 0.8        # 达到窗口 80% 触发压缩（dsh thresholdRatio）
 CTX_RETAIN_RATIO = 0.16          # 保留最近 16% token 原样（dsh retainRatio）
 TOOL_RESULT_PRUNE_CHARS = 8192   # 工具结果剪枝阈值（dsh thresholdChars）
