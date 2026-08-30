@@ -1901,11 +1901,44 @@ def _remember(messages):
                       "？", "?", "为什么", "怎么", "是否", "吗", "呢",
                       "记住", "忘", "删")
             if _um and is_preference(_um) and not any(k in _um for k in _NOISE):
-                from src.memory_engine.knowledge_graph import KnowledgeGraph
-                _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
-                _kg = KnowledgeGraph.load(_kg_path) if os.path.exists(_kg_path) else KnowledgeGraph()
-                _kg.add_node(label="preference", text=_um[:200], strength=0.8)
-                _kg.save(_kg_path)
+                # P2 补漏：无问号的疑问词（"我喜欢喝什么饮料" 无？但含"什么"）
+                _QUERY_WORDS = ("什么", "几", "多少", "哪", "谁", "为何", "为啥",
+                                "是否", "how", "what", "why", "which", "where", "when")
+                _Q_PATTERNS = ("喜欢什么", "爱什么", "爱好是", "是什么", "怎么样",
+                               "怎么", "为何", "如何", "还是")
+                if any(w in _um for w in _QUERY_WORDS) or any(pt in _um for pt in _Q_PATTERNS):
+                    pass  # 问句不入 KG
+                else:
+                    from src.memory_engine.knowledge_graph import KnowledgeGraph
+                    _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
+                    _kg = KnowledgeGraph.load(_kg_path) if os.path.exists(_kg_path) else KnowledgeGraph()
+                    # P3：冲突 loser 不写入（C 方案已裁决的旧值防复活）
+                    _is_loser = False
+                    try:
+                        from src.memory_engine.conflict_adapter import losers_map
+                        if _um in losers_map():
+                            _is_loser = True
+                    except Exception:
+                        pass
+                    if not _is_loser:
+                        _node = _kg.add_node(label="preference", text=_um[:200], strength=0.8)
+                        # P1 规则建边：与同 label 已有节点建 AYES 关联边（实体重叠优先）
+                        _added_edge = False
+                        for _oid, _on in _kg._nodes.items():
+                            if _oid == _node.id or _on.label != "preference":
+                                continue
+                            _ot = str(_on.text or "")
+                            _core = _um.replace("记住：", "").replace("我喜欢", "").replace("我", "")
+                            _ocore = _ot.replace("记住：", "").replace("我喜欢", "").replace("我", "")
+                            if _core and _ocore and (_core[:4] in _ocore or _ocore[:4] in _core or _core in _ocore or _ocore in _core):
+                                _kg.add_edge(_node.id, _oid, "AYES")
+                                _added_edge = True
+                                break
+                        if not _added_edge:
+                            _prev = [n for n in _kg._nodes.values() if n.label == "preference" and n.id != _node.id]
+                            if _prev:
+                                _kg.add_edge(_node.id, _prev[0].id, "AYES")
+                        _kg.save(_kg_path)
         except Exception:
             pass
         # ⑥ 三档流转：中期记忆 ≥ 阈值时 LLM 判断压缩为长期（内部有节流+线程锁）
