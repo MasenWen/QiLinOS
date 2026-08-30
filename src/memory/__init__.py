@@ -10,7 +10,7 @@ EmbedderFactory.provider_to_class["kylin_sdk"] = (
 #     "src.memory.gte_zh_embedder.GteZhOnnxEmbedder"
 # )
 
-# 麒麟向量数据库适配器
+# 麒麟向量数据库适配器（provider 名 kylin_vectordb 由 KylinMem0Adapter 实现）
 VectorStoreFactory.provider_to_class["kylin_vectordb"] = (
     "src.memory.kylin_mem0_adapter.KylinMem0Adapter"
 )
