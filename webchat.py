@@ -235,6 +235,14 @@ MAX_HISTORY_TURNS = 16    # 每会话最多拼接最近 8 轮（16 条消息）
 MAX_TURN_CHARS = 1000     # 单条历史消息截断长度，控制 prompt 体积
 COMPACT_THRESHOLD = 24   # 历史超过 12 轮时触发早期压缩（dsh compaction）
 COMPACT_KEEP = 12         # 压缩时移出的早期轮次数量（保留最近轮做总结上下文）
+# ---- DSH 式 token 压力驱动上下文管理（学习 dsh-compaction-basic）----
+CTX_WINDOW = 8000                # 估算上下文窗口（token，近似值，按实际模型调整）
+CTX_THRESHOLD_RATIO = 0.8        # 达到窗口 80% 触发压缩（dsh thresholdRatio）
+CTX_RETAIN_RATIO = 0.16          # 保留最近 16% token 原样（dsh retainRatio）
+TOOL_RESULT_PRUNE_CHARS = 8192   # 工具结果剪枝阈值（dsh thresholdChars）
+TOOL_RESULT_HEAD = 4096          # 剪枝保留头部（dsh headChars）
+TOOL_RESULT_TAIL = 1024          # 剪枝保留尾部（dsh tailChars）
+
 SESSIONS: "OrderedDict[str, list]" = OrderedDict()
 SESSIONS_META: dict = {}  # sid -> {"summary": "早期对话摘要", "title": "LLM标题"}
 _sessions_lock = threading.Lock()
@@ -362,6 +370,29 @@ def _gen_title_async(session_id: str, first_msg: str):
         print(f"[session] 标题生成失败: {e}", flush=True)
 
 
+def _estimate_tokens(text: str) -> int:
+    """近似 token 计量（dsh tokenMeter 的轻量替代）：
+    中文约 1 token/字，英文约 4 字符/token（中英混合文本的常用近似）。"""
+    if not text:
+        return 0
+    cjk = sum(1 for ch in text if '\u4e00' <= ch <= '\u9fff')
+    other = len(text) - cjk
+    return cjk + other // 4
+
+
+def _prune_text(text: str, threshold: int = None, head: int = None, tail: int = None) -> str:
+    """工具结果 head/tail 剪枝（dsh toolResultPruner）：
+    超长文本保留头+尾，中间用省略标记替换。"""
+    if not text:
+        return text
+    threshold = threshold or TOOL_RESULT_PRUNE_CHARS
+    head = head or TOOL_RESULT_HEAD
+    tail = tail or TOOL_RESULT_TAIL
+    if len(text) <= threshold:
+        return text
+    return text[:head] + "\n\n[... 工具结果中间部分已剪枝，共省略 %d 字符 ...]\n\n" % (len(text) - head - tail) + text[-tail:]
+
+
 def _session_append(session_id: str, role: str, content: str):
     with _sessions_lock:
         hist = SESSIONS.setdefault(session_id, [])
@@ -382,6 +413,16 @@ def _session_append(session_id: str, role: str, content: str):
             meta["total_msgs"] = 0
             threading.Thread(target=_compact_async,
                              args=(session_id, old_msgs), daemon=True).start()
+        # DSH 式 token 压力触发：历史 token 超窗口阈值时，把最旧部分转摘要
+        _hist_tokens = _estimate_tokens("\n".join(f"{'用户' if h['role'] == 'user' else '助手'}：{h['content']}"
+                                                   for h in hist))
+        if _hist_tokens > CTX_WINDOW * CTX_THRESHOLD_RATIO and len(hist) > COMPACT_KEEP * 2:
+            _old = hist[: COMPACT_KEEP * 2]
+            del hist[: COMPACT_KEEP * 2]
+            threading.Thread(target=_compact_async,
+                             args=(session_id, _old), daemon=True).start()
+            print(f"[ctx] token 压力 {_hist_tokens} > 阈值 {CTX_WINDOW * CTX_THRESHOLD_RATIO}，"
+                  f"已把最旧 {COMPACT_KEEP} 轮转摘要", flush=True)
         # 拼接窗口：最多保留 MAX_HISTORY_TURNS 轮
         if len(hist) > MAX_HISTORY_TURNS * 2:
             del hist[: len(hist) - MAX_HISTORY_TURNS * 2]
@@ -2048,7 +2089,8 @@ def _summarize_result(user_message: str, tool: str, res, _session_hint: str = ""
 
     raw_lines = [f"工具：{tool}", f"状态：{label}"]
     if res.output:
-        raw_lines.append(f"输出：{res.output}")
+        # DSH 式工具结果剪枝：超长结果保留头+尾，中间省略（dsh toolResultPruner）
+        raw_lines.append(f"输出：{_prune_text(str(res.output))}")
     if res.error:
         raw_lines.append(f"错误：{res.error}")
     if res.verification:
@@ -2285,10 +2327,18 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
     history = _session_history(session_id)
     meta = SESSIONS_META.get(session_id, {}) or {}
     _summary = (meta.get("summary") or "").strip()
-    _recent = "\n".join(
-        f"{'用户' if h['role'] == 'user' else '助手'}：{h['content']}"
-        for h in history
-    )
+    # DSH 式保留策略：从后往前累计 token，保留最近 CTX_RETAIN_RATIO×窗口 预算的原样历史
+    _retain_budget = CTX_WINDOW * CTX_RETAIN_RATIO
+    _recent_parts, _recent_tokens = [], 0
+    for h in reversed(history):
+        _line = f"{'用户' if h['role'] == 'user' else '助手'}：{h['content']}"
+        _line_t = _estimate_tokens(_line)
+        if _recent_tokens + _line_t > _retain_budget and _recent_parts:
+            break
+        _recent_parts.append(_line)
+        _recent_tokens += _line_t
+    _recent_parts.reverse()
+    _recent = "\n".join(_recent_parts)
     hist_block = ""
     if _summary:
         hist_block += f"[早期对话摘要]\n{_summary}\n\n"
@@ -2428,6 +2478,11 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                         "执行后必须把工具返回的具体文件名和大小数值转述给用户，禁止凭记忆回答、禁止只说已成功。")
     sections.append("用户：" + message)
     full = "\n\n".join(sections)
+    # DSH 式压力检测：估算总 token，超阈值时告警（历史已按预算保留，压缩由 _session_append 兜底）
+    _ctx_tokens = _estimate_tokens(full)
+    if _ctx_tokens > CTX_WINDOW * CTX_THRESHOLD_RATIO:
+        print(f"[ctx] 上下文压力 {_ctx_tokens} tokens > 阈值 {CTX_WINDOW * CTX_THRESHOLD_RATIO} "
+              f"(窗口 {CTX_WINDOW})，历史已按 {CTX_RETAIN_RATIO} 预算保留", flush=True)
     if split_role:
         # 拆分：最后一段「用户：xxx」作为 user 消息，其余为 system
         marker = "\n\n用户："
