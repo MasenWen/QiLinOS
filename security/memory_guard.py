@@ -17,6 +17,8 @@ _PII_PATTERNS = [
     (re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}'), '[EMAIL]'),
     # Chinese mobile
     (re.compile(r'(?:\+?86)?1[3-9]\d{9}'), '[PHONE]'),
+    # Bank card (13-19 digits, optional space/dash separators)
+    (re.compile(r'(?<![\d])(?:\d[ -]?){15,18}\d(?![\d])'), '[BANK]'),
     # API keys (common prefixes)
     (re.compile(r'sk-[A-Za-z0-9_-]{20,}'), '[API_KEY]'),
     (re.compile(r'ghp_[A-Za-z0-9]{20,}'), '[API_KEY]'),

@@ -35,6 +35,9 @@ _SENSITIVITY_RULES: tuple[SensitivityRule, ...] = (
     # --- HIGH：身份类 ---
     SensitivityRule(SensitivityLevel.HIGH, re.compile(r"(?:\+?86)?1[3-9]\d{9}"), "phone"),
     SensitivityRule(SensitivityLevel.HIGH, re.compile(r"\d{17}[\dXx]"), "id_card"),
+    # 银行卡（13-19 位，可选空格/连字符分隔；16-19 位主流）
+    # 负向后瞻/前瞻防与身份证（18 位无分隔）误匹配：银行卡允许分隔符，身份证无
+    SensitivityRule(SensitivityLevel.HIGH, re.compile(r"(?<![\d])(?:\d[ -]?){15,18}\d(?![\d])"), "bank_card"),
     # --- MEDIUM：联系方式 ---
     SensitivityRule(SensitivityLevel.MEDIUM, re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "email"),
     # --- LOW：结构异常（控制字符等）---
@@ -48,6 +51,22 @@ _LEVEL_RANK = {
     SensitivityLevel.HIGH: 3,
     SensitivityLevel.CRITICAL: 4,
 }
+
+
+def _luhn_valid(digits: str) -> bool:
+    """Luhn 校验（银行卡号真实性校验）：从左到右，偶数位×2（>9 减 9），总和 %10==0。"""
+    try:
+        total = 0
+        for i, ch in enumerate(reversed(digits)):
+            d = int(ch)
+            if i % 2 == 1:
+                d *= 2
+                if d > 9:
+                    d -= 9
+            total += d
+        return total % 10 == 0
+    except Exception:
+        return False
 
 
 @dataclass
@@ -78,6 +97,11 @@ def classify(content: str) -> SensitivityResult:
     for rule in _SENSITIVITY_RULES:
         m = rule.pattern.search(content)
         if m:
+            # 银行卡 Luhn 校验：18 位连续数字（身份证）不通过则不算银行卡
+            if rule.label == "bank_card":
+                digits = re.sub(r"[ -]", "", m.group(0))
+                if not (13 <= len(digits) <= 19) or not _luhn_valid(digits):
+                    continue
             result.sensitive_types.append(rule.label)
             result.matches.append(m.group(0)[:32])
             if _LEVEL_RANK[rule.level] > _LEVEL_RANK[result.level]:
