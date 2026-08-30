@@ -230,11 +230,11 @@ _mem_lock = threading.Lock()
 _tool_lock = threading.Lock()
 
 # ---------- 会话上下文（内存态，服务重启即清空；长期记忆走 mem0） ----------
-MAX_SESSIONS = 64        # 最多保留的会话数（LRU 淘汰）
-MAX_HISTORY_TURNS = 8    # 每会话最多拼接最近 8 轮（16 条消息）
-MAX_TURN_CHARS = 500     # 单条历史消息截断长度，控制 prompt 体积
-COMPACT_THRESHOLD = 12   # 历史超过 12 轮时触发早期压缩（dsh compaction）
-COMPACT_KEEP = 6         # 压缩时移出的早期轮次数量（保留最近轮做总结上下文）
+MAX_SESSIONS = 128        # 最多保留的会话数（LRU 淘汰）
+MAX_HISTORY_TURNS = 16    # 每会话最多拼接最近 8 轮（16 条消息）
+MAX_TURN_CHARS = 1000     # 单条历史消息截断长度，控制 prompt 体积
+COMPACT_THRESHOLD = 24   # 历史超过 12 轮时触发早期压缩（dsh compaction）
+COMPACT_KEEP = 12         # 压缩时移出的早期轮次数量（保留最近轮做总结上下文）
 SESSIONS: "OrderedDict[str, list]" = OrderedDict()
 SESSIONS_META: dict = {}  # sid -> {"summary": "早期对话摘要", "title": "LLM标题"}
 _sessions_lock = threading.Lock()
@@ -329,7 +329,7 @@ def _compact_async(session_id: str, old_msgs: list):
         if not text.strip():
             return
         prompt = ("把以下对话压缩成一段摘要（保留：关键事实、用户偏好、已执行的操作与结果、"
-                  "明确承诺的事项）。150 字以内，只输出摘要正文：\n\n" + text)
+                  "明确承诺的事项）。300 字以内，只输出摘要正文：\n\n" + text)
         summary = (llm_client.generate(prompt) or "").strip()
         if not summary:
             return
@@ -347,8 +347,8 @@ def _gen_title_async(session_id: str, first_msg: str):
     """异步：LLM 生成会话标题（10 字内）。"""
     try:
         from src import llm_client
-        prompt = ("为下面这段对话的第一条用户消息生成一个简短标题（10 个汉字以内，"
-                  "不要引号，不要标点结尾）：\n" + (first_msg or "")[:60])
+        prompt = ("为下面这段对话的第一条用户消息生成一个简短标题（20 个汉字以内，"
+                  "不要引号，不要标点结尾）：\n" + (first_msg or "")[:120])
         title = (llm_client.generate(prompt) or "").strip()[:20]
         if not title:
             return
@@ -1619,7 +1619,7 @@ def _retrieve_memory_strict(query: str) -> str:
         _engine = _get_memory_engine()
         if _engine is None or not hasattr(_engine, "retrieve"):
             return ""
-        _r = _engine.retrieve(query, {"user_id": "nex_user"}, top_k=5)
+        _r = _engine.retrieve(query, {"user_id": "nex_user"}, top_k=10)
         items = _r.get("items") or []
         seen, lines = set(), []
         for _it in items:
@@ -1659,7 +1659,7 @@ def _retrieve_memory(query: str) -> str:
     # （麒麟 embedding 每次初始化）vs mem0 95-250ms → 回退 mem0 主源（B 方案状态）
     try:
         from src.memory.memory_lifecycle import search_both
-        items = search_both(query, top_k=5)
+        items = search_both(query, top_k=10)
     except Exception as e:
         print(f"[mem] 检索失败: {e}", flush=True)
         return ""
@@ -1863,7 +1863,7 @@ def _remember(messages):
                 from src.memory_engine.knowledge_graph import KnowledgeGraph
                 _kg_path = os.path.expanduser("~/.nex-agent/memory_kg.json")
                 _kg = KnowledgeGraph.load(_kg_path) if os.path.exists(_kg_path) else KnowledgeGraph()
-                _kg.add_node(label="preference", text=_um[:100], strength=0.8)
+                _kg.add_node(label="preference", text=_um[:200], strength=0.8)
                 _kg.save(_kg_path)
         except Exception:
             pass
@@ -2257,7 +2257,7 @@ def _kg_prompt_block(limit: int = 8) -> str:
             print(f"[kg] losers_map 失败: {_le}", flush=True)
         for n in nodes:
             label = n.label or "memory"
-            text = (n.text or "").strip()[:120]
+            text = (n.text or "").strip()[:240]
             if not text or any(k in text for k in _NOISE):
                 continue
             if text in _losers:
@@ -2322,7 +2322,7 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                 _m_lines = []
                 _is_strict = hasattr(_engine, "ingest_observation")
                 if not _is_strict:
-                    _matched = _engine.retrieve_matched(message, top_k=5)
+                    _matched = _engine.retrieve_matched(message, top_k=10)
                     # 匹配块数据源是 mem0（不经四层仲裁）→ 补状态/冲突过滤，
                     # 防 historical/deleted/loser 记忆从匹配通道复活
                     _losers = {}
@@ -2358,28 +2358,28 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                                     continue
                         except Exception:
                             pass
-                        _m_lines.append(f"- [{_p or _c}] {_t[:80]}")
+                        _m_lines.append(f"- [{_p or _c}] {_t[:160]}")
                 if _m_lines:
-                    sections.append("## 结构化匹配（条件-偏好标签）\n" + "\n".join(_m_lines[:3]))
+                    sections.append("## 结构化匹配（条件-偏好标签）\n" + "\n".join(_m_lines[:6]))
         except Exception:
             pass
         # ⑦ 短期活跃记忆（memory_flow 短档：本会话近期沉淀，可直接引用）
         try:
             _flow = _get_flow()
             _short_items = [it.content for it in _flow._short
-                            if getattr(it, "session_id", "") == session_id and it.content][:5]
+                            if getattr(it, "session_id", "") == session_id and it.content][:10]
             if _short_items:
                 sections.append("## 短期活跃记忆（本会话近期沉淀，可直接引用）\n" +
-                                "\n".join(f"- {s[:100]}" for s in _short_items))
+                                "\n".join(f"- {s[:200]}" for s in _short_items))
         except Exception:
             pass
     # 用户偏好（默认 mem0 提取；A 方案 strict 模式从 strict 库 preference 类记忆构建）
     try:
         if _strict_mode():
-            pref_block = _preferences_prompt_block_strict(limit=15)
+            pref_block = _preferences_prompt_block_strict(limit=30)
         else:
             from src.memory.preferences import preferences_prompt_block
-            pref_block = preferences_prompt_block(limit=15)
+            pref_block = preferences_prompt_block(limit=30)
     except Exception:
         pref_block = ""
     # ⑤ 跨会话联动：其他会话的早期摘要若含偏好信号，一并注入（历史知识跨会话可见）
@@ -2391,10 +2391,10 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
                 continue
             _sm = ((_m or {}).get("summary") or "").strip()
             if _sm and is_preference(_sm):
-                _extra.append(_sm[:120])
+                _extra.append(_sm[:240])
         if _extra:
             pref_block = (pref_block + "\n" if pref_block else "") + "\n".join(
-                f"- [历史] {e}" for e in _extra[:5])
+                f"- [历史] {e}" for e in _extra[:10])
     except Exception:
         pass
     if pref_block:
@@ -2474,7 +2474,7 @@ def _save_banner(cfg: dict) -> dict:
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50MB
+MAX_UPLOAD_SIZE = 100 * 1024 * 1024  # 50MB
 # 允许的文件类型（按扩展名白名单）
 ALLOWED_EXT = {
     ".txt", ".md", ".pdf", ".docx", ".xlsx", ".csv", ".json", ".log",
