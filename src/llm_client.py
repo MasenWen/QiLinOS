@@ -68,6 +68,20 @@ def load_config() -> dict:
             cfg["base_url"] = prov.get("base_url") or cfg["base_url"]
             cfg["api_key"] = prov.get("api_key") or cfg["api_key"]
             cfg["model"] = prov.get("model") or cfg["model"]
+    # 安全加固（2026-08-30）：环境变量覆盖 API Key（systemd 注入，key 可不落盘）
+    _env_key = os.getenv("NEX_DEEPSEEK_API_KEY") or ""
+    _env_grok = os.getenv("NEX_GROK_API_KEY") or ""
+    if cfg.get("provider") == "api":
+        if cfg.get("api_choice") == "deepseek" and _env_key:
+            cfg["api_key"] = _env_key
+        if cfg.get("api_choice") == "grok" and _env_grok:
+            cfg["api_key"] = _env_grok
+    # 同时回填 api_providers（回退链用）
+    _provs = cfg.get("api_providers") or {}
+    if _env_key and "deepseek" in _provs:
+        _provs["deepseek"]["api_key"] = _env_key
+    if _env_grok and "grok" in _provs:
+        _provs["grok"]["api_key"] = _env_grok
     return cfg
 
 
@@ -77,6 +91,11 @@ def save_config(cfg: dict) -> None:
         os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
         with open(_CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
+        # 安全加固（2026-08-30）：含 API Key 的配置仅属主可读写
+        try:
+            os.chmod(_CONFIG_PATH, 0o600)
+        except Exception:
+            pass
 
 
 def generate(prompt: str, cfg_override: dict | None = None,
