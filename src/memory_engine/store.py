@@ -501,6 +501,19 @@ class MemoryEngineStore:
                 ),
             )
 
+    def update_memory_slot(self, memory_id: str, new_slot: str) -> None:
+        """更新记忆的槽位（LLM 后台精修用；不改变记忆内容）。"""
+        try:
+            from datetime import datetime as _dt
+            with self._lock, self.connection() as conn:
+                conn.execute(
+                    "UPDATE memories SET slot_key = ?, updated_at = ? WHERE memory_id = ?",
+                    (new_slot, _dt.now().isoformat(timespec="seconds"), memory_id),
+                )
+        except Exception as e:
+            logger.warning("update_memory_slot failed: %s", str(e)[:80])
+
+
     def find_memory(self, user_id: str, slot_key: str, semantic_value: str) -> MemoryRecord | None:
         with self.connection() as connection:
             row = connection.execute(

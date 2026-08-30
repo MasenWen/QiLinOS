@@ -83,6 +83,13 @@ class MemoryEngine:
                 and self._evidence_mode() == "shadow_episode_v1"
             ):
                 self.extract_evidence(episode.episode_id, persist=True)
+        # 后台 LLM 槽位精修（异步，不阻塞；失败保留规则槽位）
+        try:
+            from .slot_llm import schedule_slot_review
+            schedule_slot_review(memory.memory_id, str(memory.semantic_value))
+        except Exception:
+            pass
+
         return {
             "status": "ok",
             "observation_id": observation.observation_id,
@@ -118,6 +125,13 @@ class MemoryEngine:
         extraction = None
         if self._evidence_mode() == "shadow_episode_v1":
             extraction = self.extract_evidence(episode.episode_id, persist=True)
+        # 后台 LLM 槽位精修（异步，不阻塞；失败保留规则槽位）
+        try:
+            from .slot_llm import schedule_slot_review
+            schedule_slot_review(memory.memory_id, str(memory.semantic_value))
+        except Exception:
+            pass
+
         return {
             "status": "ok",
             "episode_id": episode.episode_id,
@@ -189,6 +203,13 @@ class MemoryEngine:
                 "created_at": created_at,
             }
         )
+        # 后台 LLM 槽位精修（异步，不阻塞；失败保留规则槽位）
+        try:
+            from .slot_llm import schedule_slot_review
+            schedule_slot_review(memory.memory_id, str(memory.semantic_value))
+        except Exception:
+            pass
+
         return {
             "status": "ok",
             "mode": "shadow_episode_v1",
@@ -363,6 +384,13 @@ class MemoryEngine:
                     backend_id,
                     updated_at=memory.updated_at,
                 )
+
+        # 后台 LLM 槽位精修（异步，不阻塞；失败保留规则槽位）
+        try:
+            from .slot_llm import schedule_slot_review
+            schedule_slot_review(memory.memory_id, str(memory.semantic_value))
+        except Exception:
+            pass
 
         return {
             "status": "ok",
