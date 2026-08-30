@@ -119,6 +119,10 @@ def generate(prompt: str, cfg_override: dict | None = None,
             for _key, _p in _provs.items():
                 if _key == _choice or not (_p.get("api_key") or ""):
                     continue
+                # 2026-08-31: grok 网络不可达（Errno 101），跳过避免 30s 超时浪费
+                if _key == "grok" and not os.getenv("NEX_ALLOW_GROK"):
+                    print("[llm] 跳过 grok（网络不可达，NEX_ALLOW_GROK 可启用）", flush=True)
+                    continue
                 print(f"[llm] 回退到 {_key}", flush=True)
                 try:
                     _fall = dict(cfg)
@@ -131,6 +135,11 @@ def generate(prompt: str, cfg_override: dict | None = None,
                     print(f"[llm] 回退 {_key} 也失败: {str(e2)[:60]}", flush=True)
             print("[llm] 全部 API 失败，回退麒麟 SDK", flush=True)
     # 默认路径：麒麟 SDK（拼接 system + user）
+    # 2026-08-31: 先探测 AI 运行时 NLP socket，缺失则快速失败（SDK 重连会卡死）
+    import glob as _glob
+    _nlp_socks = _glob.glob("/tmp/.kylin-ai-runtime-unix/*/genai-nlp.sock")
+    if not _nlp_socks:
+        raise RuntimeError("genai-nlp.sock 缺失（AI 运行时 NLP 引擎未激活）")
     if system:
         prompt = system + "\n\n" + prompt
     from src.sdk import ai_text
