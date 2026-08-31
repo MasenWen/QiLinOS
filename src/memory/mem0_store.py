@@ -54,7 +54,7 @@ class Mem0Store:
     def __init__(self):
         cfg = MemoryConfig(**_config_dict)
         # 替换为麒麟后端（绕过 Pydantic 白名单校验）
-        cfg.embedder.provider = "kylin_sdk"
+        cfg.embedder.provider = "local_onnx"  # 本地 ONNX（去 genai 依赖）
         cfg.vector_store.provider = "kylin_vectordb"
         cfg.llm.provider = "kylin_sdk"  # 麒麟千问，零 key
         self._default_user = "nex_user"

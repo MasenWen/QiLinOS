@@ -5,6 +5,11 @@ EmbedderFactory.provider_to_class["kylin_sdk"] = (
     "src.memory.kylin_embedder.KylinEmbedder"
 )
 
+# 本地 ONNX embedding（去 genai 依赖，2026-08-31）
+EmbedderFactory.provider_to_class["local_onnx"] = (
+    "src.memory.onnx_embedder.OnnxEmbedder"
+)
+
 # 新增这一行
 # EmbedderFactory.provider_to_class["gte_zh_onnx"] = (
 #     "src.memory.gte_zh_embedder.GteZhOnnxEmbedder"
