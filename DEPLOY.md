@@ -104,9 +104,12 @@ sudo systemctl enable --now webchat
 | SDK 查询 | "CPU 占用率" / "内存" / "磁盘" | 官方 SDK 数据或 df 兜底 ✅ |
 | 记忆 | "记住我喜欢简洁报告" → 刷新右侧记忆面板 | 出现新记忆 ✅ |
 | OCR | "识别图片 ~/图片/xx.png 的文字" | 返回识别文本 ✅（真实硬件/虚拟机均可） |
+| 知识库 | "把这句话加入知识库：服务器叫 kylin-pc" → "查询知识库：服务器叫什么" | 入库 + 正确回答 ✅（首次 kb 调用初始化约 1-2 分钟） |
 | 真实硬件差异 | "显示器信息" "电池电量" "蓝牙" "触摸板" | 真机有真实数据（虚拟机可能无设备）|
 | 文件 | "在桌面建文件夹放5个md文件" | 5 个文件 ✅ |
 | 危险拦截 | "关机" | 被拦截（power 禁用）✅ |
+
+> **知识库（RAG）说明**：kb 工具默认 provider=kylin（麒麟知识库 SDK，仅桌面会话 D-Bus 可用，SSH 环境自动隐藏）；`provider=lightrag` 显式走内置 LightRAG（Faiss + GTE-base，数据存 `~/.nex-agent/rag_storage/`）。LightRAG 首次调用需下载 spacy en_core_web_sm 模型——`install.sh` 已含自动安装步骤（GitHub 源，失败不阻塞，kb 首次调用会重试）。
 
 ## 六、代码更新体系（推 GitHub 即上线）
 
@@ -128,16 +131,20 @@ bash deploy/update.sh
 
 **② Webhook 全自动**（推送即上线，需公网）
 ```bash
-# 1. 启动监听器（systemd 托管建议）
-WEBHOOK_SECRET=你的密钥 nohup .venv/bin/python deploy/webhook_server.py 9000 &
+# 1. 配置密钥（HMAC 校验用；服务器上已生成于 /etc/webhook.env，600 权限）
+sudo bash -c 'echo "WEBHOOK_SECRET=$(openssl rand -hex 32)" > /etc/webhook.env && chmod 600 /etc/webhook.env'
 
-# 2. GitHub → 仓库 Settings → Webhooks → Add webhook
+# 2. 注册并启动监听器（systemd 托管，deploy/webhook.service 已提供）
+sudo cp deploy/webhook.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now webhook
+
+# 3. GitHub → 仓库 Settings → Webhooks → Add webhook
 #    Payload URL: http://<公网IP>:9000/github-webhook
 #    Content type: application/json
-#    Secret: 你的密钥（HMAC-SHA256 校验）
+#    Secret: /etc/webhook.env 里的 WEBHOOK_SECRET（HMAC-SHA256 校验）
 #    Events: 勾选 Push
 
-# 3. 之后每次 git push dev1 → 服务器自动更新并重启
+# 4. 之后每次 git push dev1 → 服务器自动更新并重启
 #    安全: 签名错误 3 次自动封禁 IP 10 分钟；日志 logs/webhook.log
 ```
 

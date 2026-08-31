@@ -1,0 +1,16 @@
+[Unit]
+Description=GitHub Webhook auto-update for webchat (dev1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kylin
+WorkingDirectory=/home/kylin/work/projects/kylin-mem
+EnvironmentFile=/etc/webhook.env
+ExecStart=/usr/bin/python3 /home/kylin/work/projects/kylin-mem/deploy/webhook_server.py 9000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

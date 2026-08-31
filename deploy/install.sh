@@ -138,6 +138,18 @@ for mirror in "${MIRRORS[@]}"; do
 done
 [ "$install_ok" = "1" ] || { echo "❌ 依赖安装失败"; exit 1; }
 
+# 4b. spacy 英文模型（知识库 LightRAG 的 pipeline 需要，provider=lightrag 时）
+#     清华源没有 spacy 模型，用官方 GitHub release（国内网络慢，失败不阻塞部署）
+echo "--- spacy en_core_web_sm 模型（知识库 LightRAG 可选依赖）---"
+if .venv/bin/python -c "import spacy, sys; spacy.load('en_core_web_sm')" 2>/dev/null; then
+    echo "✅ spacy 模型已存在"
+else
+    .venv/bin/pip install --timeout 120 --retries 2 \
+        "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" \
+        && echo "✅ spacy 模型安装成功" \
+        || echo "⚠️ spacy 模型下载失败（不影响核心功能；kb 工具首次调用会再尝试）"
+fi
+
 # ============================================================
 # 5. 还原记忆数据（--with-data / --all）
 # ============================================================

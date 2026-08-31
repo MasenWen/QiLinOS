@@ -102,19 +102,37 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 | 层 | 位置 | 职责 |
 |---|---|---|
 | 服务层 | `webchat.py`（1218 行） | HTTP 服务、提示词模板、AI 编排、前端 HTML/JS、记忆接线 |
-| 工具层 | `src/toolkit/` | 27 个工具 + 执行器（execute→verify→rollback→retry→fallback） |
+| 工具层 | `src/toolkit/` | 29 个工具 + 执行器（execute→verify→rollback→retry→fallback） |
 | SDK 层 | `src/sdk/` | 麒麟官方 SDK 绑定（16 库）、C 调用子进程隔离、LLM 客户端 |
 | 记忆层 | `src/memory/`、`src/memory_engine/` | mem0 封装、记忆流转、SKILL、遗忘、敏感度 |
 | 安全层 | `src/security/` | 威胁扫描、权限规则、审计 |
 
 ---
 
-## 工具列表（27 个）
+## 工具列表（29 个）
 
-`app` `battery` `bluetooth` `datetime` `directory` `diskinfo` `dns` `file` `music` `netstatus` `notify` `power` `power_idle` `power_plan` `process_kill` `process_list` `proxy` `screensaver` `screenshot` `shell` `sleep` `sysinfo` `timezone` `touchpad` `volume` `wallpaper` `wifi`
+`app` `battery` `bluetooth` `datetime` `directory` `diskinfo` `dns` `file` `kb` `music` `netstatus` `notify` `ocr` `power` `power_idle` `power_plan` `process_kill` `process_list` `proxy` `screensaver` `screenshot` `shell` `sleep` `sysinfo` `timezone` `touchpad` `volume` `wallpaper` `wifi`
 
 - `sysinfo` 支持：cpu / memory / load / disk / network / basic / hostname / uptime / arch / display(EDID) / temp / netspeed
 - `shell` 受限管道：命令白名单（ls/du/df/top/cat/find 等）+ 参数级校验（禁止 `;`、`&`、`>`、`<` 及 find 的 `-exec/-delete`）
+- `ocr`：麒麟 AI SDK 文字识别（`src/sdk/ai_vision.py`），支持图片路径识别
+- `kb`：知识库 RAG——默认 provider=kylin（麒麟知识库 SDK，桌面会话下可用）；远程/无桌面环境自动隐藏；显式 `provider=lightrag` 走内置 LightRAG（见「知识库」节）
+
+---
+
+## 知识库（RAG）
+
+网页对话即可使用（无需额外配置）：
+
+- "**把这段话加入知识库：…**" — 文本入库
+- "**把 ~/文档/手册.txt 加入知识库**" — 文件入库（insert 支持文本/文件）
+- "**查询知识库：…**" — 知识库问答（混合检索：图+向量）
+
+实现：`src/rag_ps.py`（LightRAG 1.5.x + Faiss 本地向量存储 + 麒麟 GTE-base 嵌入）+ `src/toolkit/kb_tools.py`（kb 工具，第 29 个）。
+
+- 数据存 `~/.nex-agent/rag_storage/`；**首次 kb 调用会初始化 LightRAG + spacy 模型（约 1-2 分钟），之后快**
+- 麒麟桌面环境（有 D-Bus 知识库服务 `kylin-ai-knowledge-base-service`）下 kb 默认走麒麟知识库 SDK（`src/rag_kykb.py`，com.kylin.AiBusiness.Knowledgebase）；SSH 等无桌面会话环境自动隐藏 kb 工具
+- `install.sh` 会尝试安装 spacy en_core_web_sm（LightRAG pipeline 依赖，GitHub 源，失败不阻塞部署）
 
 ---
 
