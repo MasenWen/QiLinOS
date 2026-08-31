@@ -52,9 +52,16 @@ class KylinKnowledgeBase:
             import gi  # noqa: F401
         except ImportError:
             import sys as _sys
+            _venv_sp = [p for p in _sys.path if "site-packages" in p and "/.venv/" in p]
             for _p in ("/usr/lib/python3/dist-packages", "/usr/lib/python3.12/dist-packages"):
                 if _p not in _sys.path and __import__("os").path.isdir(_p):
                     _sys.path.insert(0, _p)
+            # 修复(2026-09-01): dist-packages 注入后必须让 venv site-packages 重新优先，
+            # 否则系统 onnxruntime 1.20.1 污染 venv 1.29（numpy 2.5 不兼容 _ARRAY_API not found）
+            for _sp in _venv_sp:
+                if _sp in _sys.path:
+                    _sys.path.remove(_sp)
+                    _sys.path.insert(0, _sp)
         try:
             import gi
             gi.require_version("Gio", "2.0")

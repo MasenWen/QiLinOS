@@ -2853,8 +2853,9 @@ class Handler(BaseHTTPRequestHandler):
             ).start()
         except Exception:
             pass
-        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-        self._send(code, body, "application/json; charset=utf-8")
+        # 2026-09-01 修复: SSE 流已由 _emit(done) + [DONE] 结束，此处遗留的 obj 引用
+        # 是死代码（obj 未定义 → NameError 刷日志），删除
+        return
 
     def do_GET(self):
         # P0 加固：GET /api/* 同样需要 token（否则记忆等敏感数据可被匿名读取）
