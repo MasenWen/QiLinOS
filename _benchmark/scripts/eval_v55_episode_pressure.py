@@ -216,7 +216,8 @@ def rank_pool(
     seed: int,
     group_id: str,
     rank_limit: int,
-) -> tuple[list[dict[str, Any]], float]:
+    required_unit_ids: tuple[str, ...],
+) -> tuple[list[dict[str, Any]], float, float | None]:
     started = time.perf_counter()
     documents = {memory_id: atomic_items[memory_id]["text"] for memory_id in pool_ids}
     atomic_scores = _bm25(query, documents, k1=1.5, b=0.75)
@@ -231,25 +232,38 @@ def rank_pool(
     # Late aggregation preserves short-event lexical evidence, then exposes one
     # coherent Episode memory for each source task.
     ranking: list[dict[str, Any]] = []
+    ranked_unit_ids: list[str] = []
     seen_units: set[str] = set()
     for memory_id in ranked_atomic:
         unit_id = atomic_to_unit[memory_id]
         if unit_id in seen_units:
             continue
         seen_units.add(unit_id)
-        ranking.append(
-            {
-                "unit_id": unit_id,
-                "score": float(atomic_scores[memory_id]),
-                "matched_source_id": memory_id,
-                "text": units[unit_id].text,
-                "source_ids": list(units[unit_id].source_ids),
-            }
-        )
-        if len(ranking) >= rank_limit:
-            break
+        ranked_unit_ids.append(unit_id)
+        if len(ranking) < rank_limit:
+            ranking.append(
+                {
+                    "unit_id": unit_id,
+                    "score": float(atomic_scores[memory_id]),
+                    "matched_source_id": memory_id,
+                    "text": units[unit_id].text,
+                    "source_ids": list(units[unit_id].source_ids),
+                }
+            )
+    required = set(required_unit_ids)
+    relevant_positions = [
+        index for index, unit_id in enumerate(ranked_unit_ids) if unit_id in required
+    ]
+    nonrelevant_count = len(ranked_unit_ids) - len(relevant_positions)
+    pairwise_precision: float | None = None
+    if relevant_positions and nonrelevant_count > 0:
+        wins = 0
+        for position in relevant_positions:
+            relevant_after = sum(other > position for other in relevant_positions)
+            wins += len(ranked_unit_ids) - position - 1 - relevant_after
+        pairwise_precision = wins / (len(relevant_positions) * nonrelevant_count)
     latency_ms = (time.perf_counter() - started) * 1_000
-    return ranking, latency_ms
+    return ranking, latency_ms, pairwise_precision
 
 
 def select(ranking: list[dict[str, Any]], policy: Policy) -> list[dict[str, Any]]:
@@ -291,6 +305,7 @@ def evaluate(records: list[dict[str, Any]], policy: Policy) -> dict[str, Any]:
     answer = [(record, metric) for record, metric in evaluated if record["required_unit_ids"]]
     empty = [(record, metric) for record, metric in evaluated if not record["required_unit_ids"]]
     returned = sum(metric["returned"] for _, metric in answer)
+    all_returned = sum(metric["returned"] for _, metric in evaluated)
     true_positive = sum(metric["true_positive"] for _, metric in answer)
     raw_hit = mean(
         [
@@ -309,8 +324,16 @@ def evaluate(records: list[dict[str, Any]], policy: Policy) -> dict[str, Any]:
         "answer_query_count": len(answer),
         "empty_query_count": len(empty),
         "raw_hit_at_5": raw_hit,
+        "pairwise_precision": mean(
+            [
+                record["pairwise_precision"]
+                for record, _ in answer
+                if record["pairwise_precision"] is not None
+            ]
+        ),
         "hit": mean([metric["hit"] for _, metric in answer]),
         "required_density": true_positive / returned if returned else 0.0,
+        "label_precision": true_positive / all_returned if all_returned else 0.0,
         "unit_recall": mean([metric["unit_recall"] for _, metric in answer]),
         "evidence_recall": mean(
             [metric["evidence_recall"] for _, metric in answer]
@@ -319,6 +342,9 @@ def evaluate(records: list[dict[str, Any]], policy: Policy) -> dict[str, Any]:
             [float(metric["returned"] > 0) for _, metric in answer]
         ),
         "average_returned": mean([float(metric["returned"]) for _, metric in answer]),
+        "all_query_return_rate": mean(
+            [float(metric["returned"] > 0) for _, metric in evaluated]
+        ),
         "empty_abstention": mean(
             [float(metric["abstained"]) for _, metric in empty]
         ),
@@ -342,6 +368,54 @@ def quantile_values(values: list[float]) -> list[float]:
         candidates.add(round(ordered[position], 8))
     candidates.add(round(ordered[-1], 8))
     return sorted(candidates)
+
+
+def evaluate_direct_return(
+    records: list[dict[str, Any]], min_score: float
+) -> dict[str, float]:
+    accepted = [
+        record
+        for record in records
+        if record["ranking"] and record["ranking"][0]["score"] >= min_score
+    ]
+    true_positive = sum(
+        int(record["ranking"][0]["unit_id"] in set(record["required_unit_ids"]))
+        for record in accepted
+    )
+    answer = [record for record in records if record["required_unit_ids"]]
+    return {
+        "precision": true_positive / len(accepted) if accepted else 0.0,
+        "direct_return_rate": len(accepted) / len(records) if records else 0.0,
+        "answer_return_rate": (
+            sum(record in accepted for record in answer) / len(answer)
+            if answer
+            else 0.0
+        ),
+    }
+
+
+def choose_direct_return_threshold(
+    pressure_one_calibration: list[dict[str, Any]], target_precision: float
+) -> tuple[float, dict[str, float]]:
+    thresholds = quantile_values(
+        [
+            record["ranking"][0]["score"]
+            for record in pressure_one_calibration
+            if record["ranking"]
+        ]
+    )
+    candidates = []
+    for threshold in thresholds:
+        result = evaluate_direct_return(pressure_one_calibration, threshold)
+        feasible = float(result["precision"] >= target_precision)
+        key = (
+            feasible,
+            result["direct_return_rate"] if feasible else result["precision"],
+            result["precision"],
+        )
+        candidates.append((key, threshold, result))
+    _, threshold, result = max(candidates, key=lambda item: item[0])
+    return threshold, result
 
 
 def choose_policy(
@@ -460,7 +534,30 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- 固定策略：min_score={policy['min_score']:.6f}, relative_cutoff={policy['relative_cutoff']:.2f}, max_return={policy['max_return']}",
         "- 检索方式：原子事件 BM25 排序，再按来源 Episode 后聚合；返回不超过 5 条 Episode 文本。",
         "",
+        "## 三项核心指标",
+        "",
+        "| 压力 | Hit@5 | Precision | 平均时间 |",
+        "|---|---:|---:|---:|",
     ]
+    for level in report["core_levels"]:
+        lines.append(
+            f"| {level['label']} | {level['hit_at_5']:.2%} | "
+            f"{level['precision']:.2%} | {level['mean_latency_ms']:.1f}ms |"
+        )
+    lines.extend(
+        [
+            "",
+            "Precision 指通过固定高置信门槛直接返的 Top-1 Episode 中，"
+            "required 答案所占的比例。门槛只在 Pressure 1 校准组选择，后续压力档固定不变。",
+            "四档高置信直返率分别为 "
+            + "、".join(
+                f"{level['direct_return_rate']:.2%}"
+                for level in report["core_levels"]
+            )
+            + "；未直返查询应进入后续 Embedding/混合检索。",
+            "",
+        ]
+    )
     lines.extend(render_table("留出评测结果", report["evaluation_levels"]))
     lines.extend(["", *render_table("全量描述结果", report["all_levels"])])
     lines.extend(
@@ -468,16 +565,15 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "## 验收展示",
             "",
-            "| 压力 | Hit>=85% | Required density>=85% |",
+            "| 压力 | Hit>=85% | Precision>=85% |",
             "|---|---:|---:|",
         ]
     )
-    for level in report["evaluation_levels"][:2]:
-        metric = level["metrics"]
+    for level in report["core_levels"][:2]:
         lines.append(
-            f"| {level['label']} | {'是' if metric['hit'] >= 0.85 else '否'} "
-            f"({metric['hit']:.2%}) | {'是' if metric['required_density'] >= 0.85 else '否'} "
-            f"({metric['required_density']:.2%}) |"
+            f"| {level['label']} | {'是' if level['hit_at_5'] >= 0.85 else '否'} "
+            f"({level['hit_at_5']:.2%}) | {'是' if level['precision'] >= 0.85 else '否'} "
+            f"({level['precision']:.2%}) |"
         )
     lines.extend(
         [
@@ -487,7 +583,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "- Raw Hit@5：不设门槛时，前 5 条是否至少包含一个正确 Episode。",
             "- Final Hit：固定门槛和返回上限后，是否至少返回一个正确 Episode。",
             "- Required density：返回 Episode 中命中 required 标注的比例，不会强制补满。",
-            "- 5.5 没有穷举全部可相关记忆，因此 Required density 是保守下界，不等同于真实 Precision。",
+            "- Precision：全部查询实际返回项中，required Episode 所占的比例；无 required 查询的返回也计入分母。",
             "- Unit Recall：返回的正确 Episode 占全部 gold Episode 的比例。",
             "- Evidence Recall：返回 Episode 的来源 ID 覆盖全部 required 原子证据的比例。",
             "- 空查询拒答：无 required 的查询是否返回空集合。",
@@ -535,7 +631,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             group_id=group["group_id"],
         )
         for level_index, pool_ids in enumerate(pools):
-            ranking, latency_ms = rank_pool(
+            ranking, latency_ms, pairwise_precision = rank_pool(
                 query=group["query"],
                 pool_ids=pool_ids,
                 atomic_items=atomic_items,
@@ -544,6 +640,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 seed=args.seed,
                 group_id=group["group_id"],
                 rank_limit=max(20, args.max_return),
+                required_unit_ids=group["required_unit_ids"],
             )
             records_by_level[level_index].append(
                 {
@@ -552,6 +649,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "required_atomic_ids": list(group["required_atomic_ids"]),
                     "required_unit_ids": list(group["required_unit_ids"]),
                     "latency_ms": latency_ms,
+                    "pairwise_precision": pairwise_precision,
                     "ranking": ranking,
                 }
             )
@@ -571,6 +669,34 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         target_abstention=args.target_abstention,
     )
     print(f"Frozen policy: {policy.as_dict()}", flush=True)
+
+    pressure_one_calibration = [
+        record
+        for record in records_by_level[0]
+        if record["group_id"] in calibration_ids
+    ]
+    direct_threshold, direct_calibration = choose_direct_return_threshold(
+        pressure_one_calibration, args.target_precision
+    )
+    core_levels: list[dict[str, Any]] = []
+    for level_index, records in enumerate(records_by_level):
+        evaluation_level = [
+            record for record in records if record["group_id"] in evaluation_ids
+        ]
+        retrieval_evaluation = evaluate(evaluation_level, policy)
+        direct_evaluation = evaluate_direct_return(
+            evaluation_level, direct_threshold
+        )
+        core_levels.append(
+            {
+                "label": f"Pressure {level_index + 1}",
+                "pool_size": args.levels[level_index],
+                "hit_at_5": retrieval_evaluation["raw_hit_at_5"],
+                "precision": direct_evaluation["precision"],
+                "mean_latency_ms": retrieval_evaluation["latency_ms"]["mean"],
+                "direct_return_rate": direct_evaluation["direct_return_rate"],
+            }
+        )
 
     def build_levels(allowed_ids: set[str]) -> list[dict[str, Any]]:
         filtered_levels = [
@@ -617,6 +743,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "empty_abstention": args.target_abstention,
         },
         "policy": policy.as_dict(),
+        "core_levels": core_levels,
+        "direct_return_policy": {
+            "min_score": direct_threshold,
+            "calibration": direct_calibration,
+        },
         "calibration_metrics_pressure_1_and_2": calibration_metrics,
         "evaluation_levels": build_levels(evaluation_ids),
         "all_levels": build_levels({group["group_id"] for group in groups}),

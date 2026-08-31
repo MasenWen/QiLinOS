@@ -1,5 +1,11 @@
 """
 Mem0 VectorStoreBase 适配器 — 后端使用麒麟向量数据库 (Milvus-Lite 嵌入式)
+
+2026-08-31 性能修复：
+- schema 增加标量 user_id 字段（VARCHAR）：mem0 的 user_id 过滤此前走 JSON metadata
+  filter，Milvus-Lite 对 JSON 字段过滤退化为全表扫描（4 万条时检索 2.5s）；
+  改为标量字段过滤后实测 49ms（HNSW 生效）。
+- 旧库（无标量 user_id 字段）自动回退 JSON filter，保证兼容。
 """
 import logging
 import os
@@ -28,6 +34,7 @@ class KylinMem0Adapter(VectorStoreBase):
         self.collection_name = collection_name
         self.embedding_model_dims = embedding_model_dims
         self.client = MilvusClient(uri=db_path, timeout=30)
+        self._scalar_uid = None  # None=未探测, True/False
         self.create_col(collection_name, embedding_model_dims)
 
     # ---- 集合 ----
@@ -35,14 +42,14 @@ class KylinMem0Adapter(VectorStoreBase):
         if self.client.has_collection(name):
             self.client.load_collection(name)
             return
-        # 使用完整 schema 定义，确保 metadata 字段可过滤
-        from pymilvus import CollectionSchema, FieldSchema
         schema = CollectionSchema(
             fields=[
                 FieldSchema(name="id", dtype=DataType.VARCHAR,
                            max_length=512, is_primary=True),
                 FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR,
                            dim=vector_size),
+                FieldSchema(name="user_id", dtype=DataType.VARCHAR,
+                           max_length=256),
                 FieldSchema(name="metadata", dtype=DataType.JSON),
                 FieldSchema(name="text", dtype=DataType.VARCHAR,
                            max_length=65535),
@@ -56,11 +63,24 @@ class KylinMem0Adapter(VectorStoreBase):
             index_type="HNSW",          # 2026-08-31: 启用 HNSW 索引，避免 FLAT 全量扫描
             index_param={"M": 16, "efConstruction": 200},
         )
-        logger.info("创建 Mem0 集合: %s (dim=%d, HNSW)", name, vector_size)
+        logger.info("创建 Mem0 集合: %s (dim=%d, HNSW, 标量user_id)", name, vector_size)
+
+    def _has_scalar_uid(self) -> bool:
+        """探测集合是否有标量 user_id 字段（旧库无则回退 JSON filter）"""
+        if self._scalar_uid is not None:
+            return self._scalar_uid
+        try:
+            info = self.client.describe_collection(self.collection_name)
+            fields = {f["name"] for f in info.get("fields", [])}
+            self._scalar_uid = "user_id" in fields
+        except Exception:
+            self._scalar_uid = False
+        return self._scalar_uid
 
     # ---- 写入 ----
     def insert(self, vectors, payloads=None, ids=None):
         data = []
+        use_scalar = self._has_scalar_uid()
         for i, vec in enumerate(vectors):
             row = {"vector": vec}
             if ids and i < len(ids):
@@ -68,6 +88,8 @@ class KylinMem0Adapter(VectorStoreBase):
             if payloads and i < len(payloads):
                 row["metadata"] = payloads[i]
                 row["text"] = payloads[i].get("data", "")
+                if use_scalar and payloads[i].get("user_id"):
+                    row["user_id"] = str(payloads[i]["user_id"])
             data.append(row)
 
         self.client.insert(collection_name=self.collection_name, data=data)
@@ -108,6 +130,8 @@ class KylinMem0Adapter(VectorStoreBase):
         data = {"id": str(vector_id), "vector": vector, "metadata": payload or {}}
         if payload and payload.get("data"):
             data["text"] = payload["data"]
+        if payload and payload.get("user_id") and self._has_scalar_uid():
+            data["user_id"] = str(payload["user_id"])
         self.client.upsert(collection_name=self.collection_name, data=[data])
 
     # ---- 查询 ----
@@ -152,8 +176,11 @@ class KylinMem0Adapter(VectorStoreBase):
         if not filters:
             return None
         parts = []
+        use_scalar = self._has_scalar_uid()
         for k, v in filters.items():
-            if isinstance(v, str):
+            if use_scalar and k == "user_id":
+                parts.append(f'(user_id == "{v}")')
+            elif isinstance(v, str):
                 parts.append(f'(metadata["{k}"] == "{v}")')
             else:
                 parts.append(f'(metadata["{k}"] == {v})')
