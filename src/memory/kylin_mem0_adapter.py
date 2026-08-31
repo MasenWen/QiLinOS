@@ -53,8 +53,10 @@ class KylinMem0Adapter(VectorStoreBase):
             collection_name=name,
             schema=schema,
             metric_type="COSINE",
+            index_type="HNSW",          # 2026-08-31: 启用 HNSW 索引，避免 FLAT 全量扫描
+            index_param={"M": 16, "efConstruction": 200},
         )
-        logger.info("创建 Mem0 集合: %s (dim=%d)", name, vector_size)
+        logger.info("创建 Mem0 集合: %s (dim=%d, HNSW)", name, vector_size)
 
     # ---- 写入 ----
     def insert(self, vectors, payloads=None, ids=None):
