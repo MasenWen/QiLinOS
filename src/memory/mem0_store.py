@@ -76,17 +76,27 @@ class Mem0Store:
         
         self._default_user = "nex_user"
 
-    def search(self, query: str, user_id: str = None, top_k: int = 5):
+    def search(self, query: str, user_id: str = None, top_k: int = 5,
+               use_object_boost: bool = True):
+        """记忆检索。
+
+        use_object_boost=True（默认）时启用对象名精确匹配融合（报告 24）：
+        query 中的文件名/业务对象名精确命中记忆文本 → 置顶；向量结果补足。
+        去重/相似度检查等内部调用应传 False（保持纯向量排序）。
+        """
         if self._memory is None:
             return []
+        uid = user_id or self._default_user
         try:
             result = self._memory.search(
                 query,
-                filters={"user_id": user_id or self._default_user},
+                filters={"user_id": uid},
                 limit=top_k,
                 threshold=0.5,
             )
             items = result.get("results", []) if isinstance(result, dict) else []
+            if use_object_boost and items:
+                items = self._object_boost(query, uid, items, top_k)
             print(f"[Mem0] search '{query[:20]}' → {len(items)} 条")
             for it in items:
                 print(f"  [{it.get('score', 0):.4f}] {it.get('memory', '')[:50]}")
@@ -94,6 +104,56 @@ class Mem0Store:
         except Exception as e:
             print(f"[Mem0] search 失败: {e}")
             return []
+
+    def _object_boost(self, query: str, uid: str, items: list, top_k: int) -> list:
+        """对象名精确匹配融合：命中记忆置顶（按强度），向量结果补足。"""
+        try:
+            from src.memory.object_matcher import ObjectIndex
+            vs = self._memory.vector_store
+            idx = ObjectIndex.get(vs, uid)
+            hits = idx.match(query, top_n=50)
+            if not hits:
+                return items
+            hit_ids = {mid for mid, _ in hits}
+            hit_strength = dict(hits)
+            # 对象名命中记忆置顶（按强度降序），已在向量结果中的保留原记录，
+            # 未在向量结果中的需要补记录（用索引文本）
+            boosted = []
+            seen = set()
+            # 对象名命中的记忆：优先取向量结果里的记录（带 score），其余用索引文本补
+            vec_by_id = {}
+            for it in items:
+                md = it.get("metadata") or {}
+                mid = md.get("src_memory_id") or it.get("id", "")
+                if mid:
+                    vec_by_id[mid] = it
+            for mid, _ in hits:
+                if mid in seen:
+                    continue
+                seen.add(mid)
+                it = vec_by_id.get(mid)
+                if it is None:
+                    txt = idx.texts.get(mid, "")
+                    if not txt:
+                        continue
+                    it = {"id": mid, "memory": txt, "score": 0.99,
+                          "metadata": {"src_memory_id": mid}, "_object_boost": True}
+                else:
+                    it = dict(it)
+                    it["_object_boost"] = True
+                boosted.append(it)
+            # 向量结果补足（未命中的按原分数）
+            for it in items:
+                md = it.get("metadata") or {}
+                mid = md.get("src_memory_id") or it.get("id", "")
+                if mid in seen:
+                    continue
+                seen.add(mid)
+                boosted.append(it)
+            return boosted[:top_k]
+        except Exception as e:
+            print(f"[Mem0] object_boost 失败: {e}")
+            return items
 
     def list_all(self, user_id: str = None, top_k: int = 100) -> list:
         """列出全部记忆（用于记忆面板）。"""
