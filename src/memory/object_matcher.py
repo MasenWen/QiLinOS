@@ -1,45 +1,61 @@
 # -*- coding: utf-8 -*-
 """
-对象名精确匹配通道（报告 24 优化落地）
+对象名精确匹配通道（报告 24/25 优化落地）
 =====================================
-背景：1 万条记忆库中纯向量检索 R@20=0.053；对象名精确匹配通道 R@20=0.232（+338%）。
-原理：query 中的文件名/业务对象名（"客户周报.docx"、"付款申请"）精确出现在
+背景：1 万条记忆库中纯向量检索 R@20=0.053；对象名精确匹配通道 R@20=0.204-0.232。
+原理：query 中的文件名/业务对象名（如 客户周报.docx、付款申请）精确出现在
       Gold 记忆文本中，而向量相似度捕获不了这种字符串关联。
-
-本模块提供：
-  - extract_objs(query)      : 从 query 提取对象名
-  - ObjectIndex              : 记忆文本索引（懒构建 + 增量），支持对象名匹配
-
-用法（mem0_store.search 集成）：
-  idx = ObjectIndex.get(vs, user_id)      # 懒加载该用户记忆文本
-  hits = idx.match(query)                  # [(mid, strength), ...] 按强度降序
 """
 import re
 import logging
 
 logger = logging.getLogger(__name__)
 
-# 对象名提取：文件名（.docx/.xlsx/.pptx/.md/.txt/.csv 等）+ 高频业务对象名
+# 对象名提取：
+# 1) 文件名：中文/英文/数字 + 扩展名（要求前面不是字母数字，避免动词带入）
+# 2) 高频业务对象名
+# 注意：不能用 raw string 写 \u4e00（raw 中不转义），用普通字符串拼接
 OBJ_RE = re.compile(
-    r"([一-鿿A-Za-z0-9_（）()-]{2,20}\."
-    r"(?:docx|xlsx|pptx|md|txt|csv|pdf|xls|ppt)|"
-    r"付款申请|差旅许可|报销|行动项|例会|收件箱|合同|审批|"
-    r"客户周报|经营月报|工作总结|出差安排|学习计划|设计评审|"
-    r"年度合同|本周行动项|个人汇报|部门例会|邮件收件箱)"
+    "(?<![A-Za-z0-9\u4e00-\u9fff])[A-Za-z0-9\u4e00-\u9fff_（）()\-]{2,20}\\."
+    "(?:docx|xlsx|pptx|md|txt|csv|pdf|xls|ppt)"
+    "|"
+    "付款申请|差旅许可|报销|行动项|例会|收件箱|合同|审批"
+    "|"
+    "客户周报|经营月报|工作总结|出差安排|学习计划|设计评审"
+    "|"
+    "年度合同|本周行动项|个人汇报|部门例会|邮件收件箱"
 )
 
 
+# 文件名前的常见动词（提取后清洗，避免"处理经营月报.xlsx"与记忆中的"经营月报.xlsx"失配）
+_VERB_PREFIXES = [
+    "处理", "整理", "继续", "准备", "查看", "修改", "检查", "跟进",
+    "接着", "编写", "完成", "打开", "关闭", "保存", "删除", "更新",
+    "上传", "下载", "创建", "编辑", "生成", "汇报", "安排", "完成好",
+    "把", "先", "做", "写", "弄", "看", "查",
+]
+
+
 def extract_objs(query: str) -> set:
-    """从 query 提取对象名集合。"""
+    """从 query 提取对象名集合（清洗动词前缀）。"""
     if not query:
         return set()
-    return set(OBJ_RE.findall(query))
+    objs = set()
+    for o in OBJ_RE.findall(query):
+        if "." in o:  # 文件名：剥离动词前缀
+            for v in _VERB_PREFIXES:
+                if o.startswith(v):
+                    o = o[len(v):]
+                    break
+        if o:
+            objs.add(o)
+    return objs
 
 
 class ObjectIndex:
     """对象名 → 记忆 的文本索引（每用户懒构建，增量维护）。"""
 
-    _instances = {}  # (db_path, user_id) -> ObjectIndex
+    _instances = {}  # (vs_id, user_id) -> ObjectIndex
 
     def __init__(self, vs, user_id: str):
         self.vs = vs
