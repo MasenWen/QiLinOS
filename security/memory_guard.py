@@ -17,6 +17,8 @@ _PII_PATTERNS = [
     (re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}'), '[EMAIL]'),
     # Chinese mobile
     (re.compile(r'(?:\+?86)?1[3-9]\d{9}'), '[PHONE]'),
+    # 身份证号（18 位，无分隔符；置于银行卡之前避免被 13-19 位数字规则吞成 [BANK]）
+    (re.compile(r'(?<![\d])\d{17}[\dXx](?![\d])'), '[ID]'),
     # Bank card (13-19 digits, optional space/dash separators)
     (re.compile(r'(?<![\d])(?:\d[ -]?){15,18}\d(?![\d])'), '[BANK]'),
     # API keys (common prefixes)
