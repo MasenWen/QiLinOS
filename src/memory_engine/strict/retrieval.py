@@ -17,6 +17,7 @@ from .contracts import (
     EvidenceAdmission,
 )
 from .rendering import render_memory
+from .sparse_projection import SparseProjectionIndex, SparseProjectionSettings, text_features
 
 
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]")
@@ -162,6 +163,20 @@ class StructuredBM25Retriever:
         self.semantic_weight = float(config["kylin_semantic_weight"])
         self.candidate_limit = int(config["candidate_limit"])
         self.activation = activation
+        self.sparse_projection_enabled = bool(
+            config.get("sparse_projection_enabled", False)
+        )
+        self.sparse_projection = SparseProjectionIndex(
+            SparseProjectionSettings(
+                bucket_count=int(config.get("sparse_projection_buckets", 128)),
+                repeats=int(config.get("sparse_projection_repeats", 3)),
+                seed=int(config.get("sparse_projection_seed", 17)),
+                candidate_k=int(
+                    config.get("sparse_projection_candidate_k", 50)
+                ),
+                oversample=int(config.get("sparse_projection_oversample", 4)),
+            )
+        )
 
     def retrieve(
         self,
@@ -174,6 +189,50 @@ class StructuredBM25Retriever:
         semantic_scorer: Any | None = None,
     ) -> dict[str, Any]:
         candidates, hard_filter_trace = _hard_filter(memories, context)
+        sparse_trace = {
+            "enabled": self.sparse_projection_enabled,
+            "used": False,
+            "candidate_count": len(candidates),
+        }
+        if self.sparse_projection_enabled and candidates:
+            for memory in candidates:
+                self.sparse_projection.upsert(
+                    memory.memory_id,
+                    text_features(render_memory(memory)),
+                )
+            sparse_candidates = self.sparse_projection.search(
+                text_features(
+                    " ".join(
+                        (
+                            context.query_text,
+                            context.memory_need,
+                            context.task,
+                            context.goal,
+                        )
+                    )
+                ),
+                top_k=min(
+                    self.sparse_projection.settings.candidate_k,
+                    len(candidates),
+                ),
+            )
+            candidate_by_id = {item.memory_id: item for item in candidates}
+            reduced = [
+                candidate_by_id[memory_id]
+                for memory_id, _score in sparse_candidates
+                if memory_id in candidate_by_id
+            ]
+            if reduced:
+                candidates = reduced
+                sparse_trace.update(
+                    {
+                        "used": True,
+                        "candidate_count": len(candidates),
+                        "candidate_ids": [
+                            memory_id for memory_id, _score in sparse_candidates
+                        ],
+                    }
+                )
         semantic_backend = "provided_scores"
         if kylin_semantic_scores is None and semantic_scorer is not None:
             kylin_semantic_scores = semantic_scorer.score(
@@ -299,6 +358,7 @@ class StructuredBM25Retriever:
                 "module_id": self.module_id,
                 "activation_module_id": self.activation.module_id,
                 "hard_filter": hard_filter_trace,
+                "sparse_projection": sparse_trace,
                 "conflict_decisions": {
                     key: value
                     for key, value in conflict_decisions.items()
