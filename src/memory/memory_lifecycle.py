@@ -356,6 +356,23 @@ _MEMORY_REVIEW_PROMPT = (
     "2. 用户的长期偏好/习惯/品味（如喜欢喝咖啡、习惯早上工作）\n"
     "3. 用户明确表达的工作模式或行为风格（如偏好简洁回复）\n"
     "4. 用户主动分享的知识或技能（如我会Python）\n\n"
+    "【稳定偏好结构化（重要）】\n"
+    "若用户表达的是「今后同类任务如何做」的稳定偏好/工作规则"
+    "（含 以后/每次/都按…来/今后/我的习惯/别/不要/一律/默认 等长期信号；"
+    "仅针对当前这一次任务的一次性指令不算），必须输出 PREF 行，格式：\n"
+    "PREF:<dimension>:<value>:<scope>:<一句话原文>\n"
+    "dimension 只能取：workflow_order(工作流顺序)/storage_policy(存储策略)/"
+    "edit_policy(编辑策略)/blank_policy(空白处理)/destructive_policy(删除策略)/"
+    "detail_policy(回复详细度)/external_policy(外发策略)/format_policy(格式)\n"
+    "value 用规范枚举或最贴近的近义短语：\n"
+    "workflow_order=verify_state_then_resume_reversible_step(先核对状态再续可逆步骤)；"
+    "storage_policy=new_copy(另存新副本)/overwrite_original；"
+    "edit_policy=preview_before_edit(编辑前预览)；"
+    "blank_policy=preserve_unknown(空白保留不补齐)；"
+    "destructive_policy=confirm_before_delete(删除前确认)；"
+    "detail_policy=concise(简洁)/one_sentence；"
+    "external_policy=confirm_before_send(外发前确认)；format_policy=bullet_points\n"
+    "scope 为适用范围（同类任务/指定文件/所有外发等）。无稳定偏好则不输出 PREF 行。\n\n"
     "必须排除以下（不要保存）：\n"
     "- 瞬时情绪或状态\n- 单次事件的叙述\n- 临时计划或待办事项\n"
     "- 带具体日期或时间的事实\n- 系统推荐、猜测、提醒内容\n"
@@ -363,8 +380,8 @@ _MEMORY_REVIEW_PROMPT = (
     "- 别人的推荐内容\n\n"
     "输出格式：\n"
     "如果没有需要保存的内容，只输出一行：NOTHING_TO_SAVE\n"
-    "如果需要保存，每条一行，格式为：SAVE: <记忆内容>\n"
-    "每条记忆用中文，简短精炼（30字以内）。最多输出5条。\n\n"
+    "如果需要保存，每条一行：稳定偏好用 PREF:<dimension>:<value>:<scope>:<原文>，"
+    "其他用 SAVE: <记忆内容>（中文简短精炼，30字以内）。最多输出5条。\n\n"
     "对话内容：\n"
 )
 
@@ -401,12 +418,31 @@ def review_and_save_memory(user_input: str, assistant_output: str,
             return
 
         facts = []
+        pref_log = []
         for line in verdict.split("\n"):
             line = line.strip()
-            if line.startswith("SAVE:"):
+            if line.startswith("PREF:"):
+                parts = [p.strip() for p in line[5:].split(":", 3)]
+                if len(parts) == 4 and parts[0]:
+                    dim, val, scope, text = parts
+                    if not text:
+                        text = scope
+                        scope = ""
+                    # 结构化为可检索、可审计的事实文本（dimension/value 可被记忆查询命中）
+                    fact = "稳定偏好：%s=%s" % (dim, val)
+                    if scope:
+                        fact += "（范围：%s）" % scope
+                    if text and text != scope:
+                        fact += "。" + text
+                    facts.append(fact[:120])
+                    pref_log.append((dim, val, scope, text))
+            elif line.startswith("SAVE:"):
                 fact = line[5:].strip()
                 if fact and len(fact) >= 3:
                     facts.append(fact)
+        if pref_log:
+            logger.info("[审查] 结构化偏好 %d 条: %s", len(pref_log),
+                        "; ".join("%s=%s" % (d, v) for d, v, _, _ in pref_log))
         if not facts:
             return
 
