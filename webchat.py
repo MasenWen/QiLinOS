@@ -53,6 +53,7 @@ from src.toolkit.executor import ClosedLoopExecutor  # noqa: E402
 from src.memory import log_reader  # noqa: E402 日志驱动记忆
 from src import llm_client  # noqa: E402 统一 LLM 客户端（SDK/API 可切换）
 from src.memory.forget_flow import ForgetFlow  # noqa: E402 精准遗忘交互流程
+from src.feedback_weight import rank_preference_pairs, rank_preference_lines, record_pairs as record_feedback, stats as feedback_stats  # noqa: E402 回复反馈权重
 
 # ---------- 初始化工具 ----------
 init_all_tools()
@@ -866,6 +867,13 @@ const API_TOKEN = new URLSearchParams(location.search).get('token')
 if (API_TOKEN) localStorage.setItem('aichat_token_v1', API_TOKEN);
 const apiHeaders = { 'Content-Type': 'application/json' };
 if (API_TOKEN) apiHeaders['X-Api-Token'] = API_TOKEN;
+// 点赞/点踩上报：落到该会话最近回复采用的偏好上（服务端维护支持/反对计数）
+const sendFeedback = (vote) => {
+  try {
+    fetch('/api/feedback', { method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({ session_id: sessionId, vote }) }).catch(() => {});
+  } catch (e) {}
+};
 
 let sessionId = localStorage.getItem(SKEY);
 if (!sessionId) {
@@ -937,8 +945,8 @@ function addRow(role, text, ts) {
         setTimeout(() => { bCopy.textContent = '📋'; }, 1200);
       } catch (e) {}
     };
-    bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
-    bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
+    bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); sendFeedback('up'); };
+    bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); sendFeedback('down'); };
     bDel.onclick = () => deleteMessage(row, text);
     // 重新生成：仅允许最后一条 AI 回复；移除该条后复用其上一条用户输入重发
     const bReg = mk('重新生成', '↻');
@@ -1055,8 +1063,8 @@ function attachAssistantMeta(row, text, ts) {
     try { await navigator.clipboard.writeText(text); bCopy.textContent = '✅';
       setTimeout(() => { bCopy.textContent = '📋'; }, 1200); } catch (e) {}
   };
-  bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
-  bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
+  bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); sendFeedback('up'); };
+  bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); sendFeedback('down'); };
   bDel.onclick = () => deleteMessage(row, text);
   bReg.onclick = () => {
     const i = [...msgs.children].indexOf(row);
@@ -1817,7 +1825,7 @@ def _preferences_prompt_block_strict(limit: int = 15) -> str:
         if _eng is None or not hasattr(_eng, "store"):
             return ""
         _mems = _eng.store.list_memories("nex_user") or []
-        lines = []
+        pairs = []
         for _m in _mems:
             if getattr(_m, "status", "") in ("deleted", "blocked"):
                 continue
@@ -1828,12 +1836,14 @@ def _preferences_prompt_block_strict(limit: int = 15) -> str:
             _t = str(getattr(_m, "semantic_value", "") or "")
             if _t.startswith("请记住："):
                 _t = _t[len("请记住："):]
-            lines.append(f"- {_t[:60]}")
-            if len(lines) >= limit:
+            _mid = str(getattr(_m, "memory_id", "") or "")
+            pairs.append((_mid, f"- {_t[:60]}"))
+            if len(pairs) >= limit:
                 break
-        return "\n".join(lines)
+        pairs = rank_preference_pairs(pairs, limit)
+        return "\n".join(_t for _, _t in pairs), pairs
     except Exception:
-        return ""
+        return "", []
 
 
 def _retrieve_memory_strict(query: str) -> str:
@@ -2660,14 +2670,20 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
         except Exception:
             pass
     # 用户偏好（默认 mem0 提取；A 方案 strict 模式从 strict 库 preference 类记忆构建）
+    pref_lines = []
     try:
         if _strict_mode():
-            pref_block = _preferences_prompt_block_strict(limit=30)
+            pref_block, pref_lines = _preferences_prompt_block_strict(limit=30)
         else:
             from src.memory.preferences import preferences_prompt_block
             pref_block = preferences_prompt_block(limit=30)
     except Exception:
         pref_block = ""
+    try:
+        _rec = SESSIONS_META.setdefault(session_id, {"summary": "", "title": ""})
+        _rec["last_prefs"] = list(pref_lines or [])
+    except Exception:
+        pass
     # ⑤ 跨会话联动：其他会话的早期摘要若含偏好信号，一并注入（历史知识跨会话可见）
     try:
         from src.memory.preferences import is_preference
@@ -3166,6 +3182,34 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._auth_ok():
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
+        if self.path == "/api/feedback":
+            try:
+                _length = int(self.headers.get("Content-Length") or 0)
+                _fb = json.loads(self.rfile.read(_length) or b"{}")
+            except Exception:
+                _fb = {}
+            _sid = str(_fb.get("session_id") or "").strip()
+            _vote = str(_fb.get("vote") or "").strip().lower()
+            if not _sid:
+                return self._json(200, {"ok": False, "note": "缺少 session_id"})
+            _prefs = []
+            with _sessions_lock:
+                _prefs = list((SESSIONS_META.get(_sid) or {}).get("last_prefs") or [])
+            # pairs 结构：(mem_id, text)；id 稳定关联，无 id 时回退文本
+            _pairs = []
+            for _p in _prefs:
+                if isinstance(_p, (list, tuple)) and len(_p) >= 2:
+                    _pairs.append((str(_p[0]).strip() or str(_p[1]).strip(), str(_p[1]).strip()))
+                else:
+                    _pairs.append(("", str(_p)))
+            _r = record_feedback(_pairs, _vote)
+            _body = {"ok": bool(_r.get("ok")), "vote": _vote}
+            if _r.get("ok"):
+                _body["updated"] = _r.get("updated", 0)
+                _body["tracked"] = feedback_stats().get("prefs_tracked", 0)
+            else:
+                _body["note"] = _r.get("note", "vote 需为 up/down")
+            return self._json(200, _body)
         if self.path == "/api/session/config":
             try:
                 length = int(self.headers.get("Content-Length") or 0)
