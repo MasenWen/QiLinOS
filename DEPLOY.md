@@ -47,7 +47,7 @@ sudo mysql -u root -p
 
 ```bash
 # 1. 获取代码
-git clone git@github.com:MasenWen/QiLinOS.git
+git clone <你的仓库地址>
 cd QiLinOS
 git checkout dev1
 
