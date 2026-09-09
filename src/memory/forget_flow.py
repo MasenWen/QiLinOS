@@ -48,6 +48,42 @@ _NEXT_PAGE_WORDS = ("下一页", "下页", "更多", "继续", "next", "下一�
 # 批量关键词分隔符
 _KEYWORD_SPLIT_RE = re.compile(r"[和与及跟、,，/以及]+")
 
+_GENERIC_KW = {
+    "我", "你", "他", "她", "它", "的", "了", "着", "这条", "那条", "刚才",
+    "之前", "以前", "现在", "那些", "这些", "所有", "全部", "相关", "内容",
+    "信息", "关于", "把", "请", "帮我", "一下", "这个", "那个", "一条", "两",
+}
+_KW_TAIL_SUF = ("的偏好", "的记忆", "相关记忆", "相关偏好", "偏好", "记忆",
+                "规则", "设置", "习惯", "这条", "那条", "所有", "全部")
+_KW_HEAD_GEN = ("这条", "那条", "刚才", "之前", "以前", "我的", "关于", "我",
+                "所有", "全部", "那些", "这些", "之前设定", "此前设定")
+
+
+def _clean_kw_tokens(keywords) -> list:
+    """关键词深度清洗：按空白/标点拆词、去头尾通用词与标点、去纯通用词。"""
+    out: list[str] = []
+    for k in keywords or []:
+        for tok in re.split(r"[\s、，,。.;；:：！!？?（）()'“”]+", str(k)):
+            tok = tok.strip(" ，,、。.；;：:！!？?的")
+            changed = True
+            while changed and tok:
+                changed = False
+                for g in _KW_HEAD_GEN:
+                    if tok.startswith(g) and len(tok) > len(g):
+                        tok = tok[len(g):]
+                        changed = True
+                        break
+                if not changed:
+                    for s in _KW_TAIL_SUF:
+                        if tok.endswith(s) and len(tok) > len(s):
+                            tok = tok[:-len(s)]
+                            changed = True
+                            break
+            if tok and tok not in _GENERIC_KW and tok not in out:
+                out.append(tok)
+    return out[:10]
+
+
 _PAGE_SIZE = 5
 # 敏感二次确认门槛：>= HIGH 需要二次确认
 _SENSITIVE_CONFIRM_MIN = 3  # SensitivityLevel rank: none=0 low=1 medium=2 high=3 critical=4
@@ -252,6 +288,7 @@ class ForgetFlow:
                         for k in kws:
                             cleaned.extend(self._split_keywords(k))
                         cleaned = [k for k in cleaned if k]
+                        cleaned = _clean_kw_tokens(cleaned) or cleaned
                         return True, cleaned or self._extract_keywords(msg)
                     return False, []
             except Exception:
@@ -259,11 +296,13 @@ class ForgetFlow:
         # ========== 规则回退（LLM 关闭/失败时）==========
         target = extract_forget_target(msg)
         if target:
-            return True, self._split_keywords(target)
+            kws = self._split_keywords(target)
+            return True, _clean_kw_tokens(kws) or kws
         if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
                 w in msg for w in ("删除", "删掉", "清除", "移除", "清空",
                                    "remove", "delete", "forget")):
-            return True, self._extract_keywords(msg)
+            kws = self._extract_keywords(msg)
+            return True, _clean_kw_tokens(kws) or kws
         return False, []
 
     # ------------------------------------------------- 关键词提取（④ 批量）
@@ -372,12 +411,26 @@ class ForgetFlow:
         store = self._get_store()
         if store is None:
             return []
+        kws_clean = _clean_kw_tokens(keywords) or keywords
         # 需求：进记忆系统前不用文本检索——直接 LLM 审查匹配
         # 步骤：list_all 拉全量记忆 → LLM 判断哪些与遗忘目标相关
         try:
             all_items = store.list_all(top_k=300) or []
         except Exception:
             all_items = []
+        # 合并 strict 引擎库（偏好/事实主库，smem-*）：mem0 侧可能为空导致漏检
+        try:
+            from webchat import _get_memory_engine
+            _eng = _get_memory_engine()
+            if _eng is not None and hasattr(_eng, "store") and hasattr(_eng.store, "list_memories"):
+                for _mm in _eng.store.list_memories("nex_user") or []:
+                    _st = str(getattr(_mm, "status", "") or "")
+                    if _st in ("deleted", "blocked", "historical", "archive"):
+                        continue
+                    all_items.append({"id": getattr(_mm, "memory_id", ""),
+                                      "memory": str(getattr(_mm, "semantic_value", "") or "")})
+        except Exception as _ee:
+            print(f"[ForgetFlow] strict 库合并失败: {_ee}", flush=True)
         if not all_items:
             return []
         # 记忆文本压缩（防止提示词超长）
@@ -389,7 +442,7 @@ class ForgetFlow:
                 mem_lines.append(f"- id={mid} | {text[:120]}")
         if not mem_lines:
             return []
-        kw_text = "、".join(k for k in keywords if k)
+        kw_text = "、".join(k for k in (kws_clean or keywords) if k)
         prompt = self._MATCH_PROMPT.format(
             keywords=kw_text,
             memories="\n".join(mem_lines[:150]),   # 最多 150 条
@@ -402,7 +455,14 @@ class ForgetFlow:
                 obj = json.loads(m.group(0))
                 match_ids = {str(i) for i in (obj.get("match_ids") or []) if str(i)}
         except Exception:
-            pass  # LLM 失败 → 无候选（安全：不误删）
+            pass  # LLM 失败 → 规则兜底（不误删：仅整词子串）
+        if not match_ids:
+            for it in all_items:
+                _tx = str(it.get("memory") or "")
+                for _kw in kws_clean or []:
+                    if len(_kw) >= 3 and _kw.lower() in _tx.lower():
+                        match_ids.add(str(it.get("id") or it.get("memory_id") or ""))
+                        break
         merged: dict[str, dict] = {}
         for it in all_items:
             mid = it.get("id") or it.get("memory_id")
@@ -472,6 +532,19 @@ class ForgetFlow:
         if store is None:
             return deleted
         for mid in ids:
+            # strict 引擎库（smem-*）走引擎删除；其余走 mem0
+            if str(mid).startswith("smem-"):
+                try:
+                    from webchat import _get_memory_engine
+                    _eng = _get_memory_engine()
+                    if _eng is not None:
+                        _r = _eng.forget({"user_id": "nex_user", "memory_ids": [str(mid)]},
+                                         dry_run=False)
+                        if (_r or {}).get("status") in ("completed", "ok"):
+                            deleted.append(str(mid))
+                            continue
+                except Exception:
+                    pass
             try:
                 store._memory.delete(memory_id=mid)
                 deleted.append(mid)

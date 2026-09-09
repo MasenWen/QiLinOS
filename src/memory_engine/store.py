@@ -421,6 +421,12 @@ class MemoryEngineStore:
         if not review.allowed:
             logger.warning("put_evidence blocked: %s", review.reason)
             return False
+        # 存储侧脱敏：审查命中 PII 时以脱敏文本落库（防"回复遮显但内存存原文"）
+        if review.pii_redactions and review.sanitized_text:
+            try:
+                evidence.claim_value = review.sanitized_text
+            except Exception:
+                pass
         data = evidence.to_dict()
         with self._lock, self.connection() as connection:
             cursor = connection.execute(
