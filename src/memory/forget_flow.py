@@ -125,26 +125,32 @@ class ForgetFlow:
         # ---- coordinator_node: 检查 forget_pending_candidates ----
         if st and st.get("active") and st.get("candidates"):
             # 非空：跳过 LLM 编排，直接进入 forget_node（确认分支）
-            # 仅同会话可继续确认；其他会话不打扰
-            if st.get("session_id") != session_id:
-                # 会话不匹配：确认/取消/翻页等延续词不打扰他会话；若是一条全新的
-                # 删除请求（含删除动词+记忆/偏好语境）→ 清理旧状态并继续新流程，
-                # 避免“别的会话残留候选导致本会话删除请求被普通对话吞掉（LLM 幻觉声称删除）”。
-                _is_followup = any(w in msg for w in _CONFIRM_ALL_WORDS + _CANCEL_WORDS + _NEXT_PAGE_WORDS) \
-                    or re.search(r"第\s*\d+", msg)
-                _is_new_delete = (any(w in msg for w in ("删除", "删掉", "移除", "清除", "forget", "delete"))
-                                  and any(w in msg for w in ("记忆", "记住", "偏好", "那条", "这条")))
-                if _is_followup:
-                    return "", False
-                if _is_new_delete:
-                    self._save_state({"active": False, "candidates": [],
-                                      "keyword": "", "session_id": session_id,
-                                      "created_at": st.get("created_at"),
-                                      "resolved_at": _now(), "resolution": "superseded"})
-                else:
-                    return "", False
-            else:
+            # 先判定本条消息是「确认延续」还是「全新删除请求」：
+            # 延续确认用明确词（确认/取消/下一页/删除第N条…；不含裸"删除/删掉"——
+            # 全新删除请求也含这些词）；全新删除请求 = 删除类动词 + 记忆语境。
+            # 全新删除请求（无论是否同会话）一律先作废旧 pending 再走新流程，
+            # 避免“上一轮残留候选 + 本轮新删除请求”被误判为对旧候选的“确认全删”
+            # （裸"删除"在 _CONFIRM_ALL_WORDS 中会命中 confirm_all → 误删上轮无关候选）。
+            _is_followup = (any(w in msg for w in ("确认", "是的", "对", "全部删", "都删",
+                                                   "取消", "不删", "不删除", "算了", "别删",
+                                                   "下一页", "恢复了"))
+                            or re.search(r"删除\s*第?\s*\d+", msg)
+                            or re.search(r"第\s*\d+\s*条", msg))
+            _is_new_delete = (any(w in msg for w in ("删除", "删掉", "移除", "清除", "forget", "delete"))
+                              and any(w in msg for w in ("记忆", "记住", "偏好", "习惯",
+                                                         "那条", "这条", "这条", "时间格式")))
+            if _is_new_delete and not _is_followup:
+                # 作废旧 pending（记录 supersede），继续走新删除流程
+                self._save_state({"active": False, "candidates": [],
+                                  "keyword": "", "session_id": session_id,
+                                  "created_at": st.get("created_at"),
+                                  "resolved_at": _now(), "resolution": "superseded"})
+            elif st.get("session_id") == session_id:
+                # 同会话延续确认 → 确认分支
                 return self._forget_node_confirm(msg, st)
+            else:
+                # 其他会话的延续词/无关消息：不打扰
+                return "", False
         # ---- coordinator_node: 无 pending → LLM 路由 handoff_to_forget ----
         forget, keywords = self._route_forget_intent(msg)
         if not forget:
@@ -189,6 +195,7 @@ class ForgetFlow:
                 ids,
                 [c.get("text", "") for c in candidates if c.get("id") in ids],
                 st.get("keywords") or [],
+                keep_bits=st.get("keep_bits") or [],
             )
             self._audit("delete", st, ids=deleted)
             self._save_state({"active": False, "candidates": [],
@@ -213,7 +220,7 @@ class ForgetFlow:
         keywords = [k for k in keywords if k]
         if not keywords:
             return "", False
-        candidates = self._retrieve_candidates(keywords)
+        candidates = self._retrieve_candidates(keywords, msg=msg)
         if not candidates:
             self._audit("no_match", {"session_id": session_id, "keywords": keywords}, ids=[])
             self._save_state({"active": False, "candidates": [],
@@ -225,6 +232,7 @@ class ForgetFlow:
         # 存储: forget_pending_candidates + forget_pending_keyword（+ 分页/敏感字段）
         self._save_state({"active": True, "candidates": candidates,
                           "keywords": keywords, "keyword": keywords[0],
+                          "keep_bits": self._extract_keep_bits(msg),
                           "session_id": session_id, "created_at": _now(),
                           "page": 1, "sensitive_confirmed": False})
         return self._render_candidates(candidates, keywords, page=1), True
@@ -262,9 +270,9 @@ class ForgetFlow:
     )
 
     def _route_forget_intent(self, msg: str) -> tuple[bool, list[str]]:
-        # ========== 判断是否遗忘：LLM 优先 ==========
-        # 先用 LLM 判断是否遗忘意图；LLM 判定 forget 后才进入记忆流程
-        # （ForgetFlow 候选检索/确认/删除）。规则层降为回退（LLM 失败/关闭时）。
+        # ========== 判断是否遗忘：规则先行（可靠触发），LLM 只做关键词精化 ==========
+        # 规则命中（删除/移除等动词 + 记忆/偏好/习惯语境）→ 直接进入遗忘流程；
+        # LLM 只用于补充关键词（防"删除请求被普通对话吞掉 → LLM 幻觉声称删除"）。
         _Q = ("？", "?", "吗", "呢", "什么", "怎么", "为啥", "为何", "是否", "哪", "谁",
               "多少", "几", "how", "what", "why", "which", "where", "when")
         # 安全防线（仍在前）：问句/否定语境绝不判遗忘
@@ -273,6 +281,11 @@ class ForgetFlow:
         if any(n in msg for n in ("别忘", "别忘了", "不要忘", "不要忘记", "没忘", "不忘",
                                   "难忘", "难以忘", "别忘记", "别忘掉")):
             return False, []
+        if any(w in msg for w in ("记忆", "记住", "偏好", "习惯", "这条", "那条")) and any(
+                w in msg for w in ("删除", "删掉", "清除", "移除", "抹除",
+                                   "remove", "delete", "forget")):
+            kws = self._extract_keywords(msg)
+            return True, _clean_kw_tokens(kws) or kws
         # LLM 主判断（默认开，FORGET_LLM_ROUTING=0 关闭时走规则回退）
         if self._llm_routing:
             try:
@@ -289,7 +302,22 @@ class ForgetFlow:
                             cleaned.extend(self._split_keywords(k))
                         cleaned = [k for k in cleaned if k]
                         cleaned = _clean_kw_tokens(cleaned) or cleaned
-                        return True, cleaned or self._extract_keywords(msg)
+                        # 无记忆语境 + 关键词仅剩延续语（第N条/确认/取消/下一页/数字）→ 判非遗忘
+                        _ctx = any(w in msg for w in ("记忆", "记住", "偏好", "习惯",
+                                                      "那条", "这条", "那条", "时间格式", "内容"))
+                        _sub = [k for k in cleaned
+                                if not re.fullmatch(r"[0-9一二三四五六七八九十]+", k)
+                                and not re.search(r"第\s*[0-9一二三四五六七八九十]+\s*条?", k)
+                                and k not in ("确认", "取消", "下一页", "下页", "继续", "更多",
+                                              "全部", "所有")]
+                        if not _ctx and not _sub:
+                            return False, []
+                        if not _ctx and all(k in ("确认删除", "删除", "删掉", "好的", "行",
+                                                  "可以", "是的", "对", "是") for k in _sub):
+                            return False, []
+                        if not cleaned:
+                            return False, []
+                        return True, cleaned
                     # LLM 判非遗忘不直接放行：若规则明确命中「删除/移除 + 记忆/偏好」
                     # 语境，仍进入遗忘流程（防止 LLM 漏判导致删除被普通对话吞掉）
                     if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
@@ -304,7 +332,11 @@ class ForgetFlow:
         target = extract_forget_target(msg)
         if target:
             kws = self._split_keywords(target)
-            return True, _clean_kw_tokens(kws) or kws
+            cleaned = _clean_kw_tokens(kws)
+            # 清洗后为空（纯标点/纯延续词，如「确认删除。」→「。」）→ 不是有效删除请求
+            if cleaned:
+                return True, cleaned
+            return False, []
         if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
                 w in msg for w in ("删除", "删掉", "清除", "移除", "清空",
                                    "remove", "delete", "forget")):
@@ -315,12 +347,21 @@ class ForgetFlow:
     # ------------------------------------------------- 关键词提取（④ 批量）
     def _extract_keywords(self, msg: str) -> list[str]:
         target = extract_forget_target(msg)
-        if target:
-            return self._split_keywords(target)
-        for v in ("忘记", "忘了", "忘掉", "删除", "删掉", "移除", "清除", "抹除"):
-            if v in msg:
-                return self._split_keywords(msg.split(v, 1)[1].strip("，,、 的"))
-        return []
+        kws = self._split_keywords(target) if target else []
+        if not kws:
+            for v in ("忘记", "忘了", "忘掉", "删除", "删掉", "移除", "清除", "抹除"):
+                if v in msg:
+                    kws = self._split_keywords(msg.split(v, 1)[1].strip("，,、 的"))
+                    break
+        # 回指消解（剧本句式「以后时间不用二十四小时制。只删除这一条偏好…」）：
+        # 动词后的目标是回指词（这一条/那条/这个…），真正的实体出现在动词前的
+        # 「(时间)不用/不要 X」从句里 → 从句首补回实体关键词，否则候选检索找不到目标。
+        if target and any(a in target for a in ("这一条", "这条", "那条", "这个", "那个", "该项", "这项")):
+            m = re.search(r"(?:不用|不要|不再用|不再|弃用|停止使用)"
+                          r"([\u4e00-\u9fa5A-Za-z0-9_\-]{2,14})", msg)
+            if m and m.group(1) not in kws:
+                kws.append(m.group(1))
+        return kws
 
     # 关键词杂质清洗：前缀（关于/跟/这些…）与后缀（的记忆/所有…）
     _KW_CLEAN_PREFIX = re.compile(r"^(?:关于|跟|与|和|以及|这些|那些|全部|所有|把)")
@@ -369,6 +410,21 @@ class ForgetFlow:
                 out.append(core)
         return out[:8]
 
+    # ------------------------------------------------- 保留片段解析
+    @staticmethod
+    def _extract_keep_bits(msg: str) -> list[str]:
+        """解析用户「保留…的习惯/偏好/记忆」中的保留目标片段，供候选剔除与联动删除豁免。"""
+        try:
+            _m = re.search(r"保留([^，。；;]{1,24}?)(?:的)?(?:习惯|偏好|记忆|内容)", msg or "")
+            if not _m:
+                return []
+            _kt = _m.group(1).strip(" ，,、")
+            if len(_kt) < 2:
+                return []
+            return [b for b in re.findall(r"[\u4e00-\u9fa5]{2,}|[A-Za-z0-9_]{3,}", _kt)]
+        except Exception:
+            return []
+
     # ------------------------------------------------- 候选检索（④ 多关键词）
     # 中英对照词典：中文关键词 → 英文变体（记忆可能存为英文）
     _EN_ALIASES = {
@@ -380,6 +436,10 @@ class ForgetFlow:
         "咖啡": ["coffee"], "茶": ["tea"], "跑步": ["running", "run"],
         "篮球": ["basketball"], "羽毛球": ["badminton"], "健身": ["fitness", "workout", "exercise"], "歌手": ["singer", "musician"], "音乐": ["music", "song"],
         "生日": ["birthday"], "住": ["live", "lives", "living"], "宠物": ["pet"],
+        # 时间格式（记忆条目常存为 24_hour_clock 等英文键；不用裸 24h/24小时，
+        # 避免命中 send_within_24h、默认会后24小时内发 等无关文本）
+        "二十四小时制": ["24_hour_clock", "24小时制"],
+        "24小时制": ["24_hour_clock"],
         # 城市（mem0 提取可能用英文城市名：User's ... residence is Guangzhou）
         "广州": ["guangzhou"], "深圳": ["shenzhen"], "杭州": ["hangzhou"],
         "南京": ["nanjing"], "成都": ["chengdu"], "武汉": ["wuhan"],
@@ -414,7 +474,7 @@ class ForgetFlow:
         "没有相关记忆时输出：{{\"match_ids\": []}}"
     )
 
-    def _retrieve_candidates(self, keywords: list[str], limit: int = 12) -> list[dict]:
+    def _retrieve_candidates(self, keywords: list[str], limit: int = 12, msg: str = "") -> list[dict]:
         store = self._get_store()
         if store is None:
             return []
@@ -465,16 +525,23 @@ class ForgetFlow:
         except Exception:
             pass  # LLM 失败 → 规则兜底（不误删：仅整词子串）
         # 规则预筛（与 LLM 审查结果取并集，保底不依赖 LLM 判定）：
-        # 记忆文本含任一关键词（>=2 字符子串；含英文别名扩展）即锁定为候选，
-        # 防止 LLM 漏判导致“删除请求找不到目标”或误引无关记忆。
-        _expanded_kws = self._expand_keywords(kws_clean) if hasattr(self, "_expand_keywords") else []
-        for it in all_items:
-            _tx = str(it.get("memory") or "")
-            for _kw in list(kws_clean) + list(_expanded_kws or []):
-                _k = str(_kw or "").strip()
-                if len(_k) >= 2 and _k.lower() in _tx.lower():
-                    match_ids.add(str(it.get("id") or it.get("memory_id") or ""))
-                    break
+        # 记忆文本含任一“有区分度”关键词（>=2 字符子串；含英文别名扩展）即锁定为候选。
+        # 泛词（偏好/习惯/记忆/保留等几乎出现在每条偏好文本中）不参与预筛，
+        # 避免“删除 X 偏好”把全库偏好都捞成候选导致误删。
+        _GENERIC = ("偏好", "习惯", "记忆", "内容", "这条", "那条", "保留", "删除",
+                    "删掉", "移除", "本次", "之前", "刚才", "相关", "时间", "格式",
+                    "总结", "安排", "任务", "信息", "记录", "这条记忆", "please", "the")
+        _kws_clean = [k for k in (kws_clean or []) if str(k).strip() not in _GENERIC]
+        _expanded_kws = self._expand_keywords(_kws_clean) if hasattr(self, "_expand_keywords") else []
+        _pre_kws = [k for k in list(_kws_clean) + list(_expanded_kws or []) if str(k).strip() not in _GENERIC]
+        if _pre_kws:
+            for it in all_items:
+                _tx = str(it.get("memory") or "")
+                for _kw in _pre_kws:
+                    _k = str(_kw or "").strip()
+                    if len(_k) >= 2 and _k.lower() in _tx.lower():
+                        match_ids.add(str(it.get("id") or it.get("memory_id") or ""))
+                        break
         merged: dict[str, dict] = {}
         for it in all_items:
             mid = it.get("id") or it.get("memory_id")
@@ -483,6 +550,14 @@ class ForgetFlow:
         # 敏感标记（HIGH/CRITICAL → sensitive=True，需二次确认）
         for c in merged.values():
             c["sensitive"] = self._is_sensitive(c.get("text", ""))
+        # 保留项排除：用户消息明确"保留 …的习惯/偏好"时，候选里剔除文本命中保留目标的条目
+        try:
+            _kt_bits = self._extract_keep_bits(msg)
+            if _kt_bits:
+                merged = {k: v for k, v in merged.items()
+                          if not any(b in str(v.get("text", "")) for b in _kt_bits)}
+        except Exception:
+            pass
         items = sorted(merged.values(), key=lambda x: (x.get("sensitive", False), x["score"]), reverse=True)
         return items[:limit]
 
@@ -538,7 +613,8 @@ class ForgetFlow:
 
     # ------------------------------------------------- 执行删除
     def _execute_delete(self, ids: list[str], texts: list[str] | None = None,
-                        keywords: list[str] | None = None) -> list[str]:
+                        keywords: list[str] | None = None,
+                        keep_bits: list[str] | None = None) -> list[str]:
         store = self._get_store()
         deleted: list[str] = []
         if store is None:
@@ -569,13 +645,15 @@ class ForgetFlow:
         _kws = [k for k in (list(keywords or []) + [t for t in (texts or []) if t]) if k]
         if _kws:
             try:
-                self._linkage_delete(_kws)
+                self._linkage_delete(_kws, keep_bits=keep_bits or [])
             except Exception:
                 pass
         return deleted
 
-    def _linkage_delete(self, keywords: list[str]) -> None:
-        """遗忘联动：按关键词包含匹配——四层 memories 标记 deleted + KG 节点删除。"""
+    def _linkage_delete(self, keywords: list[str], keep_bits: list[str] | None = None) -> None:
+        """遗忘联动：按关键词包含匹配——四层 memories 标记 deleted + KG 节点删除。
+        keep_bits：用户明确"保留…"的片段；命中该片段的记忆/节点一律豁免（防误删相邻偏好）。"""
+        keep_bits = keep_bits or []
         # ① 四层 memories 状态标记（读侧仲裁据此过滤，防遗忘复活）
         try:
             from src.memory_engine.store import MemoryEngineStore
@@ -588,6 +666,9 @@ class ForgetFlow:
                 try:
                     for m in mstore.search_memories("nex_user", t[:40]) or []:
                         if m.status in ("deleted", "blocked"):
+                            continue
+                        if keep_bits and any(b in str(getattr(m, "semantic_value", "") or "")
+                                             for b in keep_bits):
                             continue
                         mstore.set_memory_status(m.memory_id, "deleted",
                                                  _dt.now().isoformat(timespec="seconds"))
@@ -609,6 +690,8 @@ class ForgetFlow:
                     continue
                 for nid, node in list(kg._nodes.items()):
                     _text = str(node.text or "")
+                    if keep_bits and any(b in _text for b in keep_bits):
+                        continue
                     if t in _text or _text in t:
                         kg.remove_node_by_id(nid)
                         removed += 1
@@ -655,6 +738,8 @@ class ForgetFlow:
             for m in _mems:
                 sv = str(getattr(m, "semantic_value", "") or "")
                 if not _tokens:
+                    continue
+                if keep_bits and any(b in sv for b in keep_bits):
                     continue
                 _hit = False
                 # ① 变体子串匹配（语序一致场景）

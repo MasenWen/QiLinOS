@@ -2039,6 +2039,59 @@ def _get_memory_engine():
     return _engine_inst if _engine_inst is not False else None
 
 
+_FORGET_TURN_HASHES = set()
+_forget_turn_lock = threading.Lock()
+
+
+def _mark_forget_turn(message: str) -> None:
+    """记录已被遗忘流程处理的用户消息（异步审查需跳过，防止删除/还原句被当新偏好保存）。"""
+    if not message:
+        return
+    try:
+        import hashlib
+        h = hashlib.sha1(message.encode("utf-8", "replace")).hexdigest()
+        with _forget_turn_lock:
+            _FORGET_TURN_HASHES.add(h)
+            if len(_FORGET_TURN_HASHES) > 200:
+                _FORGET_TURN_HASHES.clear()
+    except Exception:
+        pass
+
+
+def _was_forget_turn(message: str) -> bool:
+    if not message:
+        return False
+    try:
+        import hashlib
+        h = hashlib.sha1(message.encode("utf-8", "replace")).hexdigest()
+        with _forget_turn_lock:
+            return h in _FORGET_TURN_HASHES
+    except Exception:
+        return False
+
+
+# 声明型消息特征：显式长期保存指令 + 偏好/习惯语境（剧本句式：请记住…习惯/偏好）
+def _is_declaration_message(message: str) -> bool:
+    m = (message or "").strip()
+    if not m or len(m) > 400:
+        return False
+    # 明确“长期保存”的动词短语
+    if not any(k in m for k in ("请记住", "请长期记住", "请帮我记住", "请记录", "长期记住",
+                                "帮我记住", "记住", "以后都按", "以后按", "请记得")):
+        return False
+    # 偏好/习惯语境
+    if not any(k in m for k in ("习惯", "偏好", "长期", "以后")):
+        return False
+    # 排除任务/会议/遗忘/提问类（走各自通道）。
+    # 注意：剧本声明句本身含“安排任务/任务总结/不要显示”等词，不能误排除，
+    # 只排除会议类、删除指令类与问句；遗忘回合另有 _was_forget_turn 机制跳过。
+    if any(k in m for k in ("会议", "纪要", "日程", "项目会议", "meeting",
+                            "删除", "删掉", "移除", "清除", "遗忘", "忘掉",
+                            "？", "吗", "什么", "怎么", "为什么")):
+        return False
+    return True
+
+
 def _remember(messages):
     store = _get_mem0()
     if store is None:
@@ -2051,6 +2104,11 @@ def _remember(messages):
             from src.memory.memory_lifecycle import review_and_save_memory
             _u = str((messages or [{}])[0].get("content") or "").strip()
             _a = str((messages or [{}])[1].get("content") or "").strip() if len(messages or []) > 1 else ""
+            # 遗忘流程已处理的回合（删除/确认/取消/还原）：审查会把这些句子的
+            # “不用/以后不要/删除”信号误当新偏好（曾产生 non_24h_time 等污染），跳过。
+            if _was_forget_turn(_u):
+                print("[mem] 遗忘回合跳过记忆审查", flush=True)
+                return
             # 仅对正常对话做审查（工具结果/快照跳过，避免污染）
             if _u and not any(mk in _a for mk in ("✅ 工具", "❌", "状态：", "**输出**")):
                 _saved = review_and_save_memory(_u, _a, store)
@@ -2374,7 +2432,17 @@ _CHAT_RULES = (
     "3. 本系统运行在银河麒麟 Linux 桌面系统上：禁止提及 Windows、macOS 或其他操作系统的路径/命令。\n"
     "4. 列表类查询（列出文件/进程/记忆等）必须完整列出工具返回的所有条目名称。\n"
     "5. 记忆中的数值可能已过期，查询类问题一律以工具实时返回为准，严禁引用记忆中的数字冒充实时查询结果。\n"
-    "6. 记忆说明：长期记忆只保存持久信息（偏好/习惯/身份/事实）；瞬时信息（会议、待办、计划、截止日期、明天/下周等时间性内容）不会存入长期记忆。用户要求记住此类信息时，如实告知「已记录（仅本次对话内有效，不会存入长期记忆）」，不要声称已永久记住。\n\n"
+    "6. 习惯/偏好、会议任务状态、敏感与遗忘（三类记忆行为）：\n"
+    "a. 习惯/偏好——用户明确表达长期习惯或偏好（如「请记住…习惯/偏好」「以后都…」「我喜欢先…再看…」）时，\n"
+    "系统会拆成多条独立偏好持久保存，可跨会话复用、单独查询或删除；若用户本轮提出临时相反要求（如「这次不要…」），\n"
+    "本轮要求优先，只影响本轮输出，不改写也不删除已存偏好。\n"
+    "b. 会议/任务状态——用户明确要求记住或更新某会议/任务的安排与进度（时间、地点、方式、待办、完成情况等状态）时，\n"
+    "系统以任务档案形式跨会话保存并持续更新：最新状态为当前有效，旧版本保留供溯源核对；新会话询问同一事件时\n"
+    "直接引用档案恢复最新有效状态并说明依据，不沿用过期安排、不虚构内容、不重复已完成事项；仅顺带提及的一次性计划不入库，\n"
+    "不要声称已长期保存。\n"
+    "c. 敏感信息与遗忘——手机号等敏感字段（见 0b）仅在本轮必要范围内使用，不回显原文、不入长期记忆、不跨会话复述；\n"
+    "用户要求删除/忘记某条记忆时按系统遗忘确认流程执行，只删除指定条目并保留其余相关记忆；只有系统确认删除后才可告知已删除，\n"
+    "未确认或未执行时不得声称已删除/已遗忘（见 0c）。\n\n"
     
 )
 # 工具意图关键词（用于选择工具场景模板）
@@ -2492,7 +2560,7 @@ _TOOL_RULES = (
     "shell 管道允许 2>/dev/null 丢弃错误输出。注意：桌面路径是 ~/桌面（中文，不是 ~/Desktop）。\n"
     "10. 调用工具后必须把工具返回的具体结果转述给用户（文件名、数值、列表等），"
     "禁止只回答「已成功/已执行」而不给出结果内容；若工具未返回结果请如实说明并换一种方式重试。\n"
-    "11. 记忆说明：长期记忆只保存持久信息（偏好/习惯/身份/事实）；瞬时信息（会议、待办、计划、截止日期、明天/下周等时间性内容）不会存入长期记忆。用户要求记住此类信息时，如实告知「已记录（仅本次对话内有效，不会存入长期记忆）」，不要声称已永久记住。\n\n"
+    "11. 记忆请求（记住/忘记/更新）一律不调用任何工具，由系统记忆通道处理：「记住…习惯/偏好」→ 保存为独立长期偏好并跨会话复用（本轮临时相反要求优先，不改写已存偏好）；「记住/更新…会议或任务安排」→ 写入任务档案（最新状态有效，旧版本保留可查，恢复状态时说明依据）；「删除/忘记…记忆」→ 走遗忘确认流程，只删除指定条目，未确认执行前不得声称已删除；手机号等敏感字段不回显原文、不入长期记忆（见 0c）。\n\n"
     
 )
 
@@ -2600,6 +2668,7 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
     sections = [
         f"当前时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "你是运行在麒麟 Kylin OS V11 桌面系统上的 AI 助手（Kylin Mem）。",
+    "你能长期记住并复用用户的习惯偏好（本轮临时要求优先），跨会话跟踪会议/任务安排的状态更新，保护手机号等敏感信息，并按用户指令精准遗忘指定记忆。",
     ]
     if is_tool:
         # 查询/操作类请求：不注入记忆数值，避免 AI 引用旧数据冒充实时结果，强制走工具
@@ -2923,6 +2992,7 @@ def _chat(message: str, session_id: str = "default"):
     try:
         _f_reply, _f_handled = _get_forget_flow().handle(message, session_id)
         if _f_handled:
+            _mark_forget_turn(message)
             log_reader.append_record("user", message)
             return _f_reply
     except Exception as _f_e:
@@ -3132,6 +3202,18 @@ class Handler(BaseHTTPRequestHandler):
         for chunk in _stream_chunks(reply):
             _emit({"chunk": chunk})
             _t.sleep(0.02)
+
+        # 声明型消息（请记住…习惯/偏好）：同步完成记忆落库后再发 done，
+        # 保证回复结束即面板/后续会话可见（视频剧本节奏：声明→开面板→新会话复用）。
+        _decl_sync = False
+        try:
+            if _is_declaration_message(prompt):
+                _remember([{"role": "user", "content": prompt},
+                           {"role": "assistant", "content": reply}])
+                _decl_sync = True
+                print("[mem] 声明型消息已同步落库", flush=True)
+        except Exception as _de:
+            print(f"[mem] 声明型同步落库失败: {_de}", flush=True)
         _emit({"done": True})
         try:
             self.wfile.write(b"data: [DONE]\n\n")
@@ -3149,15 +3231,16 @@ class Handler(BaseHTTPRequestHandler):
             _flow_after_chat(session_id, prompt, reply)
         except Exception:
             pass
-        try:
-            threading.Thread(
-                target=_remember,
-                args=([{"role": "user", "content": prompt},
-                       {"role": "assistant", "content": reply}],),
-                daemon=True,
-            ).start()
-        except Exception:
-            pass
+        if not _decl_sync:
+            try:
+                threading.Thread(
+                    target=_remember,
+                    args=([{"role": "user", "content": prompt},
+                           {"role": "assistant", "content": reply}],),
+                    daemon=True,
+                ).start()
+            except Exception:
+                pass
         # 2026-09-01 修复: SSE 流已由 _emit(done) + [DONE] 结束，此处遗留的 obj 引用
         # 是死代码（obj 未定义 → NameError 刷日志），删除
         return
@@ -3535,13 +3618,21 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             pass
 
-        # 异步写入记忆（不阻塞回复）
-        threading.Thread(
-            target=_remember,
-            args=([{"role": "user", "content": prompt},
-                   {"role": "assistant", "content": reply}],),
-            daemon=True,
-        ).start()
+        # 声明型消息同步落库；否则异步写入记忆（不阻塞回复）
+        try:
+            if _is_declaration_message(prompt):
+                _remember([{"role": "user", "content": prompt},
+                           {"role": "assistant", "content": reply}])
+                print("[mem] 声明型消息已同步落库(/api/chat)", flush=True)
+            else:
+                threading.Thread(
+                    target=_remember,
+                    args=([{"role": "user", "content": prompt},
+                           {"role": "assistant", "content": reply}],),
+                    daemon=True,
+                ).start()
+        except Exception:
+            pass
 
         self._json(200, {"reply": reply})
 

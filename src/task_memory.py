@@ -19,8 +19,9 @@ FAMILY = "task_event"
 _SLOT_PREFIX = "task_event:"
 _SKIP_STATUS = {LifecycleStatus.ARCHIVE, LifecycleStatus.BLOCKED, LifecycleStatus.DELETED}
 
-_DOMAIN_WORDS = ("会议", "日程", "安排", "纪要", "演示", "评审会", "例会",
-                 "meeting", "schedule", "task", "event")
+# 事件领域词（收紧：避免"任务总结/演示项目"等偏好句式误触发档案通道）
+_DOMAIN_WORDS = ("会议", "日程", "纪要", "例会", "评审会", "项目会议",
+                 "meeting", "schedule")
 _PERSIST_MARKERS = ("请记住", "记住这个", "记住该项", "长期跟踪", "以后可查",
                     "存档", "记下来", "后续问我", "稍后我可能问起", "之后我会问",
                     "长期记住", "请长期记住")
@@ -142,7 +143,7 @@ def save_task_event(engine, parsed: dict, source_text: str = "") -> Optional[Str
     try:
         store = engine.store
         subject = (parsed.get("subject") or "").strip()[:40]
-        if not subject:
+        if not subject or subject == "未命名安排":
             return None
         slot = _SLOT_PREFIX + subject
         now = _now_iso()

@@ -17,6 +17,7 @@
   - 线程锁防并发流转竞态（沿用 QiLinOS trigger_rotation 设计）
 """
 import os
+import re
 import time
 import logging
 import threading
@@ -365,13 +366,32 @@ _MEMORY_REVIEW_PROMPT = (
     "edit_policy(编辑策略)/blank_policy(空白处理)/destructive_policy(删除策略)/"
     "detail_policy(回复详细度)/external_policy(外发策略)/format_policy(格式)\n"
     "value 用规范枚举或最贴近的近义短语：\n"
-    "workflow_order=verify_state_then_resume_reversible_step(先核对状态再续可逆步骤)；"
+    "workflow_order=verify_state_then_resume_reversible_step(先核对状态再续可逆步骤)/"
+    "numbered_by_urgency(编号并按紧急程度排序)；"
     "storage_policy=new_copy(另存新副本)/overwrite_original；"
     "edit_policy=preview_before_edit(编辑前预览)；"
     "blank_policy=preserve_unknown(空白保留不补齐)；"
     "destructive_policy=confirm_before_delete(删除前确认)；"
     "detail_policy=concise(简洁)/one_sentence；"
-    "external_policy=confirm_before_send(外发前确认)；format_policy=bullet_points\n"
+    "external_policy=confirm_before_send(外发前确认)/send_within_24h(24小时内发送)；"
+    "format_policy=bullet_points(要点式)/conclusion_first(先给结论再看说明)/"
+    "24_hour_clock(二十四小时制)/12_hour_clock(十二小时制)/"
+    "add_next_step_line(任务总结末尾增加一行'下一步')/three_sections(结论-依据-下一步三段式)；"
+    "「二十四小时制」必须写成 format_policy=24_hour_clock，不得写成 use_24h_clock/24小时制/non_24h_time 等变体；"
+    "「任务总结末尾增加一行'下一步'」必须写成 format_policy=add_next_step_line，"
+    "不得写成 next_step_at_end/summary_with_next_step_line/conclude_with_next_step 等变体；"
+    "「先看结论再看说明」必须写成 format_policy=conclusion_first；"
+    "「安排任务时使用编号并按紧急程度排序」必须写成 workflow_order=numbered_by_urgency\n"
+    "PREF 行第 4 段「原文」必须填写且不得省略：抄录用户原话中说明该偏好/习惯的完整短句，"
+    "保留能区分该偏好的关键词（如「时间使用二十四小时制」「任务总结末尾增加一行'下一步'」"
+    "「先看结论再看说明」「安排任务时使用编号并按紧急程度排序」），"
+    "不得把原文写成范围或维度名（如「所有任务」「格式」），不得与 scope 相同。示例：\n"
+    "用户说「请记住两项习惯：时间使用二十四小时制；任务总结末尾增加一行'下一步'」→\n"
+    "PREF:format_policy:24_hour_clock:时间显示:时间使用二十四小时制\n"
+    "PREF:format_policy:add_next_step_line:任务总结:任务总结末尾增加一行'下一步'\n"
+    "用户说「第一，我喜欢先看结论再看说明；第二，安排任务时使用编号并按紧急程度排序」→\n"
+    "PREF:format_policy:conclusion_first:回复结构:先看结论再看说明\n"
+    "PREF:workflow_order:numbered_by_urgency:任务安排:安排任务时使用编号并按紧急程度排序\n"
     "scope 为适用范围（同类任务/指定文件/所有外发等）。无稳定偏好则不输出 PREF 行。\n\n"
     "必须排除以下（不要保存）：\n"
     "- 瞬时情绪或状态\n- 单次事件的叙述\n- 临时计划或待办事项\n"
@@ -432,9 +452,14 @@ def review_and_save_memory(user_input: str, assistant_output: str,
                     fact = "稳定偏好：%s=%s" % (dim, val)
                     if scope:
                         fact += "（范围：%s）" % scope
-                    if text and text != scope:
-                        fact += "。" + text
-                    facts.append(fact[:120])
+                    # 原文必须内嵌（中文括号，避免 。，； 等被 claim 切分拆散），
+                    # 供精准遗忘/保留判定按原文关键词（如"下一步"）区分相邻偏好
+                    if text and text != scope and ("（原文：" + text + "）") not in fact:
+                        # 原文中的 。，； 等切分符去掉，避免 strict claim 拆分截断
+                        _t = re.sub(r"[。，,；;、\s]+", " ", text).strip()
+                        if _t:
+                            fact += "（原文：%s）" % _t
+                    facts.append(fact[:160])
                     pref_log.append((dim, val, scope, text))
             elif line.startswith("SAVE:"):
                 fact = line[5:].strip()
