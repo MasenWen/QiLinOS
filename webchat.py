@@ -1752,7 +1752,7 @@ document.getElementById('clear').onclick = () => {
 document.getElementById('clearMem').onclick = () => {
   document.getElementById('clearMemModal').style.display = 'flex';
 };
-// clearMem 弹窗的标记位于 </script> 之后：脚本执行时元素还不存在，
+// clearMem 弹窗的标记位于 <\/script> 之后：脚本执行时元素还不存在，
 // 直接绑定会抛 null onclick 并中断后续脚本 → 改等 DOMContentLoaded 再绑定。
 window.addEventListener('DOMContentLoaded', () => {
   const _m = document.getElementById('clearMemModal');
