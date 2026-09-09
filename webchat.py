@@ -2043,6 +2043,7 @@ def _remember(messages):
     store = _get_mem0()
     if store is None:
         return
+
     # ---- 融入 QiLinOS 记忆流转：LLM 回合级审查，只保存持久信息 ----
     # 开关 NEX_MEMORY_REVIEW=0 可关闭（默认开）
     try:
@@ -2707,6 +2708,24 @@ def _build_context(message: str, session_id: str, split_role: bool = False):
         sections.append("## 用户配置（长期记忆，对话中须遵守）\n" + skills)
     if kg_block:
         sections.append(kg_block)
+    # 任务/会议档案（显式长期跟踪事件；跨会话恢复 + 版本历史提示）
+    try:
+        if _strict_mode():
+            from src.task_memory import archive_block, history_block, extract_subject
+            _eng = _get_memory_engine()
+            if _eng is not None:
+                _task_block = archive_block(_eng)
+                if _task_block:
+                    sections.append("## 任务/会议档案（用户显式要求长期跟踪的事件，最新为当前有效）\n"
+                                    + _task_block
+                                    + "\n（回答档案内事件的时间/状态时直接引用本档案，无需调用时间类工具。）")
+                    _subj = extract_subject(message) or ""
+                    if _subj and any(w in message for w in ("依据", "历史", "版本", "之前", "核对", "什么时候改", "原来")):
+                        _hist = history_block(_eng, _subj)
+                        if _hist:
+                            sections.append("## 该任务版本历史（供核对，含已失效版本）\n" + _hist)
+    except Exception:
+        pass
     _sess_cfg = (meta.get("config") or {}) if meta else {}
     if _sess_cfg.get("system_add"):
         sections.append("## 本会话附加指令（最高优先级）\n" + str(_sess_cfg["system_add"]))
@@ -2870,8 +2889,35 @@ def _stream_chunks(text: str, size: int = 4):
     return chunks or [text]
 
 
+def _task_maybe_save(message: str) -> None:
+    """同步任务/会议档案写入（生成回复前执行，回复即可引用档案）。"""
+    try:
+        from src.task_memory import (has_task_persist_intent, is_update_message, is_query_message,
+                                     parse_task_event, save_task_event, extract_subject, _SLOT_PREFIX)
+        _u0 = (message or "").strip()
+        _eng = _get_memory_engine()
+        _store = _eng.store if (_eng is not None and hasattr(_eng, "store")) else None
+        if _store is None or not _u0:
+            return
+        _subj = extract_subject(_u0) or ""
+        _slot_hit = False
+        if _subj:
+            try:
+                _slot_hit = bool(_store.list_memories("nex_user", slot_key=_SLOT_PREFIX + _subj))
+            except Exception:
+                _slot_hit = False
+        _want = (has_task_persist_intent(_u0) and not is_query_message(_u0)) \
+            or (_slot_hit and is_update_message(_u0) and not is_query_message(_u0))
+        if _want:
+            _parsed = parse_task_event(_u0)
+            save_task_event(_eng, _parsed, source_text=_u0)
+    except Exception:
+        pass
+
+
 def _chat(message: str, session_id: str = "default"):
     """统一上下文 → 让 AI 编排 → 执行工具 / 直接回答。"""
+    _task_maybe_save(message)
     # ---- 精准遗忘流程（coordinator_node → forget_node）----
     # 命中遗忘交互时不再走 LLM 编排：确认/取消/展示候选都由 ForgetFlow 处理
     try:
@@ -2917,6 +2963,48 @@ def _chat(message: str, session_id: str = "default"):
             plan = json.loads(_clean_json(m.group(0)))
             tool = plan.get("tool")
             if tool:
+                # 任务档案语境下 datetime 拦截：事件时间以档案为准（视频剧本"现在的时间"指事件状态）
+                if tool == "datetime":
+                    _dt_block = False
+                    try:
+                        from src.task_memory import extract_subject, _SLOT_PREFIX, archive_block
+                        _eng2 = _get_memory_engine()
+                        _sub2 = extract_subject(message) or ""
+                        if _eng2 is not None and _sub2:
+                            _hit = bool(_eng2.store.list_memories("nex_user", slot_key=_SLOT_PREFIX + _sub2))
+                            if _hit:
+                                _dt_block = True
+                    except Exception:
+                        _dt_block = False
+                    if _dt_block:
+                        # 重生成并直接返回（不再走工具确认流程）
+                        _hint = ("（系统提示：本条消息对应任务档案中的事件，其时间/状态请直接引用档案作答，"
+                                 "禁止调用 datetime 等时间类工具。）")
+                        try:
+                            if _is_api:
+                                raw = llm_client.generate(_user, _cfg_ovr, system=_sys + "\n" + _hint)
+                            else:
+                                raw = llm_client.generate(prompt + "\n" + _hint, _cfg_ovr)
+                            raw = _clean(raw)
+                            _m2 = re.search(r"\{.*\}", raw, re.DOTALL)
+                            if _m2:
+                                _p2 = json.loads(_clean_json(_m2.group(0)))
+                                if _p2.get("tool"):
+                                    raise ValueError("still-tool")
+                            return raw
+                        except Exception:
+                            # 二次仍要工具：用档案最新状态作保底回答
+                            try:
+                                from src.task_memory import archive_block
+                                _eng3 = _get_memory_engine()
+                                _blk = archive_block(_eng3) if _eng3 is not None else ""
+                                _tgt = [l for l in _blk.split("\n") if _sub2 in l]
+                                raw = ("依据任务/会议档案（最新有效版本）：\n" + "\n".join(_tgt[:2])
+                                       if _tgt else _blk)
+                                raw += "\n（以上来自用户显式要求长期跟踪的任务档案。）"
+                            except Exception:
+                                raw = "（该事件时间请以任务档案记录为准。）"
+                            return raw
                 if tool not in REGISTRY.list_all():
                     # AI 编造了不存在的工具：不返回原始 JSON，给友好提示
                     return (f"我无法执行「{tool}」这个操作，它不在我可用的工具列表中。"
