@@ -127,22 +127,20 @@ class ForgetFlow:
             # 非空：跳过 LLM 编排，直接进入 forget_node（确认分支）
             # 仅同会话可继续确认；其他会话不打扰
             if st.get("session_id") != session_id:
-                # 修复：会话不匹配 + 状态过期（>30分钟）→ 视为脏状态清理并继续路由
-                # （此前直接短路返回 False，导致精准遗忘在 webchat 中失效——评测残留状态污染）
-                _stale = True
-                try:
-                    from datetime import datetime
-                    _created = st.get("created_at") or ""
-                    if _created:
-                        _age = (datetime.now() - datetime.fromisoformat(_created)).total_seconds()
-                        _stale = _age > 300   # 5 分钟（确认流程 5 分钟内完成足够，超时视为脏状态）
-                except Exception:
-                    pass
-                if _stale:
+                # 会话不匹配：确认/取消/翻页等延续词不打扰他会话；若是一条全新的
+                # 删除请求（含删除动词+记忆/偏好语境）→ 清理旧状态并继续新流程，
+                # 避免“别的会话残留候选导致本会话删除请求被普通对话吞掉（LLM 幻觉声称删除）”。
+                _is_followup = any(w in msg for w in _CONFIRM_ALL_WORDS + _CANCEL_WORDS + _NEXT_PAGE_WORDS) \
+                    or re.search(r"第\s*\d+", msg)
+                _is_new_delete = (any(w in msg for w in ("删除", "删掉", "移除", "清除", "forget", "delete"))
+                                  and any(w in msg for w in ("记忆", "记住", "偏好", "那条", "这条")))
+                if _is_followup:
+                    return "", False
+                if _is_new_delete:
                     self._save_state({"active": False, "candidates": [],
                                       "keyword": "", "session_id": session_id,
                                       "created_at": st.get("created_at"),
-                                      "resolved_at": _now(), "resolution": "stale_cleared"})
+                                      "resolved_at": _now(), "resolution": "superseded"})
                 else:
                     return "", False
             else:
@@ -292,6 +290,13 @@ class ForgetFlow:
                         cleaned = [k for k in cleaned if k]
                         cleaned = _clean_kw_tokens(cleaned) or cleaned
                         return True, cleaned or self._extract_keywords(msg)
+                    # LLM 判非遗忘不直接放行：若规则明确命中「删除/移除 + 记忆/偏好」
+                    # 语境，仍进入遗忘流程（防止 LLM 漏判导致删除被普通对话吞掉）
+                    if any(w in msg for w in ("记忆", "记住", "偏好")) and any(
+                            w in msg for w in ("删除", "删掉", "清除", "移除", "抹除",
+                                               "remove", "delete", "forget")):
+                        kws = self._extract_keywords(msg)
+                        return True, _clean_kw_tokens(kws) or kws
                     return False, []
             except Exception:
                 pass  # LLM 失败 → 规则回退
@@ -459,14 +464,17 @@ class ForgetFlow:
                 match_ids = {str(i) for i in (obj.get("match_ids") or []) if str(i)}
         except Exception:
             pass  # LLM 失败 → 规则兜底（不误删：仅整词子串）
-        # LLM 未命中时的保守规则兜底：仅做整词子串匹配（防误删）
-        if not match_ids:
-            for it in all_items:
-                _tx = str(it.get("memory") or "")
-                for _kw in kws_clean or []:
-                    if len(_kw) >= 3 and _kw.lower() in _tx.lower():
-                        match_ids.add(str(it.get("id") or it.get("memory_id") or ""))
-                        break
+        # 规则预筛（与 LLM 审查结果取并集，保底不依赖 LLM 判定）：
+        # 记忆文本含任一关键词（>=2 字符子串；含英文别名扩展）即锁定为候选，
+        # 防止 LLM 漏判导致“删除请求找不到目标”或误引无关记忆。
+        _expanded_kws = self._expand_keywords(kws_clean) if hasattr(self, "_expand_keywords") else []
+        for it in all_items:
+            _tx = str(it.get("memory") or "")
+            for _kw in list(kws_clean) + list(_expanded_kws or []):
+                _k = str(_kw or "").strip()
+                if len(_k) >= 2 and _k.lower() in _tx.lower():
+                    match_ids.add(str(it.get("id") or it.get("memory_id") or ""))
+                    break
         merged: dict[str, dict] = {}
         for it in all_items:
             mid = it.get("id") or it.get("memory_id")
