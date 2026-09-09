@@ -442,6 +442,7 @@ HTML = r"""<!doctype html>
 <title>Kylin Mem · 麒麟记忆</title>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJz48cmVjdCB3aWR0aD0nMTAwJyBoZWlnaHQ9JzEwMCcgcng9JzIwJyBmaWxsPSclMjMxYTFhMWEnLz48dGV4dCB4PSc1MCcgeT0nNzInIGZvbnQtc2l6ZT0nNjQnIHRleHQtYW5jaG9yPSdtaWRkbGUnPvCfpJY8L3RleHQ+PC9zdmc+">
 <style>
   :root {
     --bg: #ffffff;
@@ -656,6 +657,23 @@ HTML = r"""<!doctype html>
   button#send:disabled { opacity: .45; cursor: not-allowed; transform: none; }
   .hint { max-width: 800px; margin: 8px auto 0; padding: 0 20px;
           font-size: 11.5px; color: var(--muted); }
+  /* ===== UX 增强 2026-09-09 ===== */
+  .gen-status{display:flex;align-items:center;gap:8px;max-width:800px;margin:0 auto 6px;padding:0 6px;font-size:12px;color:var(--muted);min-height:0;opacity:0;transition:opacity .18s;}
+  .gen-status.on{opacity:1}
+  .spinner{width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent-2);border-radius:50%;animation:spin .8s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #genStop{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:2px 10px;font-size:11.5px;cursor:pointer}
+  #genStop:hover{color:#c0392b;border-color:#c0392b}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px}
+  .chip{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:8px 15px;font-size:12.5px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--accent-2);transform:translateY(-1px)}
+  .ts{font-size:10px;color:var(--muted);margin-top:5px;text-align:right;opacity:.85}
+  .btn-retry{margin-top:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--text)}
+  .btn-retry:hover{border-color:var(--accent-2)}
+  .err-bubble .bubble{border-left:3px solid #c0392b}
+  .sess-search{width:calc(100% - 24px);margin:6px 12px 10px;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;box-sizing:border-box;outline:none}
+  @media (max-width:1200px){ aside.panel{display:none!important} }
+  @media (max-width:900px){ aside.sidebar{width:60px;overflow:hidden} aside.sidebar .brand,aside.sidebar .newchat,aside.sidebar .sess-list,aside.sidebar .sess-search{display:none} .main header .sub{display:none} }
 </style>
 </head>
 <body>
@@ -722,6 +740,7 @@ HTML = r"""<!doctype html>
     </div>
     <div class="brand">Kylin Mem<em> · 麒麟记忆</em></div>
     <div class="newchat" id="newChat">＋ 新会话</div>
+    <input class="sess-search" id="sessSearch" placeholder="🔍 搜索会话…">
     <div class="sess-list" id="sessList"></div>
   </aside>
   <div class="main">
@@ -738,16 +757,18 @@ HTML = r"""<!doctype html>
     <main><div class="wrap" id="messages">
       <div class="empty" id="empty">
         <h1>你好，我是麒麟记忆</h1>
-        
+        <p>我会记住你的偏好与常用配置，也能调用系统工具完成任务。</p>
+        <div class="chips" id="emptyChips"></div>
         <p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>
       </div>
     </div></main>
     <footer>
+      <div class="gen-status" id="genStatus"><span class="spinner"></span><span id="genText">思考中…</span><button id="genStop" style="display:none">停止</button></div>
       <div class="inputbar">
         <textarea id="input" rows="1" placeholder="输入消息…"></textarea>
         <button id="send">发送</button>
       </div>
-      <div class="hint">Enter 发送 · Shift+Enter 换行</div>
+      <div class="hint">Enter 发送 · Shift+Enter 换行 · 支持 Markdown</div>
     </footer>
   </div>
   <aside class="panel" id="sidePanel" style="display:none;">
@@ -804,6 +825,38 @@ const mdOpts = { breaks: true, gfm: true };
 let history = [];
 try { history = JSON.parse(localStorage.getItem(histKey()) || '[]'); } catch (e) { history = []; }
 let busy = false;
+let lastUserText = '';
+let genTimer = null, genT0 = 0, genAborter = null;
+const $id = (i) => document.getElementById(i);
+function statusOn(label) {
+  genT0 = Date.now();
+  const s = $id('genStatus');
+  if (s) s.classList.add('on');
+  const stop = $id('genStop'); if (stop) stop.style.display = '';
+  clearInterval(genTimer);
+  genTimer = setInterval(() => {
+    const el = $id('genText');
+    if (el) el.textContent = (label || '思考中') + '（' + Math.round((Date.now() - genT0) / 1000) + 's）';
+  }, 1000);
+}
+function statusOff() {
+  clearInterval(genTimer); genTimer = null; genT0 = 0;
+  const s = $id('genStatus'); if (s) s.classList.remove('on');
+  const stop = $id('genStop'); if (stop) stop.style.display = 'none';
+}
+function removeEmpty() { const e = $id('empty'); if (e) e.remove(); }
+const CHIPS = ['检查一下当前系统状态', '记住我的偏好：回复先给结论再给依据', '列出我可以用哪些工具'];
+function renderChips(host) {
+  const box = host || $id('emptyChips');
+  if (!box) return;
+  box.innerHTML = '';
+  CHIPS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = c;
+    b.onclick = () => { input.value = c; submit(); };
+    box.appendChild(b);
+  });
+}
 // token 支持: URL ?token= 或 localStorage，之后所有请求自动携带
 const API_TOKEN = new URLSearchParams(location.search).get('token')
   || localStorage.getItem('aichat_token_v1') || '';
@@ -831,8 +884,8 @@ function renderMd(el, text) {
   }
 }
 
-function addRow(role, text) {
-  if (empty && role === 'user') empty.remove();
+function addRow(role, text, ts) {
+  const _emp = $id('empty'); if (_emp) _emp.remove();
   const row = document.createElement('div');
   row.className = 'row ' + (role === 'user' ? 'user' : 'assistant');
   const who = document.createElement('div');
@@ -884,11 +937,27 @@ function addRow(role, text) {
     bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
     bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
     bDel.onclick = () => deleteMessage(row, text);
+    const bReg = mk('重新生成', '↻');
+    bReg.onclick = () => {
+      const i = [...msgs.children].indexOf(row);
+      if (i !== msgs.children.length - 1) { alert('只能重新生成最后一条 AI 回复'); return; }
+      if (!history.length || history[history.length - 1].role !== 'assistant') return;
+      history.pop(); save(); row.remove();
+      const prev = history[history.length - 1];
+      if (prev && prev.role === 'user') submit(prev.text, true);
+    };
+    acts.appendChild(bReg);
     acts.appendChild(bCopy);
     acts.appendChild(bUp);
     acts.appendChild(bDown);
     acts.appendChild(bDel);
     bubble.appendChild(acts);
+  }
+  if (ts) {
+    const tt = document.createElement('div');
+    tt.className = 'ts';
+    tt.textContent = new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    bubble.appendChild(tt);
   }
   row.appendChild(who);
   row.appendChild(bubble);
@@ -957,6 +1026,49 @@ function renderConfirmCard(md, req, originalText) {
   };
 }
 
+function attachAssistantMeta(row, text, ts) {
+  const bubble = row.querySelector('.bubble');
+  if (!bubble) return;
+  const acts = document.createElement('div');
+  acts.className = 'msg-actions';
+  const key = 'fb_' + sessionId + '_' + (history.length);
+  const saved = localStorage.getItem(key);
+  const mk = (label, icon) => {
+    const b = document.createElement('button');
+    b.textContent = icon; b.title = label; b.dataset.v = label;
+    if (saved === label) b.classList.add('voted');
+    return b;
+  };
+  const bCopy = mk('复制', '📋');
+  const bUp = mk('有用', '👍');
+  const bDown = mk('没用', '👎');
+  const bDel = mk('删除', '🗑');
+  const bReg = mk('重新生成', '↻');
+  bCopy.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); bCopy.textContent = '✅';
+      setTimeout(() => { bCopy.textContent = '📋'; }, 1200); } catch (e) {}
+  };
+  bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
+  bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
+  bDel.onclick = () => deleteMessage(row, text);
+  bReg.onclick = () => {
+    const i = [...msgs.children].indexOf(row);
+    if (i !== msgs.children.length - 1) { alert('只能重新生成最后一条 AI 回复'); return; }
+    if (!history.length || history[history.length - 1].role !== 'assistant') return;
+    history.pop(); save(); row.remove();
+    const prev = history[history.length - 1];
+    if (prev && prev.role === 'user') submit(prev.text, true);
+  };
+  acts.appendChild(bReg); acts.appendChild(bCopy);
+  acts.appendChild(bUp); acts.appendChild(bDown); acts.appendChild(bDel);
+  bubble.appendChild(acts);
+  if (ts) {
+    const tt = document.createElement('div');
+    tt.className = 'ts';
+    tt.textContent = new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    bubble.appendChild(tt);
+  }
+}
 function streamInto(md, text) {
   return new Promise(resolve => {
     let i = 0;
@@ -975,76 +1087,116 @@ function streamInto(md, text) {
   });
 }
 
-async function submit() {
-  const text = input.value.trim();
+async function submit(resendText, keepUser) {
+  const text = (resendText !== undefined ? String(resendText) : input.value).trim();
   if (!text || busy) return;
   busy = true;
   send.disabled = true;
-  input.value = '';
-  input.style.height = 'auto';
-  clearDraft();                        // 已发送，清除草稿
-
-  history.push({ role: 'user', text });
-  addRow('user', text);
-  save();
-
+  lastUserText = text;
+  if (resendText === undefined) {
+    input.value = '';
+    input.style.height = 'auto';
+    clearDraft();
+  }
+  if (!keepUser) {
+    history.push({ role: 'user', text, ts: Date.now() });
+    addRow('user', text, Date.now());
+    save();
+  }
+  removeEmpty();
   const row = document.createElement('div');
   row.className = 'row assistant';
   row.innerHTML = '<div class="who">AI</div><div class="bubble"><div class="md"></div></div>';
   msgs.appendChild(row);
   scrollBottom();
   const md = row.querySelector('.md');
-  const cursor = document.createElement('span');
-  cursor.className = 'cursor';
-  md.appendChild(cursor);
-
+  statusOn('思考中');
+  const ac = new AbortController();
+  genAborter = ac;
+  const stopBtn = $id('genStop');
+  if (stopBtn) { stopBtn.style.display = ''; stopBtn.onclick = () => { try { ac.abort(); } catch (e) {} }; }
+  let reply = '';
   try {
-    // ---- 普通非流式回复 ----
-    // 超时保护：LLM 生成慢/挂起时 90s 后放弃并恢复 UI（防 busy 永久卡住）
-    const r = await fetch('/api/chat', {
-      method: 'POST',
-      headers: apiHeaders,
-      body: JSON.stringify({ message: text, session_id: sessionId }),
-      signal: AbortSignal.timeout(90000),
-    });
-    const data = await r.json();
-    cursor.remove();
-    const reply = data.reply || '(无回复)';
-    // ---- 工具确认卡片（dsh ask 模式）----
+    // 流式：/api/chat/stream（服务端生成完成后分块下发；失败自动回退非流式）
+    let resp;
+    try {
+      resp = await fetch('/api/chat/stream', {
+        method: 'POST', headers: apiHeaders,
+        body: JSON.stringify({ message: text, session_id: sessionId }),
+        signal: ac.signal,
+      });
+    } catch (e) { throw e; }
+    if (!resp || !resp.ok || !resp.body) throw new Error('HTTP ' + (resp && resp.status));
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let streamFinished = false;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let ix;
+      while ((ix = buf.indexOf('\n\n')) >= 0) {
+        const ev = buf.slice(0, ix); buf = buf.slice(ix + 2);
+        const line = ev.split('\n').find(l => l.startsWith('data:'));
+        if (!line) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === '[DONE]') continue;
+        try {
+          const obj = JSON.parse(payload);
+          if (obj.chunk !== undefined) { reply += obj.chunk; renderMd(md, reply); scrollBottom(); statusOn('生成中'); }
+          if (obj.done) { streamFinished = true; break; }
+        } catch (e2) { /* 忽略坏帧 */ }
+      }
+      if (streamFinished) break;   // keep-alive 连接不会 EOF：收到 done 即停止读取
+    }
+    try { ac.abort(); } catch (e3) {}   // 释放 keep-alive 连接
+    if (!reply) throw new Error('无回复');
     const cm = reply.match(/\[TOOL_CONFIRM\] (\{.*\})/);
     if (cm) {
       try {
         const req = JSON.parse(cm[1]);
         renderConfirmCard(md, req, reply);
-        history.push({ role: 'assistant', text: '⚠️ 请求确认执行工具 ' + req.tool });
+        history.push({ role: 'assistant', text: '⚠️ 请求确认执行工具 ' + req.tool, ts: Date.now() });
         save();
         return;
-      } catch (e2) {}
+      } catch (e3) {}
     }
-    renderMd(md, reply);
-    history.push({ role: 'assistant', text: reply });
+    attachAssistantMeta(row, reply, Date.now());
+    history.push({ role: 'assistant', text: reply, ts: Date.now() });
     save();
   } catch (e) {
-    cursor.remove();
-    if (e && e.name === 'TimeoutError') {
-      renderMd(md, '**请求超时**（90 秒无响应），请重试或检查 LLM 配置');
+    if (stopBtn) stopBtn.style.display = 'none';
+    if (e && e.name === 'AbortError') {
+      renderMd(md, '**已停止**（本次回复未生成完，可点击重试或重新发送）。');
+      history.push({ role: 'assistant', text: '（已停止）', ts: Date.now() });
+      save();
     } else {
-      renderMd(md, '**请求失败**：' + e);
+      row.classList.add('err-bubble');
+      renderMd(md, '**请求失败**：' + (e && e.message ? e.message : e));
+      const b = document.createElement('button');
+      b.className = 'btn-retry'; b.textContent = '↻ 重试';
+      b.onclick = () => { row.remove(); busy = false; send.disabled = false; submit(lastUserText); };
+      md.appendChild(b);
     }
   } finally {
+    if (stopBtn) stopBtn.style.display = 'none';
+    statusOff();
+    genAborter = null;
     busy = false;
     send.disabled = false;
-    input.focus();
+    if (!keepUser) input.focus();
   }
 }
 
 function restore() {
   if (!history.length) return;
   empty.remove();
-  history.forEach(m => addRow(m.role, m.text));
+  history.forEach(m => addRow(m.role, m.text, m.ts));
   scrollBottom();
 }
 restore();
+renderChips();
 
 // ---- CODEX 风格：会话侧栏 + 右侧面板 ----
 function renderHistory() {
@@ -1052,10 +1204,11 @@ function renderHistory() {
   if (!history.length) {
     const d = document.createElement('div');
     d.className = 'empty'; d.id = 'empty';
-    d.innerHTML = '<h1>你好，我是麒麟记忆</h1><p>我会记住你的偏好与常用配置。</p><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
+    d.innerHTML = '<h1>你好，我是麒麟记忆</h1><p>我会记住你的偏好与常用配置，也能调用系统工具完成任务。</p><div class="chips" id="emptyChips"></div><p>Enter 发送 · Shift+Enter 换行 · 支持 Markdown</p>';
     msgs.appendChild(d);
+    renderChips();
   } else {
-    history.forEach(m => addRow(m.role, m.text));
+    history.forEach(m => addRow(m.role, m.text, m.ts));
   }
   scrollBottom();
 }
@@ -1079,6 +1232,12 @@ function switchSession(sid) {
   renderHistory();
   refreshSessions();
   loadDraft(sid);                     // 加载目标会话草稿
+}
+function applySessFilter() {
+  const q = (($id('sessSearch') || {}).value || '').trim().toLowerCase();
+  document.querySelectorAll('.sess-item').forEach(el => {
+    el.style.display = (!q || (el.textContent || '').toLowerCase().includes(q)) ? '' : 'none';
+  });
 }
 async function refreshSessions() {
   try {
@@ -1104,6 +1263,7 @@ async function refreshSessions() {
       el.querySelector('.delBtn').onclick = (e) => { e.stopPropagation(); deleteSession(s.session_id); };
       list.appendChild(el);
     });
+    applySessFilter();
   } catch (e) {}
 }
 async function deleteSession(sid) {
@@ -1222,7 +1382,10 @@ function applyPanelPref() {
   if (btn) { btn.style.opacity = show ? '1' : '0.45'; btn.title = show ? '隐藏记忆与工具面板' : '显示记忆与工具面板'; }
   if (show) refreshPanels();
 }
-setInterval(refreshPanels, 4000);
+function refreshPanelsSafe() { if (busy || document.hidden) return; refreshPanels(); }
+setInterval(refreshPanelsSafe, 4000);
+refreshPanelsSafe();
+(() => { const ss = $id('sessSearch'); if (ss) ss.addEventListener('input', applySessFilter); })();
 // ---- 模型配置（默认麒麟 SDK，可切自定义 API）----
 // ---- 语言（中文/English，仿 dsh locale）----
 const I18N = {
@@ -1241,7 +1404,10 @@ const LANG = 'zh';  // 取消中英切换：固定中文
 function t(key) { return ((I18N[key] || {})[LANG] || (I18N[key] || {}).zh || key); }
 function renderEmptyMsg() {
   const e = document.getElementById('empty');
-  if (e) e.innerHTML = '<h1>' + t('welcome') + '</h1><p>' + t('welcomeSub') + '</p><p>' + t('hint') + '</p>';
+  if (!e) return;
+  e.innerHTML = '<h1>你好，我是麒麟记忆</h1><p>我会记住你的偏好与常用配置，也能调用系统工具完成任务。</p>' +
+                '<div class="chips" id="emptyChips"></div><p>' + t('hint') + '</p>';
+  renderChips();
 }
 function applyLang() {
   document.getElementById('send').textContent = t('send');
@@ -1537,7 +1703,7 @@ document.getElementById('panelToggle').onchange = (e) => {
 };
 
 loadBanner();
-send.onclick = submit;
+send.onclick = () => { submit(); };
 input.addEventListener('keydown', e => {
   // IME 输入法保护：中文输入法组词时按 Enter 确认候选（isComposing/keyCode 229）不应发送
   if (e.isComposing || e.keyCode === 229) return;
@@ -1568,23 +1734,23 @@ document.getElementById('clear').onclick = () => {
 document.getElementById('clearMem').onclick = () => {
   document.getElementById('clearMemModal').style.display = 'flex';
 };
-document.getElementById('clearMemCancel').onclick = () => {
-  document.getElementById('clearMemModal').style.display = 'none';
-};
-document.getElementById('clearMemModal').onclick = (e) => {
-  if (e.target === document.getElementById('clearMemModal'))
-    document.getElementById('clearMemModal').style.display = 'none';
-};
-document.getElementById('clearMemConfirm').onclick = async () => {
-  try {
-    await fetch('/api/mem/clear', { method: 'POST', headers: apiHeaders });
-    alert('已清空 AI 关于你的记忆');
-    refreshPanels();   // 刷新记忆/工具面板（若开启）
-  } catch (e) {
-    alert('清空记忆失败: ' + e);
-  }
-  document.getElementById('clearMemModal').style.display = 'none';
+window.addEventListener('DOMContentLoaded', () => {
+  const _m = document.getElementById('clearMemModal');
+  const _cancel = document.getElementById('clearMemCancel');
+  const _confirm = document.getElementById('clearMemConfirm');
+  if (_cancel) _cancel.onclick = () => { if (_m) _m.style.display = 'none'; };
+  if (_m) _m.onclick = (e) => { if (e.target === _m) _m.style.display = 'none'; };
+  if (_confirm) _confirm.onclick = async () => {
+    try {
+      await fetch('/api/mem/clear', { method: 'POST', headers: apiHeaders });
+      alert('已清空 AI 关于你的记忆');
+      refreshPanels();
+    } catch (e) {
+      alert('清空记忆失败: ' + e);
+    }
+    if (_m) _m.style.display = 'none';
   };
+});
 </script>
 <div class="banner-modal" id="clearMemModal">
   <div class="banner-modal-box" style="width:320px;">
