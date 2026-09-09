@@ -29,10 +29,11 @@ from src.memory_engine.strict.store import StrictMemoryEngineStore
 from src.toolkit.base import ToolResult, ToolStatus, RiskLevel
 
 # ── Constants ──
-BENCHMARK_DIR = Path(os.path.expanduser("~/work/projects/project_dev1/_benchmark"))
-TEST_DB = Path(os.path.expanduser("~/.nex-agent/_bench_phase1.db"))
-RESULTS_JSON = Path(os.path.expanduser("~/work/projects/project_dev1/_bench_phase1_results.json"))
-PREDICTIONS_CSV = Path(os.path.expanduser("~/work/projects/project_dev1/_bench_phase1_predictions.csv"))
+_BENCH = Path(__file__).resolve().parent
+BENCHMARK_DIR = _BENCH
+TEST_DB = _BENCH / "_bench_phase1.db"
+RESULTS_JSON = _BENCH / "_bench_phase1_results.json"
+PREDICTIONS_CSV = _BENCH / "_bench_phase1_predictions.csv"
 
 
 # ═══════════════════════════════════════════════════════

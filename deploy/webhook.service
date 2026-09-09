@@ -1,3 +1,4 @@
+# 部署模板：安装时请将 <PROJECT_ROOT> 替换为实际项目绝对路径（本文件不含机器专属路径）
 [Unit]
 Description=GitHub Webhook auto-update for webchat (dev1)
 After=network-online.target
@@ -6,9 +7,9 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=kylin
-WorkingDirectory=/home/kylin/work/projects/kylin-mem
+WorkingDirectory=<PROJECT_ROOT>
 EnvironmentFile=/etc/webhook.env
-ExecStart=/usr/bin/python3 /home/kylin/work/projects/kylin-mem/deploy/webhook_server.py 9000
+ExecStart=/usr/bin/python3 <PROJECT_ROOT>/deploy/webhook_server.py 9000
 Restart=always
 RestartSec=5
 

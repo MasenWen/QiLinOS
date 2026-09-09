@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """评测2 最小验证：30 query embedding 精排"""
 import csv, os, random, re, sys, time
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
-os.chdir("/home/kylin/work/projects/project_dev1")
+import os as _os
+sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.memory_engine.strict.retrieval import _bm25
 from src.memory.kylin_embedder import KylinEmbedder
 

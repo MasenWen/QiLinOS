@@ -37,7 +37,7 @@ Phase 1 数据流合并已实测通过，但语义检索此前因 `KylinEmbedder
 | **服务器** | 阿里云 ECS（`120.76.241.252`，SSH 别名 `kylin`） |
 | **操作系统** | Kylin Linux V11（openKylin） |
 | **Python** | 3.12.3 |
-| **项目路径** | `~/work/projects/project_dev1` |
+| **项目路径** | `~/work/projects/QiLinOS` |
 | **核心代码** | `src/memory_engine/embedding_service.py`（EmbeddingService）、`src/memory_engine/strict/kylin.py`（KylinSDKSemanticScorer）、`src/memory_engine/strict/engine.py`（StrictMemoryEngine） |
 
 ---

@@ -37,7 +37,7 @@ done
 # ============================================================
 if [ "$DO_PACK" = "1" ]; then
     DATE="$(date +%Y%m%d)"
-    OUT="/home/kylin/kylin-mem-release-${DATE}.tar.gz"
+    OUT="$HOME/kylin-mem-release-${DATE}.tar.gz"
     TMP="$(mktemp -d)"
     STAGE="$TMP/kylin-mem"
     echo "==> 打包模式：源码 + 记忆数据"

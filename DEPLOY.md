@@ -93,7 +93,7 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 sudo cp deploy/webchat.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now webchat
-# 崩溃自动重启（Restart=always）；日志在 project_dev1/webchat.log
+# 崩溃自动重启（Restart=always）；日志在 QiLinOS/webchat.log
 ```
 
 ## 六、验证清单

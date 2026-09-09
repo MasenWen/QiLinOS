@@ -3,8 +3,9 @@
 import csv, os, re, sys
 from collections import Counter, defaultdict
 
-sys.path.insert(0, "/home/kylin/work/projects/project_dev1")
-os.chdir("/home/kylin/work/projects/project_dev1")
+import os as _os
+sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.memory_engine.strict.retrieval import _bm25
 from src.memory_engine.tag_pipeline import TagClassifier
