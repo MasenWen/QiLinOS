@@ -343,18 +343,6 @@ class Mem0Store:
 
 mem0_store = Mem0Store()
 
-# # 消除 QdrantClient.__del__ 在 Python 退出时的报错
-# # 根因: qdrant-client 本地模式在 close() 中 import portalocker，
-# # 但 Python 退出时 import 机制已卸载 → ImportError
-# # 解决: atexit 中提前关闭（此时 import 仍可用），然后禁用 __del__
-# import atexit
-# from qdrant_client import QdrantClient
-# _qdrant_del = QdrantClient.__del__
-# QdrantClient.__del__ = lambda self: None  # 禁用自动清理
-#
-# def _cleanup():
-#     try:
-#         _qdrant_del(mem0_store._memory.vector_store.client)
-#     except Exception:
-#         pass
-# atexit.register(_cleanup)
+# 退出期说明（历史）：qdrant-client 本地模式在解释器退出时 close() 内 import
+# portalocker 会报 ImportError。曾用 atexit 提前 close 并禁用 __del__ 处理，
+# 现不再启用该补丁（做法见 git 历史）；如需处置退出报错，请在服务停止流程显式 close。

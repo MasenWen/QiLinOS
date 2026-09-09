@@ -10,10 +10,7 @@ EmbedderFactory.provider_to_class["local_onnx"] = (
     "src.memory.onnx_embedder.OnnxEmbedder"
 )
 
-# 新增这一行
-# EmbedderFactory.provider_to_class["gte_zh_onnx"] = (
-#     "src.memory.gte_zh_embedder.GteZhOnnxEmbedder"
-# )
+# （历史登记示例：gte_zh_onnx 曾按 dict 赋值方式注册，现以本地 local_onnx 为主）
 
 # 麒麟向量数据库适配器（provider 名 kylin_vectordb 由 KylinMem0Adapter 实现）
 VectorStoreFactory.provider_to_class["kylin_vectordb"] = (
