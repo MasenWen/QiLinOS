@@ -24,6 +24,7 @@ _PII_PATTERNS = [
     # API keys (common prefixes)
     (re.compile(r'sk-[A-Za-z0-9_-]{20,}'), '[API_KEY]'),
     (re.compile(r'ghp_[A-Za-z0-9]{20,}'), '[API_KEY]'),
+    # 裸令牌字面量（如 TEST-TOKEN-000000）：无 key= 赋值形式也需脱敏
     (re.compile(r'(?:\bTEST-)?TOKEN[-_][A-Za-z0-9_-]{3,}\b', re.IGNORECASE), '[TOKEN]'),
     # Passwords in key=value form
     (re.compile(r'(?:password|passwd|pwd)\s*[=:：]\s*\S+', re.IGNORECASE), '[SECRET]'),

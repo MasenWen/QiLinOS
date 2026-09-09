@@ -48,6 +48,7 @@ _NEXT_PAGE_WORDS = ("下一页", "下页", "更多", "继续", "next", "下一�
 # 批量关键词分隔符
 _KEYWORD_SPLIT_RE = re.compile(r"[和与及跟、,，/以及]+")
 
+# —— 遗忘关键词深度清洗：剥离口语头尾与标点，避免整句关键词导致匹配失败 ——
 _GENERIC_KW = {
     "我", "你", "他", "她", "它", "的", "了", "着", "这条", "那条", "刚才",
     "之前", "以前", "现在", "那些", "这些", "所有", "全部", "相关", "内容",
@@ -59,6 +60,7 @@ _KW_HEAD_GEN = ("这条", "那条", "刚才", "之前", "以前", "我的", "关
                 "所有", "全部", "那些", "这些", "之前设定", "此前设定")
 
 
+# 路由出口统一清洗：按空白/标点拆词 → 剥头尾通用词（我/关于/这条/偏好等）→ 去纯通用词
 def _clean_kw_tokens(keywords) -> list:
     """关键词深度清洗：按空白/标点拆词、去头尾通用词与标点、去纯通用词。"""
     out: list[str] = []
@@ -418,7 +420,8 @@ class ForgetFlow:
             all_items = store.list_all(top_k=300) or []
         except Exception:
             all_items = []
-        # 合并 strict 引擎库（偏好/事实主库，smem-*）：mem0 侧可能为空导致漏检
+        # 合并 strict 引擎库（偏好/事实主库 smem-*）：遗忘流程此前只查 mem0，
+        # 而真实偏好/事实在 strict 库 → 导致“删除…偏好”永远找不到候选。
         try:
             from webchat import _get_memory_engine
             _eng = _get_memory_engine()
@@ -456,6 +459,7 @@ class ForgetFlow:
                 match_ids = {str(i) for i in (obj.get("match_ids") or []) if str(i)}
         except Exception:
             pass  # LLM 失败 → 规则兜底（不误删：仅整词子串）
+        # LLM 未命中时的保守规则兜底：仅做整词子串匹配（防误删）
         if not match_ids:
             for it in all_items:
                 _tx = str(it.get("memory") or "")

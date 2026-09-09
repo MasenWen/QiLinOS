@@ -825,9 +825,11 @@ const mdOpts = { breaks: true, gfm: true };
 let history = [];
 try { history = JSON.parse(localStorage.getItem(histKey()) || '[]'); } catch (e) { history = []; }
 let busy = false;
+// ===== 交互增强（2026-09-09）：等待反馈 / 快捷示例 / 通用工具 =====
 let lastUserText = '';
 let genTimer = null, genT0 = 0, genAborter = null;
 const $id = (i) => document.getElementById(i);
+// 生成中状态条：实时显示已等待秒数，提供“停止”（中止本次 fetch）
 function statusOn(label) {
   genT0 = Date.now();
   const s = $id('genStatus');
@@ -846,6 +848,7 @@ function statusOff() {
 }
 function removeEmpty() { const e = $id('empty'); if (e) e.remove(); }
 const CHIPS = ['检查一下当前系统状态', '记住我的偏好：回复先给结论再给依据', '列出我可以用哪些工具'];
+// 空态快捷示例：点按即填入输入框并发送，降低首轮使用门槛
 function renderChips(host) {
   const box = host || $id('emptyChips');
   if (!box) return;
@@ -937,6 +940,7 @@ function addRow(role, text, ts) {
     bUp.onclick = () => { localStorage.setItem(key, '👍'); bUp.classList.add('voted'); bDown.classList.remove('voted'); };
     bDown.onclick = () => { localStorage.setItem(key, '👎'); bDown.classList.add('voted'); bUp.classList.remove('voted'); };
     bDel.onclick = () => deleteMessage(row, text);
+    // 重新生成：仅允许最后一条 AI 回复；移除该条后复用其上一条用户输入重发
     const bReg = mk('重新生成', '↻');
     bReg.onclick = () => {
       const i = [...msgs.children].indexOf(row);
@@ -953,6 +957,7 @@ function addRow(role, text, ts) {
     acts.appendChild(bDel);
     bubble.appendChild(acts);
   }
+  // 消息时间戳（HH:MM）
   if (ts) {
     const tt = document.createElement('div');
     tt.className = 'ts';
@@ -1026,6 +1031,8 @@ function renderConfirmCard(md, req, originalText) {
   };
 }
 
+// 给流式生成的 AI 行补挂操作按钮（↻重新生成/复制/👍👎/删除）与时间戳。
+// 直接挂到现有气泡上而不重建 DOM，避免打断正在进行的流式渲染。
 function attachAssistantMeta(row, text, ts) {
   const bubble = row.querySelector('.bubble');
   if (!bubble) return;
@@ -1062,6 +1069,7 @@ function attachAssistantMeta(row, text, ts) {
   acts.appendChild(bReg); acts.appendChild(bCopy);
   acts.appendChild(bUp); acts.appendChild(bDown); acts.appendChild(bDel);
   bubble.appendChild(acts);
+  // 消息时间戳（HH:MM）
   if (ts) {
     const tt = document.createElement('div');
     tt.className = 'ts';
@@ -1087,6 +1095,8 @@ function streamInto(md, text) {
   });
 }
 
+// 发送消息主流程：SSE 分块接收（/api/chat/stream）逐块渲染；
+// 失败给“重试”；工具调用以确认卡方式二次确认。
 async function submit(resendText, keepUser) {
   const text = (resendText !== undefined ? String(resendText) : input.value).trim();
   if (!text || busy) return;
@@ -1110,6 +1120,7 @@ async function submit(resendText, keepUser) {
   msgs.appendChild(row);
   scrollBottom();
   const md = row.querySelector('.md');
+  // ① 等待反馈：LLM 生成期 8~90s，不再“静默转圈”（状态条计时 + 可停止）
   statusOn('思考中');
   const ac = new AbortController();
   genAborter = ac;
@@ -1127,6 +1138,8 @@ async function submit(resendText, keepUser) {
       });
     } catch (e) { throw e; }
     if (!resp || !resp.ok || !resp.body) throw new Error('HTTP ' + (resp && resp.status));
+    // ② SSE 解析：服务端 keep-alive 不会主动发 EOF——
+    //    收到 {done:true} 后必须停读并 abort 释放连接，否则 UI 会永远卡在等待。
     const reader = resp.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
@@ -1152,6 +1165,7 @@ async function submit(resendText, keepUser) {
     }
     try { ac.abort(); } catch (e3) {}   // 释放 keep-alive 连接
     if (!reply) throw new Error('无回复');
+    // ③ 工具确认：整段回复含确认请求时改渲染确认卡（批准/拒绝 → /api/tool/confirm）
     const cm = reply.match(/\[TOOL_CONFIRM\] (\{.*\})/);
     if (cm) {
       try {
@@ -1162,6 +1176,7 @@ async function submit(resendText, keepUser) {
         return;
       } catch (e3) {}
     }
+    // ⑤ 成功：给流式行挂操作按钮与时间戳，并写入本地历史
     attachAssistantMeta(row, reply, Date.now());
     history.push({ role: 'assistant', text: reply, ts: Date.now() });
     save();
@@ -1172,6 +1187,7 @@ async function submit(resendText, keepUser) {
       history.push({ role: 'assistant', text: '（已停止）', ts: Date.now() });
       save();
     } else {
+      // ④ 失败路径：错误气泡 + 重试按钮（复用上一句用户输入重新发送）
       row.classList.add('err-bubble');
       renderMd(md, '**请求失败**：' + (e && e.message ? e.message : e));
       const b = document.createElement('button');
@@ -1382,6 +1398,8 @@ function applyPanelPref() {
   if (btn) { btn.style.opacity = show ? '1' : '0.45'; btn.title = show ? '隐藏记忆与工具面板' : '显示记忆与工具面板'; }
   if (show) refreshPanels();
 }
+// 记忆/工具面板刷新守卫：对话中或页面隐藏时暂停 4s 轮询，
+// 避免每 4 秒全量重绘抢走焦点/滚动（删除记忆后由事件触发即时刷新）。
 function refreshPanelsSafe() { if (busy || document.hidden) return; refreshPanels(); }
 setInterval(refreshPanelsSafe, 4000);
 refreshPanelsSafe();
@@ -1734,6 +1752,8 @@ document.getElementById('clear').onclick = () => {
 document.getElementById('clearMem').onclick = () => {
   document.getElementById('clearMemModal').style.display = 'flex';
 };
+// clearMem 弹窗的标记位于 </script> 之后：脚本执行时元素还不存在，
+// 直接绑定会抛 null onclick 并中断后续脚本 → 改等 DOMContentLoaded 再绑定。
 window.addEventListener('DOMContentLoaded', () => {
   const _m = document.getElementById('clearMemModal');
   const _cancel = document.getElementById('clearMemCancel');
