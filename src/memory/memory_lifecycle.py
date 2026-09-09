@@ -5,9 +5,9 @@
   第6层: 时间老化 — 记忆 stale(30天) → archive(90天)
 
 存储:
-  中期: ~/.nex-agent/mem0_vectordb.db
-  长期: ~/.nex-agent/mem0_longterm.db
-  归档: ~/.nex-agent/mem0_archive.db
+  中期: kylin-ai-vector-engine / mem0_memories
+  长期: kylin-ai-vector-engine / mem0_longterm
+  归档: kylin-ai-vector-engine / mem0_archive
 """
 import os
 import time
@@ -24,8 +24,8 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-LONG_TERM_PATH = os.path.expanduser("~/.nex-agent/mem0_longterm.db")
-ARCHIVE_PATH = os.path.expanduser("~/.nex-agent/mem0_archive.db")
+LONG_TERM_PATH = os.path.expanduser("~/.nex-agent/mem0_longterm_engine")
+ARCHIVE_PATH = os.path.expanduser("~/.nex-agent/mem0_archive_engine")
 THRESHOLD = 10
 STALE_DAYS = 30
 ARCHIVE_DAYS = 90

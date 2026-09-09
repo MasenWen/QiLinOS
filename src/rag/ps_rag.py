@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
-LightRAG + PostgreSQL 完整方案演示脚本
-使用PostgreSQL双扩展架构：
-- 图数据: PostgreSQL AGE扩展（图数据库）
-- 向量数据: PostgreSQL vector扩展（向量数据库）
-- 统一存储: 所有数据存储在PostgreSQL中
-- 实现完整的RAG + 图推理功能
+LightRAG + Kylin AI vector engine integration.
+
+图数据仍使用 LightRAG 本地图结构；向量数据通过系统
+kylin-ai-vector-engine 服务存储和检索。
 """
 import asyncio
 import os
@@ -30,6 +28,7 @@ from datetime import datetime  # 添加这个导入
 
 # 麒麟 AI SDK 文本向量化 — 原生 C API (ctypes)
 from src.rag.kylin_embedding_sdk import kylin_sdk_embedding_func, get_kylin_embedder
+from src.memory.kylin_vector_engine_client import open_kylin_vector_client
 
 setup_logger("ps_rag", level="INFO")
 
@@ -214,9 +213,14 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
     # ================================================================
 
 async def initialize_rag() -> LightRAG:
-    # 麒麟向量数据库 — pymilvus 嵌入式模式
-    os.environ["MILVUS_URI"] = os.path.expanduser(
-        "~/.nex-agent/rag_vectordb.db")
+    # 麒麟向量数据库 SDK 会先加载本地 DB 文件。
+    # LightRAG 的 MilvusVectorDBStorage 仍保留原接口，后续可替换为专用 storage adapter。
+    rag_vector_db = os.path.expanduser("~/.nex-agent/rag_vector_engine.db")
+    os.environ["NEX_AGENT_KYLIN_VECTOR_DB_FILE"] = os.getenv(
+        "NEX_AGENT_KYLIN_VECTOR_DB_FILE",
+        rag_vector_db,
+    )
+    open_kylin_vector_client(path=rag_vector_db)
 
     rag = LightRAG(
         working_dir=WORKING_DIR,
@@ -533,7 +537,8 @@ class RAG_PS:
                     'vector_storage': 'MilvusVectorDBStorage',
                     'doc_status_storage': 'JsonDocStatusStorage'
                 },
-                'vector_db_path': os.path.expanduser('~/.nex-agent/rag_vectordb.db'),
+                'vector_db_sdk': 'libkysdk-vector-engine-client',
+                'vector_db_file': os.path.expanduser('~/.nex-agent/rag_vector_engine.db'),
                 'database_info': {
                 },
                 'entity_types': FORM_FILLER_ENTITY_TYPES,

@@ -1,4 +1,4 @@
-"""Mem0 记忆存储 — 麒麟 Embedding + 本地 Qdrant"""
+"""Mem0 memory store: Kylin Embedding SDK + Kylin vector engine."""
 import os
 from mem0 import Memory
 from mem0.configs.base import MemoryConfig
@@ -30,7 +30,7 @@ _config_dict = {
         "config": {
             "collection_name": "mem0_memories",
             "embedding_model_dims": 768,
-            "path": os.path.expanduser("~/.nex-agent/mem0_vectordb.db"),
+            "path": os.path.expanduser("~/.nex-agent/mem0_vector_engine"),
             "on_disk": True,
         },
     },

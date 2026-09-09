@@ -1,17 +1,16 @@
-"""
-Mem0 VectorStoreBase 适配器 — 后端使用麒麟向量数据库 (Milvus-Lite 嵌入式)
-"""
+"""Mem0 VectorStoreBase adapter backed by Kylin AI vector engine."""
 import logging
 import os
 from typing import Dict, Optional
 
 from pydantic import BaseModel
-from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
 from mem0.vector_stores.base import VectorStoreBase
+
+from src.memory.kylin_vector_engine_client import open_kylin_vector_client
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH = os.path.expanduser("~/.nex-agent/mem0_vectordb.db")
+DEFAULT_DB_PATH = os.path.expanduser("~/.nex-agent/mem0_vector_engine")
 
 
 class OutputData(BaseModel):
@@ -21,13 +20,14 @@ class OutputData(BaseModel):
 
 
 class KylinMem0Adapter(VectorStoreBase):
-    """Mem0 向量存储 — 麒麟向量数据库后端"""
+    """Mem0 vector store using the Kylin system vector database."""
 
     def __init__(self, collection_name: str, embedding_model_dims: int, **kwargs):
         db_path = kwargs.get("path", DEFAULT_DB_PATH)
+        uri = kwargs.get("uri")
         self.collection_name = collection_name
         self.embedding_model_dims = embedding_model_dims
-        self.client = MilvusClient(uri=db_path, timeout=30)
+        self.client = open_kylin_vector_client(path=db_path, uri=uri, timeout=30)
         self.create_col(collection_name, embedding_model_dims)
 
     # ---- 集合 ----
@@ -35,23 +35,9 @@ class KylinMem0Adapter(VectorStoreBase):
         if self.client.has_collection(name):
             self.client.load_collection(name)
             return
-        # 使用完整 schema 定义，确保 metadata 字段可过滤
-        from pymilvus import CollectionSchema, FieldSchema
-        schema = CollectionSchema(
-            fields=[
-                FieldSchema(name="id", dtype=DataType.VARCHAR,
-                           max_length=512, is_primary=True),
-                FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR,
-                           dim=vector_size),
-                FieldSchema(name="metadata", dtype=DataType.JSON),
-                FieldSchema(name="text", dtype=DataType.VARCHAR,
-                           max_length=65535),
-            ],
-            enable_dynamic_field=True,
-        )
         self.client.create_collection(
             collection_name=name,
-            schema=schema,
+            dimension=vector_size,
             metric_type="COSINE",
         )
         logger.info("创建 Mem0 集合: %s (dim=%d)", name, vector_size)
@@ -92,7 +78,7 @@ class KylinMem0Adapter(VectorStoreBase):
         return result
 
     def keyword_search(self, query, top_k=5, filters=None):
-        return None  # Milvus-Lite 不支持 BM25
+        return None
 
     # ---- 删除 ----
     def delete(self, vector_id):

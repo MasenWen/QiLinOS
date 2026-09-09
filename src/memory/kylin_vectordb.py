@@ -1,26 +1,24 @@
-"""
-麒麟向量数据库客户端
-基于 kylin-ai-vector-engine (Milvus-Lite)，嵌入式模式
-"""
+"""Kylin vector database client for RAG storage."""
 import os
 import numpy as np
-from pymilvus import MilvusClient, DataType
 from typing import Optional
+
+from src.memory.kylin_vector_engine_client import open_kylin_vector_client
 
 
 class KylinVectorDB:
-    """封装麒麟向量数据库操作"""
+    """Thin wrapper around the Kylin AI vector engine."""
 
     def __init__(self, collection_name: str = "nex_agent_embeddings", dim: int = 768):
         self.collection_name = collection_name
         self.dim = dim
-        self.client: Optional[MilvusClient] = None
+        self.client: Optional[object] = None
 
     def connect(self):
-        """连接到麒麟向量数据库（pymilvus 嵌入式模式）"""
-        db_path = os.path.expanduser("~/.nex-agent/rag_vectordb.db")
-        self.client = MilvusClient(uri=db_path)
-        print(f"[KylinVectorDB] 嵌入式模式: {db_path}")
+        """Connect to the system Kylin vector database service."""
+        work_dir = os.path.expanduser("~/.nex-agent/rag_vector_engine")
+        self.client = open_kylin_vector_client(path=work_dir)
+        print(f"[KylinVectorDB] 麒麟向量引擎服务: {work_dir}")
 
     def ensure_collection(self, drop_if_exists: bool = False):
         """确保集合存在，不存在则创建"""
@@ -32,8 +30,6 @@ class KylinVectorDB:
                 collection_name=self.collection_name,
                 dimension=self.dim,
                 metric_type="COSINE",
-                auto_id=True,
-                datatype=DataType.FLOAT_VECTOR,
             )
             print(f"[KylinVectorDB] 已创建集合: {self.collection_name} (dim={self.dim})")
 
