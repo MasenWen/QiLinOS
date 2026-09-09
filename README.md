@@ -2,14 +2,14 @@
 
 **麒麟记忆**：运行在银河麒麟 Kylin OS V11 桌面系统上的 AI 助手，通过网页对话执行系统操作，并具备多层级记忆体系。
 
-单进程 Python 服务（`webchat.py`），内置 27 个系统工具、4 层记忆存储、可切换的 LLM（麒麟 SDK / OpenAI 兼容 API：DeepSeek / Grok）。
+单进程 Python 服务（`webchat.py`），内置 29 个系统工具、4 层记忆存储、可切换的 LLM（麒麟 SDK / OpenAI 兼容 API：DeepSeek / Grok）。
 
 ---
 
 ## 功能特性
 
 - **网页聊天**（两栏界面：会话列表 / 对话区，黑白主题；记忆与工具日志在服务端记录，不占界面）
-- **27 个系统工具**：文件、Shell（受限白名单）、系统信息（CPU/内存/磁盘/网络/负载）、时区、日期、进程、电池、蓝牙、音量、WiFi、壁纸、截图、电源计划等
+- **29 个系统工具**：文件、Shell（受限白名单）、系统信息（CPU/内存/磁盘/网络/负载）、时区、日期、进程、电池、蓝牙、音量、WiFi、壁纸、截图、电源计划等
 - **工具调用闭环**：AI 输出 JSON → 工具执行 → 验证 → 回滚 → 重试 → 降级兜底
 - **麒麟 SDK 优先**：系统信息/硬件查询优先走官方 SDK（libky*），SDK 无数据时自动兜底系统命令
 - **SDK C 库崩溃隔离**：所有 C 库调用放入子进程执行（`src/sdk/query_ext.py`），主进程永不因 SIGSEGV 崩溃
@@ -38,24 +38,27 @@
 
 ```bash
 # 1. 克隆仓库
-git clone git@github.com:MasenWen/QiLinOS.git
+git clone <你的仓库地址>      # 例如 git@github.com:<账号>/QiLinOS.git
 cd QiLinOS
 git checkout dev1
 
 # 2. 一键安装（自动创建 venv + 多镜像源切换安装依赖）
-./install.sh
+bash deploy/install.sh
 
 # 3. 启动
 .venv/bin/python webchat.py 8080
 ```
 
-> `install.sh` 会处理麒麟系统上 python3 下载/安装的常见问题：自动检测 python3、
+> `deploy/install.sh` 会处理麒麟系统上 python3 下载/安装的常见问题：自动检测 python3、
 > 缺失时用 apt（含阿里云镜像源回退）安装、pip 升级与依赖安装均按
 > 清华 → 阿里 → 豆瓣 → 官方源顺序自动切换重试。
 
 ### systemd 守护（推荐）
 
 ```bash
+# deploy/ 下的单元文件使用 <PROJECT_ROOT> 占位（不含机器专属路径），先替换为实际项目路径：
+sudo sed -i "s#<PROJECT_ROOT>#$(pwd)#g" deploy/webchat.service
+# 如需 webhook 一并替换：sudo sed -i "s#<PROJECT_ROOT>#$(pwd)#g" deploy/webhook.service
 sudo cp deploy/webchat.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now webchat
@@ -67,7 +70,7 @@ sudo systemctl enable --now webchat
 服务只监听 `127.0.0.1`，从其他机器访问需 SSH 隧道：
 
 ```bash
-ssh -N -L 8080:127.0.0.1:8080 kylin
+ssh -N -L 8080:127.0.0.1:8080 <服务器别名>   # 换成你的服务器 SSH 别名/地址
 # 浏览器打开 http://127.0.0.1:8080
 ```
 
@@ -90,7 +93,7 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
         │              │              │
 ┌───────▼───────┐ ┌────▼─────┐ ┌─────▼──────┐
 │  src/toolkit  │ │  src/sdk │ │   记忆系统   │
-│  27 个工具     │ │  麒麟 SDK │ │ mem0(向量)  │
+│  29 个工具     │ │  麒麟 SDK │ │ mem0(向量)  │
 │  Executor     │ │  绑定     │ │ MemoryFlow │
 │  白名单/闭环   │ │ 子进程隔离 │ │ SkillMemory│
 │  验证/回滚     │ │ query_ext│ │ log_reader │
@@ -186,13 +189,13 @@ ssh -N -L 8080:127.0.0.1:8080 kylin
 ```
 webchat.py              # 主服务（HTTP + 前端 + AI 编排 + 记忆接线）
 src/
-├── toolkit/            # 27 个系统工具 + 执行器
+├── toolkit/            # 29 个系统工具 + 执行器
 ├── sdk/                # 麒麟 SDK 绑定 + query_ext.py(子进程) + ai_text + llm_client.py
 ├── memory/             # mem0 封装、log_reader(日志驱动)
 ├── memory_engine/      # 记忆流转/遗忘/敏感度/向量检索
 ├── security/           # 威胁扫描/权限/审计
 └── utils/              # DB/日志等
-deploy/webchat.service  # systemd 服务单元
+deploy/webchat.service  # systemd 服务单元（webhook.service 同理，均为 <PROJECT_ROOT> 占位模板）
 docs/                   # 依赖瘦身记录等
 ```
 
@@ -201,7 +204,7 @@ docs/                   # 依赖瘦身记录等
 ## 部署与运维
 
 - **启动**：`sudo systemctl start webchat`
-- **日志**：`kylin-mem/webchat.log`（服务日志）、`logs/security_audit.jsonl`（安全审计）
+- **日志**：`webchat.log`（项目根，服务日志）、`logs/security_audit.jsonl`（安全审计）
 - **重启**：`sudo systemctl restart webchat`
 - **数据备份**：`~/.nex-agent/`（记忆/会话/配置）+ 代码仓库（git）
 
