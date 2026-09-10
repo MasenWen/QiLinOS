@@ -121,8 +121,14 @@ start_direct() {
   fi
   # 已被别的进程占用端口则不再重复起
   if curl -s -m 2 -o /dev/null "\$URL" 2>/dev/null; then return 0; fi
-  say "直接启动：\$PY webchat.py \$PORT（不激活 venv，绝对路径解释器自带 site-packages）"
-  ( cd "\$PROJ_DIR" && nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
+  # 继承 systemd 单元注入的环境变量（如 NEX_STRICT_ENGINE、API key），
+  # 否则兜底进程会跑在默认模式：检索非 strict、缺少密钥 → 对话异常
+  local ENVV=""
+  if command -v systemctl >/dev/null 2>&1; then
+    ENVV="\$(systemctl show "\$SVC" -p Environment --value 2>/dev/null || true)"
+  fi
+  say "直接启动：\$PY webchat.py \$PORT \${ENVV:+（已继承 systemd 环境变量）}"
+  ( cd "\$PROJ_DIR" && env \$ENVV nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
   return 0
 }
 if ! systemctl is-active --quiet "\$SVC" 2>/dev/null; then

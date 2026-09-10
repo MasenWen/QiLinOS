@@ -117,8 +117,11 @@ start_direct(){
   local PY="\$PROJ_DIR/.venv/bin/python"
   [ -x "\$PY" ] || { say "虚拟环境缺失：\$PY"; echo "虚拟环境缺失：先执行 bash deploy/install.sh"; return 1; }
   curl -s -m 2 -o /dev/null "\$URL" 2>/dev/null && return 0
-  say "直接启动：\$PY webchat.py \$PORT"
-  ( cd "\$PROJ_DIR" && nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
+  # 继承 systemd 注入的环境变量（严格引擎开关/API key），保证与常驻服务同模式
+  local ENVV=""
+  command -v systemctl >/dev/null 2>&1 && ENVV="\$(systemctl show "\$SVC" -p Environment --value 2>/dev/null || true)"
+  say "直接启动：\$PY webchat.py \$PORT \${ENVV:+（已继承 systemd 环境变量）}"
+  ( cd "\$PROJ_DIR" && env \$ENVV nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
   return 0
 }
 if ! systemctl is-active --quiet "\$SVC" 2>/dev/null; then
