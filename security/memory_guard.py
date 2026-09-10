@@ -15,8 +15,10 @@ logger = logging.getLogger(__name__)
 _PII_PATTERNS = [
     # Email
     (re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}'), '[EMAIL]'),
-    # Chinese mobile
-    (re.compile(r'(?:\+?86)?1[3-9]\d{9}'), '[PHONE]'),
+    # 中国手机号：按 category 采用两种掩码（见 _phone_mask）
+    #   · 输出/日志（reply/general/log）→ 保留可辨识形式：138******01
+    #   · 写入记忆（memory）→ 不保留任何数字：[敏感信息]
+    (re.compile(r'(?:\+?86)?1[3-9]\d{9}'), None),   # 占位：替换逻辑在 _apply_pii 中按 category 处理
     # 身份证号（18 位，无分隔符；置于银行卡之前避免被 13-19 位数字规则吞成 [BANK]）
     (re.compile(r'(?<![\d])\d{17}[\dXx](?![\d])'), '[ID]'),
     # Bank card (13-19 digits, optional space/dash separators)
@@ -37,6 +39,38 @@ _PII_PATTERNS = [
 
 # Control characters and null bytes
 _CONTROL_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+
+# 手机号掩码：138******01（保留前 3 位与后 2 位，中间 6 位打码）
+_PHONE_RE = re.compile(r'(?:\+?86)?1[3-9]\d{9}')
+_PHONE_MASK_MEMORY = "[敏感信息]"
+
+
+def mask_phone(text: str, style: str = "output") -> str:
+    """按风格掩码手机号。
+
+    style="output" → 138******01（界面/回复/日志：保留可辨识形式，不丢信息）
+    style="memory" → [敏感信息]（写入长期记忆：不保留任何数字）
+    """
+    def _rep(m):
+        raw = m.group()
+        prefix = "+86" if raw.startswith("+86") else ("86" if raw.startswith("86") and len(raw) > 11 else "")
+        core = raw[len(prefix):]
+        if style == "memory":
+            return prefix + _PHONE_MASK_MEMORY
+        if len(core) >= 7:
+            return prefix + core[:3] + "*" * (len(core) - 5) + core[-2:]
+        return prefix + _PHONE_MASK_MEMORY
+    return _PHONE_RE.sub(_rep, text or "")
+
+
+def mask_pii(text: str) -> str:
+    """对外脱敏（日志/会话历史用）：PII 一律替换为可辨识掩码，不丢信息。"""
+    out = mask_phone(text or "", style="output")
+    for pattern, replacement in _PII_PATTERNS:
+        if replacement is None:
+            continue
+        out = pattern.sub(replacement, out)
+    return out
 
 MAX_CONTENT_LENGTH = 32 * 1024  # 32K
 
@@ -94,8 +128,14 @@ class MemoryGuard:
         text = content
 
         # ---- Layer 2: PII detection and redaction ----
+        # 手机号按用途分流：写记忆→[敏感信息]（不留数字）；其他→138******01（保留可辨识形式）
         pii_count = 0
+        _phone_style = "memory" if (category or "").lower() == "memory" else "output"
+        text, _pn = _PHONE_RE.subn(lambda m: mask_phone(m.group(), style=_phone_style), text)
+        pii_count += _pn
         for pattern, replacement in _PII_PATTERNS:
+            if replacement is None:
+                continue
             new_text, n = pattern.subn(replacement, text)
             if n > 0:
                 pii_count += n
