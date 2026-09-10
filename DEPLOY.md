@@ -215,23 +215,30 @@ PORT=9090 bash deploy/make-shortcut.sh    # 自定义端口
 图标缺失时退回首选 `applications-internet` 主题图标。若桌面图标显示为文本文件样式，
 右键 → 允许启动/信任 一次即可（部分文件管理器首次需要）。
 
-
 ## 十、快捷方式打不开？先跑自检
 
+```bash
+# 在目标主机上，用【桌面登录用户】执行（不要加 sudo）
+cd ~/kylin-mem      # 或实际项目目录
+bash deploy/doctor.sh            # 一键体检（只读，不改配置）
+bash deploy/doctor.sh --verbose  # 附打印桌面项内容
+```
 
-
- 逐项检查并给出修复命令：服务/端口/HTTP → 快捷方式三件套（桌面图标、应用菜单、启动器）
+`doctor.sh` 逐项检查并给出修复命令：服务/端口/HTTP → 快捷方式三件套（桌面图标、应用菜单、启动器）
 → 桌面项语法与 Exec/Icon 有效性 → **浏览器是否可用** → 常见坑位（sudo 装到 /root、桌面目录中英文不一致等）。
 
 ### 最常见原因（按概率排序）
 
 | 现象 | 原因 | 修复 |
 |---|---|---|
-| 双击图标毫无反应 | **系统里没有任何图形浏览器**（麒麟最小安装常见； 静默失败） |  |
-| 双击显示为文本/被问“是否执行” | 桌面项未标记可信 | ，或右键→允许启动 |
-| 图标是文本文件样式且点了没反应 | 用  跑安装 → 装到 /root | 用桌面用户重跑 ；删掉  |
-| 双击后浏览器打开但页面打不开 | 服务未运行/端口未监听 |  ｜  |
-| 完全查不到线索 | 启动器已内置日志 | （每次双击都会写一行） |
+| 双击图标毫无反应 | **系统里没有任何图形浏览器**（麒麟最小安装常见；`xdg-open` 静默失败） | `sudo apt update && sudo apt install -y firefox && xdg-settings set default-web-browser firefox.desktop` |
+| 双击显示为文本/被问“是否执行” | 桌面项未标记可信 | `gio set ~/桌面/麒麟记忆.desktop metadata::trusted true`，或右键→允许启动 |
+| 图标是文本文件样式且点了没反应 | 用 `sudo` 跑安装 → 装到 /root | 用桌面用户重跑 `bash deploy/make-shortcut.sh`；删掉 `/root/.local/share/applications/kylin-mem.desktop` |
+| 双击后浏览器打开但页面打不开 | 服务未运行/端口未监听 | `systemctl status webchat` ｜ `journalctl -u webchat -n 50 --no-pager` |
+| 完全查不到线索 | 启动器已内置日志 | `tail -20 ~/.local/state/kylin-mem-open.log`（每次双击都会写一行） |
 
-> 启动器现在自带日志与浏览器多级回退（firefox/chromium/kylin-browser…→ xdg-open），
+> 启动器现在自带日志与浏览器多级回退（firefox/chromium/kylin-browser… → xdg-open），
 > 若没有任何浏览器会弹出桌面通知提示安装，不再“静默失败”。
+>
+> 常用命令：`bash deploy/make-shortcut.sh --check`（看产物路径与状态）、
+> `bash deploy/make-shortcut.sh --uninstall`（卸载快捷方式，服务不受影响）。
