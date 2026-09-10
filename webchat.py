@@ -780,6 +780,8 @@ HTML = r"""<!doctype html>
       <span class="dot"></span>
       <span class="brand">Kylin Mem<em> · 麒麟记忆</em></span>
       <span class="sub">记忆增强 · 系统工具</span>
+      <span class="sub" id="buildVer" title="当前运行的代码版本（刷新页面即可确认是否为最新）"
+            style="opacity:.62">__BUILD_VER__</span>
       <span class="spacer"></span>
       <select class="model-select" id="headerModel" title="切换模型"></select>
       <button class="theme-btn" id="panelBtn" title="显示/隐藏记忆与工具面板">📊</button>
@@ -3265,10 +3267,12 @@ class Handler(BaseHTTPRequestHandler):
             return True
         return self.headers.get("X-Api-Token") == WEBCHAT_TOKEN
 
-    def _send(self, code, body: bytes, ctype: str):
+    def _send(self, code, body: bytes, ctype: str, extra_headers: dict | None = None):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        for _k, _v in (extra_headers or {}).items():
+            self.send_header(_k, _v)
         self.end_headers()
         self.wfile.write(body)
 
@@ -3382,7 +3386,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
         # 首页：容忍查询参数（如 /?panel=1 直接展开记忆面板，供截图/录制使用）
         if self.path.split("?", 1)[0] in ("/", "/index.html"):
-            self._send(200, HTML.encode("utf-8"), "text/html; charset=utf-8")
+            _html = HTML.replace("__BUILD_VER__", _build_version())
+            self._send(200, _html.encode("utf-8"), "text/html; charset=utf-8",
+                       extra_headers={"Cache-Control": "no-store, must-revalidate",
+                                      "Pragma": "no-cache"})
         elif self.path == "/api/sessions":
             with _sessions_lock:
                 sess = [
@@ -3898,6 +3905,27 @@ def _log_reader_loop():
         time.sleep(180)
 
 
+_BUILD_VER_CACHE = None
+
+
+def _build_version() -> str:
+    """当前运行代码版本：git 短提交号 + 本进程启动时间（用于一眼判断页面是否最新）。"""
+    global _BUILD_VER_CACHE
+    if _BUILD_VER_CACHE:
+        return _BUILD_VER_CACHE
+    _sha = ""
+    try:
+        import subprocess as _sp
+        _sha = _sp.run(["git", "rev-parse", "--short", "HEAD"],
+                       cwd=os.path.dirname(os.path.abspath(__file__)),
+                       capture_output=True, text=True, timeout=3).stdout.strip()
+    except Exception:
+        _sha = ""
+    _started = datetime.now().strftime("%m-%d %H:%M")
+    _BUILD_VER_CACHE = "v%s · %s" % (_sha or "nogit", _started)
+    return _BUILD_VER_CACHE
+
+
 def _print_llm_routes():
     """启动自检：打印各 LLM 调用点实际用的 provider/model（防"漏网第三方调用"）。"""
     try:
@@ -3931,6 +3959,7 @@ if __name__ == "__main__":
     print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
     print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
     print(f"记忆模式: {'无记忆(--no-memory)' if _NO_MEMORY else '启用(mem0 持久化)'}", flush=True)
+    print(f"代码版本: {_build_version()}", flush=True)
     _print_llm_routes()
     threading.Thread(target=_log_reader_loop, daemon=True).start()
     ThreadingHTTPServer((WEBCHAT_HOST, port), Handler).serve_forever()
