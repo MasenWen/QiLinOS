@@ -17,5 +17,8 @@ VectorStoreFactory.provider_to_class["kylin_vectordb"] = (
     "src.memory.kylin_mem0_adapter.KylinMem0Adapter"
 )
 
-# 麒麟千问 LLM 适配器（零 key）
+# 麒麟千问 LLM 适配器（零 key，provider=sdk 时使用）
 LlmFactory.register_provider("kylin_sdk", "src.memory.kylin_llm.KylinLLM")
+
+# 统一 LLM 适配器（2026-09-10）：mem0 内部 LLM 也走 src/llm_client 的同一把 key
+LlmFactory.register_provider("unified", "src.memory.unified_llm.UnifiedLLM")

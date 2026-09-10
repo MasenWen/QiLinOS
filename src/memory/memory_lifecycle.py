@@ -63,7 +63,9 @@ def _build_mem_config(path: str, collection: str) -> MemoryConfig:
     )
     cfg.embedder.provider = "kylin_sdk"
     cfg.vector_store.provider = "kylin_vectordb"
-    cfg.llm.provider = "kylin_sdk"
+    # LLM 路线统一（2026-09-10）：与主库/主对话同源
+    from src.memory.unified_llm import llm_provider_name
+    cfg.llm.provider = llm_provider_name()
     return cfg
 
 

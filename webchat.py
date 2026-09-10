@@ -2174,6 +2174,8 @@ def _is_declaration_message(message: str) -> bool:
 
 
 def _remember(messages):
+    import time as _tmod
+    _tp0 = _tmod.perf_counter()
     store = _get_mem0()
     if store is None:
         return
@@ -2192,7 +2194,9 @@ def _remember(messages):
                 return
             # 仅对正常对话做审查（工具结果/快照跳过，避免污染）
             if _u and not any(mk in _a for mk in ("✅ 工具", "❌", "状态：", "**输出**")):
+                _tp_r0 = _tmod.perf_counter()
                 _saved = review_and_save_memory(_u, _a, store)
+                print("[timing] 　└ 阶段2 记忆审查(LLM)=%.2fs" % (_tmod.perf_counter() - _tp_r0), flush=True)
                 # ⑤ 审查出的事实同步写入记忆引擎（与 mem0 主库并行，供结构化检索）
                 # 默认：MemoryEngine 四层管线（remember_fact）；
                 # strict 模式（NEX_STRICT_ENGINE=1）：StrictMemoryEngine 全管线
@@ -2224,9 +2228,12 @@ def _remember(messages):
                                 print(f"[mem] 记忆引擎写入跳过: {_fe}", flush=True)
     except Exception as _e:
         print(f"[mem] 审查跳过: {_e}", flush=True)
+    print("[timing] 　└ 阶段2+3 审查与严格引擎=%.2fs" % (_tmod.perf_counter() - _tp0), flush=True)
+    _tp_m0 = _tmod.perf_counter()
     try:
         with _mem_lock:
             store.add(messages)
+        print("[timing] 　└ 阶段4 mem0主库写入=%.2fs" % (_tmod.perf_counter() - _tp_m0), flush=True)
         # ④ 偏好类记忆同步写入知识图谱（KG 积累）
         # 修复：写入端过滤过程性文本（遗忘指令/删除指令/问句），
         # 避免「忘掉X」「我喜欢什么？」这类非持久偏好污染 KG（把遗忘当记忆的 bug）
@@ -2293,6 +2300,8 @@ def _remember(messages):
                       flush=True)
         except Exception:
             pass
+        print("[timing] 　└ 阶段5 KG/轮转/生命周期=%.2fs｜落库合计=%.2fs"
+              % (_tmod.perf_counter() - _tp_m0, _tmod.perf_counter() - _tp0), flush=True)
     except Exception as e:
         print(f"[mem] 写入失败: {e}", flush=True)
 
@@ -3297,6 +3306,8 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+        _tt0 = _t.perf_counter()
+
         try:
             reply = _chat(prompt, session_id)
         except Exception as e:
@@ -3306,19 +3317,28 @@ class Handler(BaseHTTPRequestHandler):
         for chunk in _stream_chunks(reply):
             _emit({"chunk": chunk})
             _t.sleep(0.02)
+        _t_text = _t.perf_counter()
 
         # 声明型消息（请记住…习惯/偏好）：同步完成记忆落库后再发 done，
         # 保证回复结束即面板/后续会话可见（视频剧本节奏：声明→开面板→新会话复用）。
         _decl_sync = False
+        _t_mem = None
         try:
             if _is_declaration_message(prompt):
+                _tm0 = _t.perf_counter()
                 _remember([{"role": "user", "content": prompt},
                            {"role": "assistant", "content": reply}])
+                _t_mem = _t.perf_counter() - _tm0
                 _decl_sync = True
                 print("[mem] 声明型消息已同步落库", flush=True)
         except Exception as _de:
             print(f"[mem] 声明型同步落库失败: {_de}", flush=True)
         _emit({"done": True})
+        # 时延自检：文字流完成 → 记忆落库 → done（前端转圈=这段）
+        print("[timing] 对话 %.2fs（文字流完 %.2fs）｜同步落库 %s｜done@%.2fs｜声明句=%s" % (
+            _t_text - _tt0, _t_text - _tt0,
+            ("%.2fs" % _t_mem) if _t_mem is not None else "异步",
+            _t.perf_counter() - _tt0, _decl_sync), flush=True)
         try:
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()
@@ -3337,8 +3357,15 @@ class Handler(BaseHTTPRequestHandler):
             pass
         if not _decl_sync:
             try:
+                def _remember_async(_msgs):
+                    _ta = _t.perf_counter()
+                    try:
+                        _remember(_msgs)
+                    finally:
+                        print("[timing] 异步落库 %.2fs" % (_t.perf_counter() - _ta), flush=True)
+
                 threading.Thread(
-                    target=_remember,
+                    target=_remember_async,
                     args=([{"role": "user", "content": prompt},
                            {"role": "assistant", "content": reply}],),
                     daemon=True,
@@ -3385,6 +3412,7 @@ class Handler(BaseHTTPRequestHandler):
                 "temperature": _cfg.get("temperature", 0.7),
                 "api_choice": _cfg.get("api_choice", "deepseek"),
                 "api_providers": _cfg.get("api_providers", {}),
+                "routes": __import__("src.memory.unified_llm", fromlist=["llm_routes"]).llm_routes(),
             })
         elif self.path == "/api/skills":
             sm = _get_skill_memory()
@@ -3870,6 +3898,21 @@ def _log_reader_loop():
         time.sleep(180)
 
 
+def _print_llm_routes():
+    """启动自检：打印各 LLM 调用点实际用的 provider/model（防"漏网第三方调用"）。"""
+    try:
+        from src.memory.unified_llm import llm_routes
+        r = llm_routes()
+        print("[LLM 路由] 主对话=%s model=%s%s" % (
+            r["chat"], r["model"], (" key=%s" % r["api_key_tail"]) if r["api_key_tail"] else ""), flush=True)
+        print("[LLM 路由] 记忆审查=%s / 遗忘=%s / 标题=%s / 槽位=%s"
+              % (r["review"], r["forget"], r["title"], r["slot"]), flush=True)
+        print("[LLM 路由] mem0(主库/长期库/归档库)=%s" % r["mem0"], flush=True)
+        print("[LLM 路由] 嵌入向量=%s" % r["embed"], flush=True)
+    except Exception as e:
+        print("[LLM 路由] 自检失败: %s" % e, flush=True)
+
+
 def _dump_modules(signum, frame):
     """调试: SIGUSR1 时把已加载模块写盘（分析运行时依赖用）。"""
     import signal as _sig
@@ -3888,5 +3931,6 @@ if __name__ == "__main__":
     print(f"webchat（记忆增强 + 系统工具）已启动: http://{WEBCHAT_HOST}:{port}", flush=True)
     print(f"安全配置: host={WEBCHAT_HOST} token=" + ("已启用" if WEBCHAT_TOKEN else "未启用(仅本机绑定)") + " 禁用网页端工具={" + ",".join(sorted(WEB_DISALLOWED_TOOLS)) + "}", flush=True)
     print(f"记忆模式: {'无记忆(--no-memory)' if _NO_MEMORY else '启用(mem0 持久化)'}", flush=True)
+    _print_llm_routes()
     threading.Thread(target=_log_reader_loop, daemon=True).start()
     ThreadingHTTPServer((WEBCHAT_HOST, port), Handler).serve_forever()

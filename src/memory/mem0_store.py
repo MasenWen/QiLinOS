@@ -56,7 +56,16 @@ class Mem0Store:
         # 替换为麒麟后端（绕过 Pydantic 白名单校验）
         cfg.embedder.provider = "local_onnx"  # 本地 ONNX（去 genai 依赖）
         cfg.vector_store.provider = "kylin_vectordb"
-        cfg.llm.provider = "kylin_sdk"  # 麒麟千问，零 key
+        # LLM 路线统一（2026-09-10）：provider=api → 跟随 llm_config.json 的 key；
+        # provider=sdk → 仍是麒麟千问。可用 NEX_MEM0_LLM=kylin_sdk 强制回退。
+        from src.memory.unified_llm import llm_provider_name, _lc_config as _llm_cfg
+        cfg.llm.provider = llm_provider_name()
+        _c = _llm_cfg()
+        if getattr(cfg.llm, "config", None) is not None and _c.get("model"):
+            try:
+                cfg.llm.config.model = str(_c["model"])
+            except Exception:
+                pass
         self._default_user = "nex_user"
         self._degraded = False
         # 禁用 mem0 遥测(PostHog 客户端+后台队列) — P1-1 内存泄漏修复

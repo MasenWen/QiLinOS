@@ -1,0 +1,509 @@
+{
+ "script": "scene_script.md",
+ "script_sha256": "9b04a95465b8128faf9afe1cfea14d2e4b2efe7d83054bda7f72eebafa4bd4ca",
+ "generated_at": "2026-09-10T14:13:40+08:00",
+ "steps": [
+  {
+   "id": "s1-1",
+   "scene": 1,
+   "time": "00:46-01:03",
+   "line": 22,
+   "session": "new",
+   "session_id": "s1_decl",
+   "title": "建立两项工作习惯",
+   "ui": [
+    "新建会话",
+    "输入后保留完整响应"
+   ],
+   "expect_reply": [
+    "分别确认两条习惯（结论优先、任务编号按紧急度）"
+   ],
+   "expect_panel": [
+    "两条独立偏好记录：结论优先 / 编号并按紧急程度排序"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains",
+     "value": "结论",
+     "name": "回复含「结论」"
+    },
+    {
+     "kind": "reply_contains_any",
+     "value": [
+      "编号",
+      "排序"
+     ],
+     "name": "回复含编号/排序说明"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "结论优先",
+     "name": "面板出现「结论优先」"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "编号并按紧急程度排序",
+     "name": "面板出现「编号并按紧急程度排序」"
+    }
+   ],
+   "input": "请记住两项工作习惯：第一，我喜欢先看结论再看说明；第二，安排任务时使用编号，并按紧急程度排序。",
+   "input_md5": "068a5c482b8fc0e7c333e84c4da2d68a",
+   "source": "script",
+   "source_line": 22,
+   "source_line_text": "| 00:46-01:03 | 在新会话输入：“请记住两项工作习惯：第一，我喜欢先看结论再看说明；第二，安排任务时使用编号，并按紧急程度排序。”发送后保留完整响应。 | 用户现场给出两项长期习惯，不需要任何提前准备的个人材料。                           |"
+  },
+  {
+   "id": "s1-2",
+   "scene": 1,
+   "time": "01:18-01:32",
+   "line": 24,
+   "session": "new",
+   "session_id": "s1_use",
+   "title": "新会话复用偏好",
+   "ui": [
+    "新建会话（空白）"
+   ],
+   "expect_reply": [
+    "先给结论，再用编号按紧急程度排列三项任务"
+   ],
+   "expect_panel": [
+    "不变：两条偏好"
+   ],
+   "checks": [
+    {
+     "kind": "reply_regex",
+     "value": "(^|\\n|\\s)1[.、)]",
+     "name": "回复为编号列表"
+    },
+    {
+     "kind": "reply_contains",
+     "value": "结论",
+     "name": "回复先给结论"
+    },
+    {
+     "kind": "reply_order",
+     "value": [
+      "彩排",
+      "报销",
+      "纪要"
+     ],
+     "name": "三项按彩排→报销→纪要排序"
+    }
+   ],
+   "input": "明天要完成项目演示彩排、提交报销和整理会议纪要，请帮我安排顺序。",
+   "input_md5": "73b38462c85769e21debbd73c52d63a1",
+   "source": "script",
+   "source_line": 24,
+   "source_line_text": "| 01:18-01:32 | 新建空白会话，输入：“明天要完成项目演示彩排、提交报销和整理会议纪要，请帮我安排顺序。”                       | 新会话中，用户只提供三项任务，没有重复说明刚才的表达习惯。                          |"
+  },
+  {
+   "id": "s1-3",
+   "scene": 1,
+   "time": "01:48-02:02",
+   "line": 26,
+   "session": "same",
+   "session_id": "s1_use",
+   "title": "本轮要求优先（临时覆盖）",
+   "ui": [
+    "同一会话继续输入"
+   ],
+   "expect_reply": [
+    "改为一句话回答，不套用编号偏好"
+   ],
+   "expect_panel": [
+    "偏好未被改写"
+   ],
+   "checks": [
+    {
+     "kind": "reply_not_regex",
+     "value": "(^|\\n)\\s*1[.、)]",
+     "name": "回复不再编号"
+    },
+    {
+     "kind": "reply_maxlen",
+     "value": 140,
+     "name": "回复为一句话（≤140 字）"
+    }
+   ],
+   "input": "这次不要编号，只用一句话告诉我最先做什么。",
+   "input_md5": "5884852675b058e0ee5bd279d478286e",
+   "source": "script",
+   "source_line": 26,
+   "source_line_text": "| 01:48-02:02 | 继续输入：“这次不要编号，只用一句话告诉我最先做什么。”展示系统改为一句话回答。                           | 当用户提出临时要求时，本轮 Query 优先生效。系统不会机械套用长期偏好，而是按当前意图调整输出。     |"
+  },
+  {
+   "id": "s2-1",
+   "scene": 2,
+   "time": "02:30-02:47",
+   "line": 36,
+   "session": "new",
+   "session_id": "s2_create",
+   "title": "建立会议与任务记录",
+   "ui": [
+    "新建会话"
+   ],
+   "expect_reply": [
+    "确认保存会议时间/地点/两项待办状态"
+   ],
+   "expect_panel": [
+    "任务档案：麒麟软件项目会议 · 上午10点 · 会议室 A · 两项未完成 + 记录时间"
+   ],
+   "checks": [
+    {
+     "kind": "panel_contains",
+     "value": "麒麟软件项目会议",
+     "name": "面板出现会议名"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "会议室 A",
+     "name": "面板出现地点"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "上午10点",
+     "name": "面板出现上午10点"
+    },
+    {
+     "kind": "reply_contains",
+     "value": "上午",
+     "name": "回复含上午时间"
+    }
+   ],
+   "input": "请记住麒麟软件项目会议的当前安排：本周五上午十点，在会议室 A 进行。我需要准备功能清单和演示账号，目前两项都未完成。",
+   "input_md5": "fe2d561de097bf78bda525193348b98d",
+   "source": "script",
+   "source_line": 36,
+   "source_line_text": "| 02:30-02:47 | 新建会话，输入：“请记住麒麟软件项目会议的当前安排：本周五上午十点，在会议室 A 进行。我需要准备功能清单和演示账号，目前两项都未完成。” | 用户先在系统中建立一条会议和任务记录，这就是后续更新所依据的较早状态。                     |"
+  },
+  {
+   "id": "s2-2",
+   "scene": 2,
+   "time": "03:02-03:20",
+   "line": 38,
+   "session": "new",
+   "session_id": "s2_update",
+   "title": "跨会话更新（新旧冲突）",
+   "ui": [
+    "新建会话"
+   ],
+   "expect_reply": [
+    "最新状态生效：下午两点/线上/功能清单已完成"
+   ],
+   "expect_panel": [
+    "新记录：下午2点 · 线上 · 功能清单（已完成）",
+    "较早记录保留可查"
+   ],
+   "checks": [
+    {
+     "kind": "panel_contains",
+     "value": "下午2点",
+     "name": "面板出现下午2点"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "线上",
+     "name": "面板出现线上"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "已完成",
+     "name": "面板出现已完成"
+    },
+    {
+     "kind": "panel_count_task",
+     "value": 2,
+     "name": "面板同时保留新旧两条任务档案"
+    }
+   ],
+   "input": "更新麒麟软件项目会议：改为本周五下午两点线上进行。功能清单已经完成，现在只需要准备演示账号。",
+   "input_md5": "268be6cb50adf4ddb8efc0b315d5a7d1",
+   "source": "script",
+   "source_line": 38,
+   "source_line_text": "| 03:02-03:20 | 新建会话，输入：“更新麒麟软件项目会议：改为本周五下午两点线上进行。功能清单已经完成，现在只需要准备演示账号。”              | 随后，用户在另一个会话中给出新的会议安排和任务进度。新信息与较早记录存在明确冲突。               |"
+  },
+  {
+   "id": "s2-3",
+   "scene": 2,
+   "time": "03:35-03:52",
+   "line": 40,
+   "session": "new",
+   "session_id": "s2_restore",
+   "title": "中断任务恢复",
+   "ui": [
+    "新建会话",
+    "可打开「记忆」面板核对两条记录"
+   ],
+   "expect_reply": [
+    "本周五下午两点线上；功能清单已完成；下一步准备演示账号；并说明依据"
+   ],
+   "expect_panel": [
+    "新旧两条记录同屏，标注记录时间"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains_any",
+     "value": [
+      "下午两点",
+      "下午2点",
+      "14:00"
+     ],
+     "name": "恢复最新时间"
+    },
+    {
+     "kind": "reply_contains",
+     "value": "线上",
+     "name": "恢复会议方式=线上"
+    },
+    {
+     "kind": "reply_contains",
+     "value": "已完成",
+     "name": "指出已完成内容"
+    },
+    {
+     "kind": "reply_contains_any",
+     "value": [
+      "依据",
+      "来源",
+      "记录",
+      "版本"
+     ],
+     "name": "给出判断依据"
+    },
+    {
+     "kind": "reply_not_contains",
+     "value": "13800000001",
+     "name": "回复不含完整号码"
+    }
+   ],
+   "input": "我来继续准备麒麟软件项目会议。请告诉我现在的时间、会议方式、已完成内容和下一步，并说明依据。",
+   "input_md5": "9b203898ce4fa288b982f2d527bbb595",
+   "source": "script",
+   "source_line": 40,
+   "source_line_text": "| 03:35-03:52 | 再次新建会话，输入：“我来继续准备麒麟软件项目会议。请告诉我现在的时间、会议方式、已完成内容和下一步，并说明依据。”            | 第三个会话中，用户不再重复前面的信息，只要求系统恢复最新状态。                         |"
+  },
+  {
+   "id": "s3-1",
+   "scene": 3,
+   "time": "04:48-05:06",
+   "line": 52,
+   "session": "new",
+   "session_id": "s3_decl",
+   "title": "敏感信息保护 + 两项习惯",
+   "ui": [
+    "新建会话"
+   ],
+   "expect_reply": [
+    "两项偏好分别保存；电话以掩码显示，不出现完整号码"
+   ],
+   "expect_panel": [
+    "二十四小时制 / 总结末尾加「下一步」两项偏好",
+    "面板中不出现任何号码"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains",
+     "value": "138****0001",
+     "name": "回复显示掩码 138****0001"
+    },
+    {
+     "kind": "reply_not_contains",
+     "value": "13800000001",
+     "name": "回复不含完整号码"
+    },
+    {
+     "kind": "panel_not_contains",
+     "value": "13800000001",
+     "name": "面板不含完整号码"
+    },
+    {
+     "kind": "panel_not_contains",
+     "value": "138****0001",
+     "name": "面板不保留号码片段"
+    },
+    {
+     "kind": "panel_contains_any",
+     "value": [
+      "24_hour_clock",
+      "二十四小时制"
+     ],
+     "name": "面板含时间格式偏好"
+    }
+   ],
+   "input": "请记住两项习惯：时间使用二十四小时制；任务总结末尾增加一行‘下一步’。本次演示联系人电话是 13800000001，回复中不要显示完整号码。",
+   "input_md5": "a9e82a666f6dc33623533e5e7f877d0d",
+   "source": "script",
+   "source_line": 52,
+   "source_line_text": "| 04:48-05:06 | 新建会话，输入：“请记住两项习惯：时间使用二十四小时制；任务总结末尾增加一行‘下一步’。本次演示联系人电话是 13800000001，回复中不要显示完整号码。” | 用户现场给出两项普通偏好，并在当前任务中提供一个虚构联系电话。                          |"
+  },
+  {
+   "id": "s3-2",
+   "scene": 3,
+   "time": "05:24-05:39",
+   "line": 54,
+   "session": "new",
+   "session_id": "s3_use",
+   "title": "跨会话复用 + 不泄露号码",
+   "ui": [
+    "新建会话（不重复号码）"
+   ],
+   "expect_reply": [
+    "用 15:00 二十四小时制，末尾给出「下一步」，画面不出现完整号码"
+   ],
+   "expect_panel": [
+    "不变"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains_any",
+     "value": [
+      "15:00",
+      "15 点",
+      "15点"
+     ],
+     "name": "二十四小时制生效"
+    },
+    {
+     "kind": "reply_contains",
+     "value": "下一步",
+     "name": "末尾含「下一步」"
+    },
+    {
+     "kind": "reply_not_contains",
+     "value": "13800000001",
+     "name": "未泄露完整号码"
+    }
+   ],
+   "input": "明天下午三点联系演示人员，请按照我的习惯给出安排。",
+   "input_md5": "916a510dc31a8fe7d54e8e70d01df993",
+   "source": "script",
+   "source_line": 54,
+   "source_line_text": "| 05:24-05:39 | 新建会话，输入：“明天下午三点联系演示人员，请按照我的习惯给出安排。”不再输入电话号码。                                     | 在新的会话中，用户只给出任务，不重复刚才保存的两项习惯，也不再次提供敏感号码。                  |"
+  },
+  {
+   "id": "s3-3",
+   "scene": 3,
+   "time": "05:54-06:09",
+   "line": 56,
+   "session": "same",
+   "session_id": "s3_use",
+   "title": "自然语言指定遗忘（待确认）",
+   "ui": [
+    "同一会话继续输入",
+    "展示唯一命中项"
+   ],
+   "expect_reply": [
+    "列出唯一命中的时间格式偏好，等待确认"
+   ],
+   "expect_panel": [
+    "两条偏好仍在（尚未删除）"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains_any",
+     "value": [
+      "确认",
+      "删除"
+     ],
+     "name": "要求确认删除"
+    },
+    {
+     "kind": "panel_contains_any",
+     "value": [
+      "24_hour_clock",
+      "二十四小时制"
+     ],
+     "name": "确认前偏好仍在"
+    }
+   ],
+   "input": "以后时间不用二十四小时制。只删除这一条偏好，保留总结末尾增加‘下一步’的习惯。",
+   "input_md5": "4a1c692534d0d1baae8e6454d01f4ff2",
+   "source": "script",
+   "source_line": 56,
+   "source_line_text": "| 05:54-06:09 | 输入：“以后时间不用二十四小时制。只删除这一条偏好，保留总结末尾增加‘下一步’的习惯。”系统显示唯一命中项并确认删除。                      | 用户用自然语言指定要忘记的内容。系统只删除时间格式偏好，不影响另一条总结习惯。                  |"
+  },
+  {
+   "id": "s3-4",
+   "scene": 3,
+   "time": "05:54-06:09",
+   "line": 56,
+   "session": "same",
+   "session_id": "s3_use",
+   "title": "确认删除（脚本未给原文，按系统提示输入）",
+   "derived": true,
+   "input_override": "确认删除。",
+   "ui": [
+    "系统提示「回复「确认删除」删除全部，或指定「删除第1条」」后输入"
+   ],
+   "expect_reply": [
+    "执行删除，仅删除时间格式偏好"
+   ],
+   "expect_panel": [
+    "24_hour_clock 消失；总结末尾加「下一步」保留"
+   ],
+   "checks": [
+    {
+     "kind": "panel_not_contains",
+     "value": "24_hour_clock",
+     "name": "时间格式偏好已删除"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "add_next_step_line",
+     "name": "「下一步」偏好保留"
+    }
+   ],
+   "input": "确认删除。",
+   "input_md5": "04ad497b45d04950b26934d2b935b5cc",
+   "source": "manual",
+   "source_line": 56,
+   "source_line_text": "| 05:54-06:09 | 输入：“以后时间不用二十四小时制。只删除这一条偏好，保留总结末尾增加‘下一步’的习惯。”系统显示唯一命中项并确认删除。                      | 用户用自然语言指定要忘记的内容。系统只删除时间格式偏好，不影响另一条总结习惯。                  |"
+  },
+  {
+   "id": "s3-5",
+   "scene": 3,
+   "time": "06:09-06:24",
+   "line": 57,
+   "session": "new",
+   "session_id": "s3_verify",
+   "title": "删除后再次验证",
+   "ui": [
+    "新建会话，再输入同一句",
+    "打开记忆列表核对"
+   ],
+   "expect_reply": [
+    "已删除的时间偏好不再生效；「下一步」习惯仍在；号码未被带入"
+   ],
+   "expect_panel": [
+    "只剩「下一步」偏好"
+   ],
+   "checks": [
+    {
+     "kind": "reply_contains",
+     "value": "下一步",
+     "name": "「下一步」习惯仍在"
+    },
+    {
+     "kind": "reply_not_contains",
+     "value": "13800000001",
+     "name": "号码未带入回答"
+    },
+    {
+     "kind": "panel_contains",
+     "value": "add_next_step_line",
+     "name": "面板保留「下一步」偏好"
+    },
+    {
+     "kind": "panel_not_contains",
+     "value": "24_hour_clock",
+     "name": "面板无时间格式偏好"
+    }
+   ],
+   "input": "明天下午三点联系演示人员，请按照我的习惯给出安排",
+   "input_md5": "6000abbf4b784e01e4cf41a8482b2a14",
+   "source": "script",
+   "source_line": 57,
+   "source_line_text": "| 06:09-06:24 | 新建会话，再输入“明天下午三点联系演示人员，请按照我的习惯给出安排”。展示自然时间表达仍保留“下一步”，并打开记忆列表核对。                   | 再次验证后，已删除的时间偏好不再生效，“下一步”习惯仍然保留，敏感号码也没有被带入回答。             |"
+  }
+ ]
+}
