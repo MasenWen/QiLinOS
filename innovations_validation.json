@@ -1,0 +1,109 @@
+{
+ "bayes": {
+  "weight_transfer": [
+   {
+    "n": 0,
+    "lambda_g": 1.0,
+    "lambda_u": 0.0
+   },
+   {
+    "n": 1,
+    "lambda_g": 0.8333,
+    "lambda_u": 0.1667
+   },
+   {
+    "n": 2,
+    "lambda_g": 0.7143,
+    "lambda_u": 0.2857
+   },
+   {
+    "n": 5,
+    "lambda_g": 0.5,
+    "lambda_u": 0.5
+   },
+   {
+    "n": 10,
+    "lambda_g": 0.3333,
+    "lambda_u": 0.6667
+   },
+   {
+    "n": 20,
+    "lambda_g": 0.2,
+    "lambda_u": 0.8
+   },
+   {
+    "n": 50,
+    "lambda_g": 0.0909,
+    "lambda_u": 0.9091
+   }
+  ],
+  "error_bound_vs_evidence": [
+   {
+    "n": 1,
+    "alpha_b": 0.167,
+    "bound": 1.1956
+   },
+   {
+    "n": 5,
+    "alpha_b": 0.5,
+    "bound": 0.7574
+   },
+   {
+    "n": 20,
+    "alpha_b": 0.8,
+    "bound": 0.3629
+   },
+   {
+    "n": 100,
+    "alpha_b": 0.952,
+    "bound": 0.1626
+   }
+  ],
+  "gate": {
+   "min_feasible_tau": 0.65,
+   "no_evidence_tau": null
+  },
+  "smoothing": {
+   "eta": 0.2,
+   "steps_to_1pct": 18
+  }
+ },
+ "sparse": {
+  "unbiasedness": {
+   "true_inner": 0.0,
+   "emp_mean": 0.0365,
+   "emp_var": 0.28062,
+   "var_bound": 0.28657
+  },
+  "median_error": {
+   "m_theory": 399,
+   "r_theory": 30,
+   "emp_fail_rate": 0.0,
+   "theory_delta": 0.05
+  },
+  "candidate_recall": {
+   "n": 2000,
+   "top_k": 10,
+   "overlap_with_bruteforce": 10,
+   "candidates_considered": 40,
+   "sec_sketch": 0.0671,
+   "sec_bruteforce": 0.0095,
+   "note": "稀疏查询下全量内积已为 O(n·s)，草图优势体现在稠密查询/全量两两关系场景"
+  },
+  "dense_query_timing": {
+   "n": 2000,
+   "dim": 2048,
+   "sec_sketch": 0.0657,
+   "sec_bruteforce": 0.4012,
+   "overlap": 1,
+   "note": "稠密查询场景：全量需 O(n·d) 内积；重叠率为噪声主导场景参考值"
+  },
+  "complexity": {
+   "full_time": 204800000000.0,
+   "sparse_time": 1319360000.0,
+   "full_space": 100000000.0,
+   "sparse_space": 3520000.0,
+   "time_ratio_full_over_sparse": 155.22677661896677
+  }
+ }
+}

@@ -408,6 +408,69 @@ _MEMORY_REVIEW_PROMPT = (
 )
 
 
+_WRAP_CHARS = "\"'`\u201c\u201d\u2018\u2019[]{}()<>* -\t"
+
+
+def parse_pref_output(verdict: str) -> list:
+    """把模型输出解析为 [("pref", dim, val, scope, text) | ("save", content)]。
+
+    容错点（2026-09-10 修，原实现逐行 startswith 会丢 113/406 条）：
+      · 外层 JSON/数组/对象包裹：{"PREF:..."} / ["PREF:..."] / {"result": "PREF:..."}
+      · 引号、反引号、markdown 项目符号与序号（- 、* 、1. ）
+      · 中英文冒号混用（PREF：/ SAVE：）
+      · 一行里带前导噪声或把多个字段用逗号/顿号分隔
+    返回条目顺序与原文一致；解析不到的片段忽略。
+    """
+    out = []
+    if not verdict:
+        return out
+    raw = str(verdict).replace("\r", "")
+    # 1) 归一化外层包裹：JSON 大括号/方括号、代码块围栏、成对引号
+    raw = re.sub(r"```[a-zA-Z]*", " ", raw)
+    raw = re.sub(r'^[\s{\[("\'`]+', "", raw)
+    raw = re.sub(r'[\s}\])\'"`]+$', "", raw)
+    # 2) JSON 转义换行还原
+    raw = raw.replace("\\n", "\n").replace('\\"', '"')
+    for seg in re.split(r"[\n;；]+", raw):
+        seg = seg.strip().strip(",，")
+        if not seg:
+            continue
+        # 去掉项目符号/序号前缀与包裹字符
+        seg = re.sub(r"^[\s*\-\u2022\d.、)]+", "", seg).strip()
+        for _ch in ('"', "'", "`", "}", "]", ")", "\u201d", "\u2019"):
+            seg = seg.strip(_ch).strip()
+        # 3) 中英文冒号统一
+        seg_n = re.sub(r"^PREF\s*[：:]\s*", "PREF:", seg)
+        seg_n = re.sub(r"^SAVE\s*[：:]\s*", "SAVE:", seg_n)
+        m = re.match(r"PREF:([^:：]*)[:：]([^:：]*)[:：]([^:：]*)[:：](.*)$", seg_n, re.S)
+        if m:
+            dim = m.group(1).strip().strip("\"'`")
+            val = m.group(2).strip().strip("\"'`")
+            scope = m.group(3).strip().strip("\"'`")
+            txt = m.group(4).strip().strip("\"'`").rstrip(",")
+            # 字段缺失时保持与旧实现一致的回落：text 空则用 scope
+            if not txt:
+                txt, scope = scope, ""
+            if dim:
+                out.append(("pref", dim, val, scope, txt))
+            continue
+        m2 = re.match(r"SAVE:(.*)$", seg_n, re.S)
+        if m2:
+            val2 = m2.group(1).strip().strip("\"'`")
+            if val2:
+                out.append(("save", val2))
+            continue
+        # 4) 兜底：整段里嵌着 PREF: 的情况（如 {"a": "PREF:x:y:z:t"}）
+        m3 = re.search(r"PREF:([^:：]*)[:：]([^:：]*)[:：]([^:：]*)[:：]([^}\]]{1,200})", raw, re.S)
+        if m3 and ("pref",) not in [(o[0],) for o in out]:
+            dim = m3.group(1).strip()
+            if dim:
+                out.append(("pref", dim, m3.group(2).strip().strip("\"'`"),
+                            m3.group(3).strip().strip("\"'`"),
+                            m3.group(4).strip().strip("\"'`").rstrip(",")))
+    return out
+
+
 def review_and_save_memory(user_input: str, assistant_output: str,
                            mem0_store_obj, context: dict | None = None):
     """LLM 审查对话，只提取持久信息存入 Mem0（带重试，不阻塞主流程）。"""
@@ -441,30 +504,23 @@ def review_and_save_memory(user_input: str, assistant_output: str,
 
         facts = []
         pref_log = []
-        for line in verdict.split("\n"):
-            line = line.strip()
-            if line.startswith("PREF:"):
-                parts = [p.strip() for p in line[5:].split(":", 3)]
-                if len(parts) == 4 and parts[0]:
-                    dim, val, scope, text = parts
-                    if not text:
-                        text = scope
-                        scope = ""
-                    # 结构化为可检索、可审计的事实文本（dimension/value 可被记忆查询命中）
-                    fact = "稳定偏好：%s=%s" % (dim, val)
-                    if scope:
-                        fact += "（范围：%s）" % scope
-                    # 原文必须内嵌（中文括号，避免 。，； 等被 claim 切分拆散），
-                    # 供精准遗忘/保留判定按原文关键词（如"下一步"）区分相邻偏好
-                    if text and text != scope and ("（原文：" + text + "）") not in fact:
-                        # 原文中的 。，； 等切分符去掉，避免 strict claim 拆分截断
-                        _t = re.sub(r"[。，,；;、\s]+", " ", text).strip()
-                        if _t:
-                            fact += "（原文：%s）" % _t
-                    facts.append(fact[:160])
-                    pref_log.append((dim, val, scope, text))
-            elif line.startswith("SAVE:"):
-                fact = line[5:].strip()
+        for _item in parse_pref_output(verdict):
+            if _item[0] == "pref":
+                _, dim, val, scope, text = _item
+                fact = "稳定偏好：%s=%s" % (dim, val)
+                if scope:
+                    fact += "（范围：%s）" % scope
+                # 原文必须内嵌（中文括号，避免 。，； 等被 claim 切分拆散），
+                # 供精准遗忘/保留判定按原文关键词（如"下一步"）区分相邻偏好
+                if text and text != scope and ("（原文：" + text + "）") not in fact:
+                    # 原文中的 。，； 等切分符去掉，避免 strict claim 拆分截断
+                    _t = re.sub(r"[。，,；;、\s]+", " ", text).strip()
+                    if _t:
+                        fact += "（原文：%s）" % _t
+                facts.append(fact[:160])
+                pref_log.append((dim, val, scope, text))
+            else:
+                fact = _item[1]
                 if fact and len(fact) >= 3:
                     facts.append(fact)
         if pref_log:
