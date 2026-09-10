@@ -43,6 +43,15 @@ URL="http://127.0.0.1:${PORT}/"
 mkdir -p "$(dirname "$PID_FILE")" "$(dirname "$LOG_FILE")"
 say() { printf '[direct] %s\n' "$*"; }
 
+# 真实 PID 解析（PID 文件可能记到 wrapper 而非 python 进程，故以端口/进程名兜底校准）
+real_pids() {
+  # 通过监听端口的进程拿 PID（最权威）
+  local by_port
+  by_port="$(ss -ltnp 2>/dev/null | grep "127.0.0.1:${PORT} " | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2)"
+  if [ -n "${by_port:-}" ]; then echo "$by_port"; return 0; fi
+  pgrep -f 'webchat[.]py' 2>/dev/null | head -1
+}
+
 pid_running() {
   [ -f "$PID_FILE" ] || return 1
   local p; p="$(cat "$PID_FILE" 2>/dev/null || true)"
@@ -80,23 +89,38 @@ do_start() {
   cd "$PROJ_DIR" || return 1
   nohup "$PY" webchat.py "$PORT" >> "$LOG_FILE" 2>&1 &
   echo $! > "$PID_FILE"
+  # 校准：$! 可能是 wrapper 的 PID，等端口起来后以"占用端口的进程"为准
+  local rp="" i
+  for i in $(seq 1 15); do
+    sleep 1
+    rp="$(real_pids)"
+    [ -n "$rp" ] && break
+  done
+  [ -n "$rp" ] && echo "$rp" > "$PID_FILE"
   say "已启动（直接运行，无 systemd）：PID $(cat "$PID_FILE")"
   say "日志：$LOG_FILE  ｜ 停止：bash deploy/webchat-direct.sh stop"
   wait_ready
 }
 
 do_stop() {
-  if pid_running; then
-    local p; p="$(cat "$PID_FILE")"
-    kill "$p" 2>/dev/null
-    for i in $(seq 1 15); do sleep 1; kill -0 "$p" 2>/dev/null || break; done
-    kill -0 "$p" 2>/dev/null && { say "优雅退出超时，强制 kill -9"; kill -9 "$p" 2>/dev/null; }
-    rm -f "$PID_FILE"
-    say "已停止（PID $p）"
-  else
-    rm -f "$PID_FILE"
-    if pkill -f 'webchat[.]py' 2>/dev/null; then say "已按进程名停止（无 PID 文件）"; else say "没有在运行"; fi
+  local pids="" p i
+  pid_running && pids="$(cat "$PID_FILE")"
+  local others; others="$(pgrep -f 'webchat[.]py' 2>/dev/null | tr '\n' ' ')"
+  pids="$(printf '%s %s' "$pids" "$others" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
+  if [ -z "${pids// /}" ]; then
+    rm -f "$PID_FILE"; say "没有在运行"; return 0
   fi
+  say "停止进程：$pids"
+  for p in $pids; do kill "$p" 2>/dev/null; done
+  for i in $(seq 1 15); do
+    sleep 1
+    port_busy || break
+  done
+  for p in $pids; do kill -0 "$p" 2>/dev/null && { say "强制 kill -9 $p"; kill -9 "$p" 2>/dev/null; }; done
+  rm -f "$PID_FILE"
+  sleep 1
+  if port_busy; then say "✗ 端口 $PORT 仍被占用：$(ss -ltnp 2>/dev/null | grep ":${PORT} ")"; return 1; fi
+  say "已停止，端口 $PORT 已释放"
 }
 
 do_status() {
