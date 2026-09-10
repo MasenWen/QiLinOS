@@ -51,7 +51,17 @@ say "当前提交：$(git log --oneline -1 | cat)"
 # 注意：不用 `systemctl cat` 之类做前置判断——在部分环境（非登录 shell）它返回 1，
 # 会导致误判"服务不存在"而走 kill 兜底。直接尝试重启，失败再兜底最稳。
 restarted=0
-if command -v systemctl >/dev/null 2>&1; then
+DIRECT_SCRIPT="$PROJ_DIR/deploy/webchat-direct.sh"
+DIRECT_PID="${DIRECT_PID:-$HOME/.local/state/webchat.pid}"
+# 若当前是"直接启动"模式（systemd 单元 inactive 且有 PID 文件），走 direct 脚本重启
+if [ -f "$DIRECT_PID" ] && kill -0 "$(cat "$DIRECT_PID" 2>/dev/null)" 2>/dev/null \
+   && [ "$(systemctl is-active "${SVC%.service}" 2>/dev/null || true)" != "active" ]; then
+  if [ -f "$DIRECT_SCRIPT" ] && bash "$DIRECT_SCRIPT" restart; then
+    say "已重启：deploy/webchat-direct.sh restart（直接运行模式）"
+    restarted=1
+  fi
+fi
+if [ "$restarted" = "0" ] && command -v systemctl >/dev/null 2>&1; then
   if sudo -n systemctl restart "$SVC" 2>/dev/null; then
     say "已重启：sudo systemctl restart $SVC"
     restarted=1
