@@ -99,6 +99,8 @@ cat > "$LAUNCHER" <<EOF
 # 日志：~/.local/state/kylin-mem-open.log
 URL="$URL"
 SVC="$SVC"
+PROJ_DIR="$PROJ_DIR"      # 生成时写入真实项目路径
+PORT="$PORT"
 STATE_DIR="\$HOME/.local/state"
 LOG="\$STATE_DIR/kylin-mem-open.log"
 mkdir -p "\$STATE_DIR" 2>/dev/null || true
@@ -109,10 +111,26 @@ CHECK_ONLY=0
 [ "\${1:-}" = "--check" ] && CHECK_ONLY=1
 say "启动器执行（CHECK_ONLY=\$CHECK_ONLY）"
 
-# 1) 服务未运行则拉起
+# 1) 服务未运行则拉起：优先 systemd；systemd 不可用/无权限时直接用 venv 解释器起进程
+start_direct() {
+  local PY="\$PROJ_DIR/.venv/bin/python"
+  if [ ! -x "\$PY" ]; then
+    say "虚拟环境缺失：\$PY 不存在"
+    echo "虚拟环境缺失：请先在项目目录执行 bash deploy/install.sh"
+    return 1
+  fi
+  # 已被别的进程占用端口则不再重复起
+  if curl -s -m 2 -o /dev/null "\$URL" 2>/dev/null; then return 0; fi
+  say "直接启动：\$PY webchat.py \$PORT（不激活 venv，绝对路径解释器自带 site-packages）"
+  ( cd "\$PROJ_DIR" && nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
+  return 0
+}
 if ! systemctl is-active --quiet "\$SVC" 2>/dev/null; then
-  say "服务未运行，尝试启动"
-  sudo -n systemctl start "\$SVC" 2>/dev/null || systemctl --user start "\$SVC" 2>/dev/null || true
+  say "服务未运行，尝试启动（systemd）"
+  if ! sudo -n systemctl start "\$SVC" 2>/dev/null && ! systemctl --user start "\$SVC" 2>/dev/null; then
+    say "systemd 启动不可用（无 sudo 免密/无 user 会话），改用直接启动兜底"
+    start_direct || true
+  fi
 fi
 
 # 2) 等待 HTTP 就绪
@@ -123,9 +141,19 @@ for _ in \$(seq 1 30); do
   sleep 1
 done
 if [ "\$CODE" != "200" ]; then
+  # 二次兜底：systemd 路径失败时（例如 --no-systemd 安装、服务被 mask）直接起进程
+  say "HTTP 未就绪（\${CODE:-无响应}），尝试直接启动兜底"
+  start_direct || true
+  for _ in \$(seq 1 20); do
+    CODE=\$(curl -s -m 2 -o /dev/null -w '%{http_code}' "\$URL" 2>/dev/null || true)
+    [ "\$CODE" = "200" ] && break
+    sleep 1
+  done
+fi
+if [ "\$CODE" != "200" ]; then
   say "失败：服务未就绪（HTTP \${CODE:-无响应}）"
   notify "服务未就绪（HTTP \${CODE:-无响应}）：journalctl -u \$SVC -n 50"
-  echo "服务未就绪（HTTP \${CODE:-无响应}）：systemctl status \$SVC ｜ journalctl -u \$SVC -n 50"
+  echo "服务未就绪（HTTP \${CODE:-无响应}）：systemctl status \$SVC ｜ journalctl -u \$SVC -n 50 ｜ tail -20 \$PROJ_DIR/webchat.log"
   exit 1
 fi
 say "服务就绪：\$URL"
