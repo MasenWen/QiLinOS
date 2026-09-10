@@ -280,6 +280,38 @@ class StrictMemoryEngineStore:
             """
         )
 
+    # 用户级批量清空（供「清空记忆」使用）：按 user_id 删除全部内容表；
+    # 无 user_id 列的派生表（stage_outputs/impacts/lifecycle_events/engine_runs）全清。
+    _CLEAR_TABLES_USER = (
+        "strict_observations", "strict_fragments", "strict_repaired_executions",
+        "strict_evidence", "strict_candidates", "strict_memories",
+        "strict_conflict_groups", "strict_forget_requests", "strict_suppressions",
+        "strict_reflections",
+    )
+    _CLEAR_TABLES_ALL = (
+        "strict_stage_outputs", "strict_impacts", "strict_lifecycle_events",
+        "strict_engine_runs",
+    )
+
+    def clear_user(self, user_id: str) -> dict:
+        """清空某用户的全部 strict 记忆（含派生表），返回各表删除行数。"""
+        counts: dict = {}
+        with self.connection() as connection:
+            for table in self._CLEAR_TABLES_USER:
+                try:
+                    cur = connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+                    counts[table] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+                except Exception:
+                    counts[table] = 0
+            for table in self._CLEAR_TABLES_ALL:
+                try:
+                    cur = connection.execute(f"DELETE FROM {table}")
+                    counts[table] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+                except Exception:
+                    counts[table] = 0
+            connection.commit()
+        return counts
+
     def put_observation(self, observation: StrictObservation) -> bool:
         with self._lock, self.connection() as connection:
             existing = connection.execute(
