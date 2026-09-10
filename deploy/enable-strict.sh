@@ -114,11 +114,31 @@ else
 fi
 
 if grep -aq 'strict 引擎已启用' "$LOG_FILE" 2>/dev/null; then
-  say "✓ 启动日志：strict 引擎已启用"
+  say "✓ 启动日志：$(grep -a 'strict 引擎已启用' "$LOG_FILE" | tail -1 | sed 's/.*\[mem\] //')"
 else
-  say "⚠ 日志里没有「strict 引擎已启用」（引擎可能初始化失败，看日志里有无「记忆引擎初始化失败」）"
-  grep -a '记忆引擎初始化失败' "$LOG_FILE" 2>/dev/null | tail -1 | sed 's/^/   /'
-  fail=1
+  say "⚠ 日志里没有「strict 引擎已启用」→ 尝试自动降级（无语义打分）后重试一次"
+  grep -a '记忆引擎初始化失败\|语义打分器不可用' "$LOG_FILE" 2>/dev/null | tail -2 | sed 's/^/   /'
+  # 非麒麟主机（无运行时/无 ONNX/DashScope）常见：语义打分器不可用导致引擎整体失败。
+  # 加上 NEX_STRICT_SCORER=off 让 strict 以槽位/规则检索继续工作，再重启一次。
+  if [ "$MODE" != "check" ] && [ "$TARGET" = "1" ]; then
+    if grep -q '^NEX_STRICT_SCORER=' "$ENV_FILE" 2>/dev/null; then
+      sed -i 's/^NEX_STRICT_SCORER=.*/NEX_STRICT_SCORER=off/' "$ENV_FILE"
+    else
+      echo 'NEX_STRICT_SCORER=off' >> "$ENV_FILE"
+    fi
+    chmod 600 "$ENV_FILE"
+    say "已写入 NEX_STRICT_SCORER=off，重启后再检一次"
+    if [ -x deploy/webchat-direct.sh ]; then bash deploy/webchat-direct.sh restart | tail -3; else sudo -n systemctl restart "$SVC"; fi
+    sleep 3
+    if grep -aq 'strict 引擎已启用' "$LOG_FILE" 2>/dev/null; then
+      say "✓ 降级后 strict 引擎已启用（无语义打分；检索排序不含语义相似度，其余功能齐全）"
+    else
+      say "✗ 降级后仍未启用，请把下面这行发我：" ; grep -a '记忆引擎初始化失败\|strict 引擎' "$LOG_FILE" 2>/dev/null | tail -3 | sed 's/^/   /'
+      fail=1
+    fi
+  else
+    fail=1
+  fi
 fi
 
 if curl -s -m 5 "http://127.0.0.1:$PORT/api/memories" 2>/dev/null | grep -q 'updated_at'; then

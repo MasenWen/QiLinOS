@@ -2099,12 +2099,43 @@ def _get_memory_engine():
         try:
             if _strict_on:
                 from src.memory_engine.strict import StrictMemoryEngine, StrictMemoryEngineConfig
-                from src.memory_engine.strict.kylin import KylinSDKSemanticScorer
+                _cfg = StrictMemoryEngineConfig.load()
+                # 语义打分器：默认用麒麟 SDK 嵌入；非麒麟主机（无运行时/无 ONNX/DashScope）
+                # 会构造失败 —— 此时降级为"无语义打分"，strict 的槽位/版本/生命周期/
+                # 精准遗忘仍然可用，只是检索排序不含语义相似度。
+                # 可用 NEX_STRICT_SCORER=off 显式关闭（调试/非麒麟环境）。
+                _scorer = None
+                _scorer_mode = (os.getenv("NEX_STRICT_SCORER", "kylin") or "kylin").strip().lower()
+                if _scorer_mode not in ("0", "off", "none", "false"):
+                    try:
+                        from src.memory_engine.strict.kylin import KylinSDKSemanticScorer
+                        _probe_scorer = KylinSDKSemanticScorer()
+                        # 真实嵌入自检：避免"初始化成功、检索时才炸"
+                        _emb = getattr(_probe_scorer, "_embedder", None)
+                        if _emb is not None and hasattr(_emb, "embed_batch"):
+                            try:
+                                _emb.embed_batch(["记忆系统自检"])
+                            except TypeError:
+                                _emb.embed_batch(["记忆系统自检"], "search")
+                        _scorer = _probe_scorer
+                    except Exception as _se:
+                        print(f"[mem] 语义打分器不可用（{str(_se)[:140]}）→ 降级为无语义打分模式",
+                              flush=True)
+                else:
+                    print("[mem] NEX_STRICT_SCORER=off → 不启用语义打分", flush=True)
+                if _scorer is None:
+                    try:
+                        _cfg.retrieval["require_kylin_semantic"] = False
+                        print("[mem] 已放宽 require_kylin_semantic=false（无语义打分仍可检索）",
+                              flush=True)
+                    except Exception as _ce:
+                        print(f"[mem] 放宽 require_kylin_semantic 失败: {_ce}", flush=True)
                 _engine_inst = StrictMemoryEngine(
-                    config=StrictMemoryEngineConfig.load(),
-                    semantic_scorer=KylinSDKSemanticScorer(),
+                    config=_cfg,
+                    semantic_scorer=_scorer,
                 )
-                print("[mem] strict 引擎已启用（NEX_STRICT_ENGINE）", flush=True)
+                print("[mem] strict 引擎已启用（NEX_STRICT_ENGINE%s）" % (
+                    "，无语义打分" if _scorer is None else "，语义打分=kylin"), flush=True)
             else:
                 from src.memory_engine.engine import MemoryEngine
                 from src.memory.mem0_store import mem0_store
