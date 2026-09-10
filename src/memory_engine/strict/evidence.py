@@ -733,11 +733,35 @@ def _workflow_value(
     return " -> ".join(semantic)
 
 
+_PREF_CANON_RE = re.compile(
+    r"稳定偏好\s*[:：]\s*([A-Za-z0-9_.\-]+)\s*=\s*([A-Za-z0-9_.\-]+)"
+)
+_PAREN_TAIL_RE = re.compile(
+    r"[（(]\s*(?:范围|原文|scope|source|备注)\s*[:：][^）)]*[）)]"
+)
+
+
+def canonical_claim_key(claim: str) -> str:
+    """偏好类事实的归一化去重键（2026-09-10 去重修复）。
+
+    问题：同一偏好（dim=val 相同）若 scope/原文 措辞被 LLM 改写
+    （「回复结构」vs「回复/汇报」），整段文本哈希不同 → 存成两条独立记忆，
+    面板出现重复行。
+    修复：偏好事实只取 dim=val 作指纹；非偏好文本剥掉（范围：…）（原文：…）
+    这类括注后再哈希。
+    """
+    text = claim or ""
+    m = _PREF_CANON_RE.search(text)
+    if m:
+        return "pref:%s=%s" % (m.group(1).casefold(), m.group(2).casefold())
+    return _normalize_text(_PAREN_TAIL_RE.sub("", text))
+
+
 def _generic_slot(
     observation: StrictObservation,
     claim: str,
 ) -> str:
-    digest = hashlib.sha256(_normalize_text(claim).encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha256(canonical_claim_key(claim).encode("utf-8")).hexdigest()[:12]
     task = _normalize_text(observation.task_hint or "general").replace(" ", "_")
     return f"preference:{task}:{digest}"
 

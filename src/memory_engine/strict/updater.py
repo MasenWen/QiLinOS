@@ -70,7 +70,7 @@ class SlotImpactMemoryUpdater:
             (
                 memory
                 for memory in slot_memories
-                if memory.semantic_value == candidate.semantic_value
+                if _same_claim(memory.semantic_value, candidate.semantic_value)
                 and condition_relation(memory.condition, candidate.condition)
                 is ConditionRelation.EQUAL
             ),
@@ -95,7 +95,7 @@ class SlotImpactMemoryUpdater:
                 (
                     memory
                     for memory in slot_memories
-                    if memory.semantic_value == candidate.semantic_value
+                    if _same_claim(memory.semantic_value, candidate.semantic_value)
                 ),
                 None,
             )
@@ -470,6 +470,24 @@ def _new_memory(candidate: MemoryCandidate, timestamp: str) -> StrictMemory:
         created_at=timestamp,
         updated_at=timestamp,
     )
+
+
+def _same_claim(left: str, right: str) -> bool:
+    """同一事实判定（2026-09-10 去重修复）。
+
+    旧实现用 semantic_value 原串比较：同一偏好若 scope/原文 措辞被 LLM 改写
+    （「范围：回复结构」vs「范围：回复/汇报」），就被当成"新事实"→ 新建记忆
+    + 进冲突组，面板出现重复行。
+    现按 canonical_claim_key（偏好取 dim=val，其余剥括注）比较，措辞差异不再产生重复。
+    """
+    if left == right:
+        return True
+    try:
+        from .evidence import canonical_claim_key
+
+        return canonical_claim_key(left) == canonical_claim_key(right)
+    except Exception:
+        return False
 
 
 def _strong_dynamic(candidate: MemoryCandidate) -> bool:

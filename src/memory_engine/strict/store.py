@@ -1121,6 +1121,15 @@ def _impact(data: dict[str, Any]) -> StrictImpact:
 
 
 def _memory(data: dict[str, Any]) -> StrictMemory:
+    # 宽容未知字段（2026-09-10）：payload 里出现 schema 之外的键时，
+    # 旧实现会因 StrictMemory(**data) 抛 TypeError → list_memories 整体失败、
+    # 记忆面板瞬间变空。这里丢弃未知键并告警，保证读取不因单个脏字段崩掉。
+    _known = set(getattr(StrictMemory, "__dataclass_fields__", {}) or {})
+    _unknown = [k for k in data if _known and k not in _known]
+    if _unknown:
+        print("[strict.store] 忽略 payload 中的未知字段: %s" % ",".join(sorted(_unknown)),
+              flush=True)
+        data = {k: v for k, v in data.items() if k in _known}
     return StrictMemory(
         **{
             **data,
