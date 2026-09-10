@@ -315,6 +315,31 @@ def _delete_session(session_id: str) -> bool:
     return existed
 
 
+def _clear_all_sessions(clear_log: bool = False) -> dict:
+    """清空所有对话：会话历史 + 会话标题/摘要（+ 可选清原始对话日志）。
+
+    clear_log=True 时同时清空 ~/.nex-agent/conversation.log（原始对话日志）。
+    只清"对话"，不动长期记忆（记忆清空仍走 /api/mem/clear）。
+    """
+    with _sessions_lock:
+        n = len(SESSIONS)
+        SESSIONS.clear()
+        SESSIONS_META.clear()
+        _persist_sessions()
+    log_cleared = False
+    if clear_log:
+        try:
+            p = os.path.expanduser("~/.nex-agent/conversation.log")
+            if os.path.exists(p):
+                open(p, "w", encoding="utf-8").close()
+                log_cleared = True
+        except Exception as e:
+            print(f"[session] 清空对话日志失败: {e}", flush=True)
+    print(f"[session] 已清空全部对话: {n} 个会话"
+          f"{'（含原始日志）' if log_cleared else ''}", flush=True)
+    return {"sessions": n, "log_cleared": log_cleared}
+
+
 def _clear_session(session_id: str) -> bool:
     """清空会话对话内容（保留会话与标题，清历史 + 摘要）。"""
     with _sessions_lock:
@@ -754,6 +779,7 @@ HTML = r"""<!doctype html>
       <button class="theme-btn" id="panelBtn" title="显示/隐藏记忆与工具面板">📊</button>
       <button class="icon-btn" id="clearMem" title="清空记忆">清空记忆</button>
       <button class="icon-btn" id="clear" title="清空当前会话">清空</button>
+      <button class="icon-btn" id="clearAll" title="清空所有对话">清空全部对话</button>
     </header>
     <main><div class="wrap" id="messages">
       <div class="empty" id="empty">
@@ -1419,6 +1445,7 @@ const I18N = {
   newChat: { zh: '＋ 新会话', en: '＋ New Chat' },
   clear: { zh: '清空', en: 'Clear' },
   clearMem: { zh: '清空记忆', en: 'Clear Memory' },
+  clearAll: { zh: '清空全部对话', en: 'Clear All Chats' },
   inputPh: { zh: '输入消息…', en: 'Type a message…' },
   welcome: { zh: '你好，我是麒麟 AI', en: 'Hello, I\'m Kylin AI' },
   welcomeSub: { zh: '', en: '' },
@@ -1440,6 +1467,7 @@ function applyLang() {
   document.getElementById('newChat').textContent = t('newChat');
   document.getElementById('clear').textContent = t('clear');
   document.getElementById('clearMem').textContent = t('clearMem');
+  const _ca = document.getElementById('clearAll'); if (_ca) _ca.textContent = t('clearAll');
   document.getElementById('input').placeholder = t('inputPh');
   const h = document.querySelector('.hint'); if (h) h.textContent = t('hint');
   renderEmptyMsg();
@@ -1757,6 +1785,37 @@ document.getElementById('clear').onclick = () => {
   refreshSessions();   // 刷新左侧会话列表
   input.focus();
 };
+document.getElementById('clearAll').onclick = async () => {
+  let n = '?';
+  try {
+    const r0 = await fetch('/api/sessions', { headers: apiHeaders });
+    const d0 = await r0.json();
+    n = (d0.sessions || []).length;
+  } catch (e) { /* 取不到数量也允许继续 */ }
+  if (!confirm('确定清空【所有对话】？\n\n将删除全部 ' + n + ' 个会话的历史与标题，长期记忆不受影响。此操作不可恢复。')) return;
+  const withLog = confirm('是否同时清空原始对话日志（conversation.log）？\n\n确定 = 一起清空；取消 = 保留日志。');
+  try {
+    const r = await fetch('/api/sessions/clear_all', {
+      method: 'POST', headers: apiHeaders,
+      body: JSON.stringify({ confirm: true, clear_log: withLog }),
+    });
+    const d = await r.json();
+    if (d.ok) {
+      // 清空后直接开一个新会话（与「＋ 新会话」一致）
+      sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(SKEY, sessionId);
+      history = [];
+      renderHistory();
+      input.value = '';
+      refreshSessions();
+      refreshPanels && refreshPanels();
+      alert(d.note || '已清空所有对话');
+    } else {
+      alert(d.note || '清空失败');
+    }
+  } catch (e) { alert('清空失败: ' + e); }
+};
+
 document.getElementById('clearMem').onclick = () => {
   document.getElementById('clearMemModal').style.display = 'flex';
 };
@@ -3447,6 +3506,21 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "缺少 session_id"})
             ok = _delete_session(sid)
             return self._json(200, {"ok": ok, "note": "会话已删除" if ok else "会话不存在"})
+
+        if self.path == "/api/sessions/clear_all":
+            # 清空所有对话（会话列表 + 标题/摘要）；clear_log=true 时连原始对话日志一起清
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except Exception:
+                body = {}
+            if not body.get("confirm"):
+                return self._json(200, {"ok": False, "need_confirm": True,
+                                        "note": "危险操作：请带 confirm=true 再调用"})
+            r = _clear_all_sessions(clear_log=bool(body.get("clear_log")))
+            return self._json(200, {"ok": True, **r,
+                                    "note": f"已清空 {r['sessions']} 个对话"
+                                            + ("（含原始对话日志）" if r["log_cleared"] else "")})
 
         if self.path == "/api/sessions/clear":
             try:
