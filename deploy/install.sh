@@ -9,6 +9,11 @@
 #   bash deploy/install.sh --with-data    部署 + 还原 data/nex-agent 记忆数据
 #   bash deploy/install.sh --all          全部（SDK+依赖+数据+systemd）
 #   bash deploy/install.sh --no-systemd   不注册 systemd（手动启动）
+#   bash deploy/install.sh --no-desktop   不生成桌面快捷方式（默认会生成）
+#   bash deploy/install.sh --desktop-autostart  生成快捷方式并加入开机自启
+#
+# 说明：默认在「桌面 + 应用菜单」自动生成「麒麟记忆」图标（见 deploy/make-shortcut.sh），
+#       双击即打开 http://127.0.0.1:8080/ 并按需拉起服务。
 # ============================================================
 set -e
 cd "$(dirname "$0")/.."   # 回到项目根
@@ -22,12 +27,15 @@ PROJ_DIR="$(pwd)"
 PORT="${PORT:-8080}"
 
 WITH_SDK=0; WITH_DATA=0; NO_SYSTEMD=0; DO_PACK=0
+NO_DESKTOP=0; DESKTOP_AUTOSTART=0
 for arg in "$@"; do
     case "$arg" in
         --with-sdk)   WITH_SDK=1 ;;
         --with-data)  WITH_DATA=1 ;;
         --all)        WITH_SDK=1; WITH_DATA=1 ;;
         --no-systemd) NO_SYSTEMD=1 ;;
+        --no-desktop) NO_DESKTOP=1 ;;
+        --desktop-autostart) DESKTOP_AUTOSTART=1 ;;
         --pack)       DO_PACK=1 ;;
     esac
 done
@@ -57,6 +65,7 @@ if [ "$DO_PACK" = "1" ]; then
     rm -rf "$TMP"
     echo "✅ 打包完成: $OUT ($(du -sh "$OUT" | cut -f1))"
     echo "目标机部署: tar -xzf $(basename "$OUT") && cd kylin-mem && bash deploy/install.sh --all"
+    echo "（安装完会自动生成桌面「麒麟记忆」快捷方式；如需跳过加 --no-desktop）"
     exit 0
 fi
 
@@ -183,6 +192,20 @@ else
     echo "--- 跳过 systemd，手动启动: nohup .venv/bin/python webchat.py $PORT > webchat.log 2>&1 &"
 fi
 
+# ============================================================
+# 8. 桌面快捷方式（默认开，--no-desktop 跳过）
+# ============================================================
+DESKTOP_FLAG=""
+[ "$DESKTOP_AUTOSTART" = "1" ] && DESKTOP_FLAG="--autostart"
+if [ "$NO_DESKTOP" = "0" ]; then
+    echo "--- 生成桌面快捷方式（桌面图标 + 应用菜单）---"
+    PORT="$PORT" bash deploy/make-shortcut.sh $DESKTOP_FLAG \
+        || echo "⚠️ 快捷方式生成失败，可稍后手动执行: bash deploy/make-shortcut.sh"
+else
+    echo "--- 跳过桌面快捷方式（--no-desktop）---"
+fi
+
 echo
 echo "=== 部署完成 ==="
 echo "访问: http://127.0.0.1:$PORT/ （远程: ssh -N -L $PORT:127.0.0.1:$PORT 用户@主机）"
+[ "$NO_DESKTOP" = "0" ] && echo "桌面已生成「麒麟记忆」图标，双击即可打开；卸载快捷方式: bash deploy/make-shortcut.sh --uninstall"

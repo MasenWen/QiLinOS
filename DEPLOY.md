@@ -117,7 +117,9 @@ sudo systemctl enable --now webchat
 
 | 工具 | 用途 |
 |---|---|
-| `install.sh` | 首次安装（venv + 依赖 + systemd） |
+| `install.sh` | 首次安装（venv + 依赖 + systemd + **桌面快捷方式**） |
+| `make-shortcut.sh` | 生成/刷新/卸载「麒麟记忆」桌面图标与启动器（`--check` 自检、`--autostart` 开机自启、`--uninstall` 卸载） |
+| `assets/kylin-mem.png` | 快捷方式图标（随包分发） |
 | `update.sh` | 一键更新：git pull → 检测依赖变更重装 → 重启 webchat |
 | `webhook_server.py` | GitHub Webhook 监听（推送 dev1 即自动 update.sh） |
 | `rollback.sh` | 回滚到上一版本/指定提交并重启 |
@@ -181,3 +183,34 @@ bash deploy/rollback.sh abc1234  # 回退到指定提交
 - 代码：`QiLinOS/`（git 管理，随时可从 GitHub 恢复）
 - 记忆/会话/配置：`~/.nex-agent/`（**备份此目录 = 备份全部用户数据**）
 - 日志：`QiLinOS/webchat.log`（服务）、`QiLinOS/logs/security_audit.jsonl`（安全审计）
+
+
+## 九、桌面快捷方式（安装自动生成）
+
+`install.sh` 安装完成后会**自动**在「桌面 + 应用菜单」生成「麒麟记忆」图标，双击即打开
+`http://127.0.0.1:8080/`；若服务未运行，启动器会先 `systemctl start webchat` 再等 HTTP 200（最多 30s）。
+
+产物（路径按实际用户/项目目录生成，不含机器专属常量）：
+
+| 位置 | 内容 |
+|---|---|
+| `~/桌面/麒麟记忆.desktop` | 桌面图标（已 `chmod +x`、`gio metadata::trusted` 标记） |
+| `~/.local/share/applications/kylin-mem.desktop` | 应用菜单项 |
+| `~/.local/bin/kylin-mem-open` | 启动器（`--check` 仅自检、不起浏览器） |
+| `~/.config/autostart/kylin-mem.desktop` | 仅 `--desktop-autostart` / `--autostart` 时生成 |
+
+常用命令：
+
+```bash
+bash deploy/install.sh                    # 安装（默认生成快捷方式）
+bash deploy/install.sh --no-desktop       # 安装但跳过快捷方式
+bash deploy/install.sh --desktop-autostart# 安装 + 快捷方式 + 开机自启
+bash deploy/make-shortcut.sh              # 单独生成/刷新（幂等，重复执行安全）
+bash deploy/make-shortcut.sh --check      # 自检：打印路径与安装状态
+bash deploy/make-shortcut.sh --uninstall  # 卸载快捷方式与启动器
+PORT=9090 bash deploy/make-shortcut.sh    # 自定义端口
+```
+
+说明：桌面目录按 `xdg-user-dir DESKTOP` 解析（中文系统为 `~/桌面`），回退 `~/Desktop`；
+图标缺失时退回首选 `applications-internet` 主题图标。若桌面图标显示为文本文件样式，
+右键 → 允许启动/信任 一次即可（部分文件管理器首次需要）。

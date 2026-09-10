@@ -49,6 +49,10 @@ bash deploy/install.sh
 .venv/bin/python webchat.py 8080
 ```
 
+> 安装完成后会**自动生成桌面快捷方式**「麒麟记忆」（桌面图标 + 应用菜单），
+> 双击即打开 `http://127.0.0.1:8080/`；跳过用 `--no-desktop`，单独管理用
+> `bash deploy/make-shortcut.sh [--check|--autostart|--uninstall]`。
+>
 > `deploy/install.sh` 会处理麒麟系统上 python3 下载/安装的常见问题：自动检测 python3、
 > 缺失时用 apt（含阿里云镜像源回退）安装、pip 升级与依赖安装均按
 > 清华 → 阿里 → 豆瓣 → 官方源顺序自动切换重试。
