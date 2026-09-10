@@ -49,6 +49,14 @@ echo "桌面环境 : ${XDG_CURRENT_DESKTOP:-未知} ｜ 端口 $PORT"
 echo
 
 echo "① 服务与端口"
+# 体检：有没有把模板原文（含 <PROJECT_ROOT>）装进 systemd 目录 —— 会让服务永远起不来
+for f in /etc/systemd/system/webchat.service /etc/systemd/system/webhook.service; do
+  if [ -f "$f" ] && grep -q '<PROJECT_ROOT>' "$f" 2>/dev/null; then
+    echo "❌ [$f] 仍是模板原文（含 <PROJECT_ROOT>）→ systemd 会报 'WorkingDirectory is not absolute'"
+    hint "修复：sed 's#<PROJECT_ROOT>#/绝对/路径#g' deploy/webchat.service | sudo tee $f && sudo systemctl daemon-reload"
+  fi
+done
+
 if systemctl is-active --quiet "$SVC" 2>/dev/null; then
   ok "systemd 服务 $SVC 正在运行"
 else

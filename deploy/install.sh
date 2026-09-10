@@ -180,11 +180,43 @@ echo "--- 冒烟自检 ---"
 # ============================================================
 if [ "$NO_SYSTEMD" = "0" ]; then
     echo "--- 注册 systemd 服务 ---"
-    sudo cp deploy/webchat.service /etc/systemd/system/ 2>/dev/null || true
-    sudo systemctl daemon-reload 2>/dev/null || true
-    sudo systemctl enable webchat 2>/dev/null || true
-    sudo systemctl restart webchat 2>/dev/null || true
-    echo "✅ systemd 服务已注册: systemctl status webchat"
+    # 关键修复（2026-09-10）：模板里的 <PROJECT_ROOT> 必须替换成【绝对路径】再安装。
+    # 直接 cp 模板会让 systemd 拒绝加载并报：
+    #   WorkingDirectory= path is not absolute: <PROJECT_ROOT>
+    #   Unit configuration has fatal error, unit will not be started.
+    # systemd 不做 shell 展开，~ / $HOME / 相对路径 / 占位符一律非法。
+    UNIT_TMP="$(mktemp)"
+    sed "s#<PROJECT_ROOT>#$PROJ_DIR#g" deploy/webchat.service > "$UNIT_TMP"
+    if grep -q '<PROJECT_ROOT>' "$UNIT_TMP"; then
+        echo "❌ 单元文件仍含未替换的占位符，已中止（请检查 deploy/webchat.service 模板）"
+        rm -f "$UNIT_TMP"; exit 1
+    fi
+    if ! grep -q "^WorkingDirectory=/" "$UNIT_TMP"; then
+        echo "❌ WorkingDirectory 不是绝对路径，已中止：$(grep '^WorkingDirectory=' "$UNIT_TMP")"
+        rm -f "$UNIT_TMP"; exit 1
+    fi
+    if command -v systemd-analyze >/dev/null 2>&1 \
+       && systemd-analyze verify "$UNIT_TMP" 2>&1 | grep -q 'fatal error\|bad unit file setting'; then
+        echo "❌ 单元校验未通过："
+        systemd-analyze verify "$UNIT_TMP" 2>&1 | grep -v 'KillMode=none\|StartLimitIntervalSec' | head -5
+        rm -f "$UNIT_TMP"; exit 1
+    fi
+    sudo install -m 644 "$UNIT_TMP" /etc/systemd/system/webchat.service && rm -f "$UNIT_TMP"
+    # 环境变量（严格引擎 + LLM 密钥）走独立 drop-in，缺失不报错
+    if [ -f "$HOME/.nex-agent/webchat.env" ]; then
+        sudo mkdir -p /etc/systemd/system/webchat.service.d
+        printf '[Service]\nEnvironmentFile=-%s\n' "$HOME/.nex-agent/webchat.env" \
+            | sudo tee /etc/systemd/system/webchat.service.d/env.conf >/dev/null
+        echo "✅ 已挂环境文件: $HOME/.nex-agent/webchat.env"
+    fi
+    sudo systemctl daemon-reload
+    sudo systemctl enable webchat >/dev/null 2>&1 || true
+    sudo systemctl restart webchat
+    if systemctl is-active --quiet webchat; then
+        echo "✅ systemd 服务已注册并运行: systemctl status webchat"
+    else
+        echo "❌ 服务未起来，请查看: systemctl status webchat ｜ journalctl -u webchat -n 50" && exit 1
+    fi
     sleep 5
     code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://127.0.0.1:$PORT/" 2>/dev/null || echo 000)
     [ "$code" = "200" ] && echo "✅ 健康检查: HTTP 200" || echo "⚠️ 健康检查 HTTP $code（查看日志）"

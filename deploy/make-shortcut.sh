@@ -121,14 +121,24 @@ start_direct() {
   fi
   # 已被别的进程占用端口则不再重复起
   if curl -s -m 2 -o /dev/null "\$URL" 2>/dev/null; then return 0; fi
-  # 继承 systemd 单元注入的环境变量（如 NEX_STRICT_ENGINE、API key），
-  # 否则兜底进程会跑在默认模式：检索非 strict、缺少密钥 → 对话异常
-  local ENVV=""
-  if command -v systemctl >/dev/null 2>&1; then
+  # 环境变量来源（按优先级）：
+  #   ① ~/.nex-agent/webchat.env —— 项目已脱离 systemd，这是主要来源（600 权限）
+  #   ② systemctl show —— 单元仍存在时的历史路径，保留兼容
+  #   ③ 都没有 → 会跑在默认模式（非 strict、无密钥），此处显式告警
+  local ENVV="" SRC=""
+  if [ -f "\$HOME/.nex-agent/webchat.env" ]; then
+    ENVV="\$(tr '\\n' ' ' < "\$HOME/.nex-agent/webchat.env")"
+    SRC="环境文件 ~/.nex-agent/webchat.env"
+  elif command -v systemctl >/dev/null 2>&1; then
     ENVV="\$(systemctl show "\$SVC" -p Environment --value 2>/dev/null || true)"
+    [ -n "\$ENVV" ] && SRC="systemd 单元环境"
   fi
-  say "直接启动：\$PY webchat.py \$PORT \${ENVV:+（已继承 systemd 环境变量）}"
-  ( cd "\$PROJ_DIR" && env \$ENVV nohup "\$PY" webchat.py "\$PORT" >> "\$PROJ_DIR/webchat.log" 2>&1 & )
+  [ -z "\$ENVV" ] && say "⚠ 未找到环境变量（严格引擎/密钥），将以默认模式启动"
+  # 日志写用户可写路径（systemd 时期的 webchat.log 属 root，直接启动写不进去）
+  local LOGF="\$HOME/.local/state/webchat-direct.log"
+  mkdir -p "\$(dirname "\$LOGF")"
+  say "直接启动：\$PY webchat.py \$PORT \${SRC:+（\$SRC）}"
+  ( cd "\$PROJ_DIR" && env \$ENVV nohup "\$PY" webchat.py "\$PORT" >> "\$LOGF" 2>&1 & echo \$! > "\$HOME/.local/state/webchat.pid" )
   return 0
 }
 if ! systemctl is-active --quiet "\$SVC" 2>/dev/null; then

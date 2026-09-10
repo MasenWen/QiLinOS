@@ -1,4 +1,18 @@
-# 部署模板：安装时请将 <PROJECT_ROOT> 替换为实际项目绝对路径（本文件不含机器专属路径）
+# 部署模板（本文件是模板，不能直接 cp 到 /etc/systemd/system/）
+# ---------------------------------------------------------------------------
+# <PROJECT_ROOT> 是占位符，安装前必须替换为**绝对路径**；systemd 不做 shell 展开，
+# 直接用模板会报（实测）：
+#     WorkingDirectory= path is not absolute: <PROJECT_ROOT>
+#     Unit configuration has fatal error, unit will not be started.
+# 正确做法（二选一）：
+#   1) 由安装脚本自动生成并校验：bash deploy/install.sh
+#   2) 手动生成：
+#        sed 's#<PROJECT_ROOT>#/绝对/路径/kylin-mem#g' deploy/webchat.service \
+#          | sudo tee /etc/systemd/system/webchat.service
+#        systemd-analyze verify /etc/systemd/system/webchat.service   # 应无 fatal error
+#        sudo systemctl daemon-reload && sudo systemctl restart webchat
+# 注：~ / $HOME / ./ 相对路径同样非法，必须 / 开头。
+# ---------------------------------------------------------------------------
 [Unit]
 Description=NexAgent WebChat (8080)
 After=network.target
