@@ -242,3 +242,60 @@ bash deploy/doctor.sh --verbose  # 附打印桌面项内容
 >
 > 常用命令：`bash deploy/make-shortcut.sh --check`（看产物路径与状态）、
 > `bash deploy/make-shortcut.sh --uninstall`（卸载快捷方式，服务不受影响）。
+
+## 十一、主机（形态 B）快捷方式点了没反应：三步定位
+
+主机上没有服务器那套 systemd 命令经验，按下面三步走，**每步都会留下证据**。
+
+### 第 1 步：确认"点击"有没有真的执行脚本
+
+```bash
+tail -5 ~/.local/state/kylin-mem-open.log
+date '+%F %T'
+```
+
+- 日志最后一条时间 **早于**你刚点击的时间 → 点击没触发脚本，看第 2 步
+- 有刚刚的记录、且写着 `失败：没有可用浏览器` → 看第 3 步
+- 完全没有这个文件 → 启动器从未被执行（也看第 2 步）
+
+### 第 2 步：桌面项本身能不能被执行
+
+```bash
+ls -la ~/桌面/麒麟记忆.desktop                      # 需要 -rwx（可执行）
+gio info ~/桌面/麒麟记忆.desktop | grep trusted      # 需要 metadata::trusted: true
+gio launch ~/桌面/麒麟记忆.desktop                   # 手动触发一次，等价于双击
+```
+
+- 不可执行：`chmod +x ~/桌面/麒麟记忆.desktop`
+- 未标记可信：`gio set ~/桌面/麒麟记忆.desktop metadata::trusted true`，或右键 → 允许启动/信任
+- 仍点不开：先用**开始菜单**里搜「麒麟记忆」（菜单项不受桌面可信标记影响），或终端直接跑
+  `~/.local/bin/kylin-mem-open`
+
+### 第 3 步：系统里有没有浏览器
+
+```bash
+for b in firefox chromium chromium-browser kylin-browser browser360 qaxbrowser; do
+  command -v $b || echo "$b: 无"
+done
+```
+
+一个都没有 → **这就是"点了没反应"的根因**（服务在跑、页面也在，但没有程序能显示它）：
+
+```bash
+sudo apt update && sudo apt install -y firefox
+xdg-settings set default-web-browser firefox.desktop   # 可选，设为默认
+```
+
+> 麒麟最小安装默认不带浏览器；`xdg-open` 在没有浏览器时会**静默失败**，
+> 加上桌面项 `Terminal=false`，现场就表现为"什么都没发生"。
+
+### 一条命令搞定体检 + 重建
+
+```bash
+cd <项目目录>
+bash deploy/fix-shortcut-standalone.sh          # 自包含：体检 + 重建桌面图标/菜单项/启动器
+bash deploy/fix-shortcut-standalone.sh --check  # 只体检，不写文件
+```
+
+该脚本还会：检查点击链路日志、探测浏览器、在服务未就绪时给出日志路径；
+若系统确实没有浏览器，会写一份 `~/麒麟记忆-缺少浏览器.txt` 提示修复命令。
