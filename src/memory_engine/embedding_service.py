@@ -255,32 +255,45 @@ class ONNXEmbeddingBackend:
         return self._available
 
     def _init_onnx(self):
-        # Try to load from existing rag module
+        import os  # 本模块顶部未导入
+        # ① 麒麟系统自带模型（gte-base QUInt8，768 维）
         try:
-            from src.rag.kylin_embedding_onnx import KylinEmbeddingONNX
-            self._model = KylinEmbeddingONNX()
-            self.dim = getattr(self._model, "dim", 768)
-        except Exception:
-            # Try direct onnxruntime
-            import onnxruntime
-            import os
-            model_path = os.path.expanduser("~/work/vendor/kylin-coreai-embedding/model.onnx")
-            if os.path.exists(model_path):
-                self._model = onnxruntime.InferenceSession(model_path)
-                self.dim = 768
-            else:
-                raise FileNotFoundError(f"ONNX model not found at {model_path}")
+            from src.memory.embedding_onnx import KylinONNXEmbedding, ONNX_MODEL_PATH
+            if os.path.exists(ONNX_MODEL_PATH):
+                self._model = KylinONNXEmbedding()
+                self.dim = getattr(self._model, "dim", 768)
+                return
+        except Exception as e:
+            logger.warning("系统 ONNX 模型不可用: %s", str(e)[:120])
+
+        # ② 本地 ONNX 文本嵌入（仓库自带 bge-small-zh-v1.5 或 NEX_ONNX_MODEL_PATH 指定）
+        #    2026-09-10：原来这里要么导入不存在的 src.rag，要么走
+        #    _direct_onnx_embed()（NotImplementedError 占位）→ 非麒麟机器必然失败。
+        from .onnx_text_embedder import OnnxTextEmbedder
+        if OnnxTextEmbedder.is_available():
+            self._model = OnnxTextEmbedder.get()
+            self.dim = self._model.dim
+            logger.info("本地 ONNX 文本嵌入已加载: %s (%d 维)",
+                        self._model.backend_id, self.dim)
+            return
+        raise FileNotFoundError(
+            "本地 ONNX 模型不可用：请安装 onnxruntime + tokenizers，"
+            "并确认仓库 models/bge-small-zh-v1.5/ 下模型与 tokenizer 存在"
+            "（或用 NEX_ONNX_MODEL_PATH / NEX_ONNX_TOKENIZER_PATH 指定）")
 
     def embed_batch(self, texts: List[str]) -> np.ndarray:
-        from src.rag.kylin_embedding_onnx import KylinEmbeddingONNX
-        if isinstance(self._model, KylinEmbeddingONNX):
-            return self._model.embed_batch(texts)
-        # Direct onnxruntime path
-        return self._direct_onnx_embed(texts)
+        if self._model is None:
+            self._init_onnx()
+        # 兼容两种接口：OnnxTextEmbedder 有 embed_batch()，
+        # 麒麟系统的 KylinONNXEmbedding 只有 embed()。
+        fn = getattr(self._model, "embed_batch", None) or getattr(self._model, "embed", None)
+        if fn is None:
+            raise AttributeError("ONNX 模型缺少 embed/embed_batch 接口")
+        return np.asarray(fn(list(texts)))
 
     def _direct_onnx_embed(self, texts: List[str]) -> np.ndarray:
-        # Placeholder for direct ONNX inference
-        raise NotImplementedError("Direct ONNX inference not implemented")
+        """保留旧名以兼容历史调用；实际走 _init_onnx 选定的模型。"""
+        return self.embed_batch(texts)
 
 
 class DashScopeEmbeddingBackend:
@@ -395,6 +408,8 @@ class EmbeddingService:
             try:
                 vectors = onnx.embed_batch(texts)
                 self._active_backend = onnx.backend_id
+                # 同步真实维度（系统 gte=768 / 仓库自带 bge=512）
+                self._dim = getattr(onnx, "dim", self._dim)
                 return vectors
             except Exception as e:
                 logger.warning("ONNX fallback failed: %s", e)

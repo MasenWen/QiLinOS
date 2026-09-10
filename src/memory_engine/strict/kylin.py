@@ -61,8 +61,42 @@ class KylinSDKSemanticScorer:
             return {}
         from .rendering import render_memory
         documents = [render_memory(memory) for memory in memories]
+        ids = [str(getattr(m, "memory_id", "") or "") for m in memories]
+        # 2026-09-10 修：EmbeddingService.score() 返回的键是"下标字符串"（{"0":…}），
+        # 而 strict/retrieval 是按 memory_id 取值（semantic_scores.get(memory.memory_id)），
+        # 旧实现直接转发 → 语义分数恒为 0（语义精排实际未生效）。
+        # 这里统一自己算余弦并回填 memory_id；任何提供 embed_batch 的嵌入后端都适用。
+        if hasattr(self._embedder, "embed_batch"):
+            try:
+                try:
+                    vectors = self._embedder.embed_batch([query, *documents])
+                except TypeError:
+                    vectors = self._embedder.embed_batch([query, *documents], "search")
+                import numpy as _np
+                vectors = [_np.asarray(v, dtype=_np.float32) for v in vectors]
+                q = vectors[0]
+                qn = float(_np.linalg.norm(q))
+                out: dict[str, float] = {}
+                for mid, d in zip(ids, vectors[1:]):
+                    dn = float(_np.linalg.norm(d))
+                    if qn > 0 and dn > 0:
+                        out[mid] = max(0.0, min(float(q @ d / (qn * dn)), 1.0))
+                    else:
+                        out[mid] = 0.0
+                return out
+            except Exception as _e:
+                print(f"[strict.scorer] 语义打分失败，回退：{str(_e)[:120]}", flush=True)
         if hasattr(self._embedder, "score"):
-            return self._embedder.score(query, documents)
+            raw = self._embedder.score(query, documents) or {}
+            # 兼容"下标键"实现：按下标映射回 memory_id
+            mapped: dict[str, float] = {}
+            for k, v in raw.items():
+                ks = str(k)
+                if ks in ids:
+                    mapped[ks] = float(v)
+                elif ks.isdigit() and int(ks) < len(ids):
+                    mapped[ids[int(ks)]] = float(v)
+            return mapped
         # Legacy KylinEmbedder path
         vectors = self._embedder.embed_batch([query, *documents], "search")
         query_vector = vectors[0]

@@ -5,6 +5,7 @@
 #   bash deploy/enable-strict.sh --pull       # 先 git pull dev1，再设置 strict（最常用）
 #   bash deploy/enable-strict.sh --check      # 只体检，不改动
 #   bash deploy/enable-strict.sh --off        # 关闭 strict（回到 mem0/四层模式）
+#   bash deploy/enable-strict.sh --pull --embed   # 同时准备本地 ONNX 嵌入（非麒麟机器用）
 #
 # 原理：决定走 strict 还是 mem0 的唯一开关，是【服务进程】里的环境变量
 #   NEX_STRICT_ENGINE=1（不设置 = 默认关闭）。
@@ -21,12 +22,14 @@ PID_FILE="${PID_FILE:-$HOME/.local/state/webchat.pid}"
 LOG_FILE="${LOG_FILE:-$HOME/.local/state/webchat-direct.log}"
 TARGET=1
 MODE="set"
+PREP_EMBED=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --pull) MODE="pull"; shift ;;
     --check) MODE="check"; shift ;;
     --off) TARGET=0; shift ;;
+    --embed) PREP_EMBED=1; shift ;;
     -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
     *) echo "未知参数：$1"; exit 2 ;;
   esac
@@ -48,6 +51,55 @@ if [ "$MODE" = "pull" ]; then
   [ "$before" = "$after" ] && say "仓库已是最新：$after" || say "仓库更新：$before → $after"
 fi
 say "当前提交：$(git log --oneline -1 | cat)"
+
+# ---------- 1b) 本地嵌入后端准备（非麒麟机器：没有 kylin 运行时/ONNX/云端） ----------
+ensure_local_embed() {
+  # 语义打分需要嵌入后端。麒麟机器用系统 gte 模型（768维）；
+  # 其他机器用仓库自带 models/bge-small-zh-v1.5（512维，onnxruntime+tokenizers）。
+  local need=0
+  "$PROJ_DIR/.venv/bin/python" - <<'PYEOF' >/dev/null 2>&1 || need=1
+import onnxruntime, tokenizers  # noqa
+PYEOF
+  if [ "$need" = "1" ]; then
+    say "缺少 onnxruntime / tokenizers，尝试安装（可加 --skip-install 跳过）"
+    "$PROJ_DIR/.venv/bin/pip" install -q onnxruntime tokenizers \
+      -i https://pypi.tuna.tsinghua.edu.cn/simple \
+      || "$PROJ_DIR/.venv/bin/pip" install -q onnxruntime tokenizers || \
+      say "⚠ 安装失败，请手动 pip install onnxruntime tokenizers"
+  fi
+  if [ -f "$PROJ_DIR/models/bge-small-zh-v1.5/onnx_model_quantized.onnx" ]; then
+    say "✓ 仓库自带本地嵌入模型：models/bge-small-zh-v1.5"
+  else
+    say "⚠ 仓库缺少 models/bge-small-zh-v1.5/（非麒麟机器将没有本地嵌入后端）"
+  fi
+  # 报告服务实际会用哪个嵌入后端
+  local out
+  out="$(cd "$PROJ_DIR" && set -a && [ -f "$ENV_FILE" ] && . "$ENV_FILE"; set +a; \
+        .venv/bin/python - <<'PYEOF' 2>/dev/null
+import sys
+sys.path.insert(0, ".")
+try:
+    from src.memory_engine.embedding_service import EmbeddingService
+    import numpy as np
+    svc = EmbeddingService()
+    v = svc.embed_batch(["记忆系统自检"])
+    print("EMBED_OK %s %d %s" % (svc.active_backend, svc.dim, np.asarray(v).shape))
+except Exception as e:
+    print("EMBED_FAIL %s" % str(e)[:120])
+PYEOF
+)"
+  case "$out" in
+    EMBED_OK*) say "✓ 嵌入后端：$(echo "$out" | awk '{print $2" 维度"$3}')" ;;
+    EMBED_FAIL*) say "⚠ 嵌入后端探测失败：$(echo "$out" | cut -d' ' -f2-)";;
+    *) say "⚠ 嵌入后端探测无输出" ;;
+  esac
+}
+
+if [ "$PREP_EMBED" = "1" ] && [ "$MODE" != "check" ]; then
+  ensure_local_embed
+elif [ "$MODE" = "check" ]; then
+  ensure_local_embed
+fi
 
 # ---------- 2) 写入 / 关闭 开关 ----------
 current_env() {
