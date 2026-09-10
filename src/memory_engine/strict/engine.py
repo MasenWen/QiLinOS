@@ -12,6 +12,7 @@ from uuid import NAMESPACE_URL, uuid4, uuid5
 from .candidates import strict_candidate_modules
 from .config import StrictMemoryEngineConfig
 from .conflict import (
+    ActiveConfigRecencyStaticResolver,
     ConditionPartitionResolver,
     ExplicitTimeRecentWindowDynamicResolver,
     HierarchicalConflictClassifier,
@@ -1057,6 +1058,13 @@ def build_strict_v1_registry(
         "static_resolver",
         SourceVersionCountStaticResolver.module_id,
         static_resolver,
+    )
+    # v0.7 实测：生效配置可由"配置版本号 + 更新时刻"推导，故额外注册
+    # active_config_recency.v2；由 config/memory_engine_strict_v1.toml 选择启用。
+    registry.register(
+        "static_resolver",
+        ActiveConfigRecencyStaticResolver.module_id,
+        ActiveConfigRecencyStaticResolver(),
     )
     registry.register(
         "dynamic_resolver",

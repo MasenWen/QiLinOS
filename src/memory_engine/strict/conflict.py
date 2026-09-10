@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any, Mapping
@@ -337,6 +338,96 @@ def _condition_partition(
         memory.memory_id: dict(memory.condition)
         for memory in memories
     }
+
+
+_CONFIG_VERSION_PATTERN = re.compile(r"[_\-]?[Vv](\d+)$")
+_TEMPORARY_MARKERS = (
+    "临时做法",
+    "临时变通",
+    "临时改动",
+    "应急处理",
+    "特批",
+    "只此一次",
+    "先别照着用",
+    "不要照着用",
+    "不沿用",
+)
+
+
+def _config_version_number(memory: StrictMemory) -> int:
+    """从 provenance.config_version 末段解析版本号（如 …_V2 → 2）；无则 0。"""
+    raw = str((memory.provenance or {}).get("config_version") or "")
+    if not raw:
+        return 0
+    match = _CONFIG_VERSION_PATTERN.search(raw.strip())
+    if match:
+        return int(match.group(1))
+    return 0
+
+
+def _is_temporary_memory(memory: StrictMemory) -> bool:
+    """是否为"临时做法 / 例外"类记忆（未要求恢复时不应压过常规做法）。"""
+    provenance = memory.provenance or {}
+    if provenance.get("temporary") or provenance.get("exception"):
+        return True
+    parts = [str(memory.semantic_value or "")]
+    condition = memory.condition or {}
+    try:
+        parts.append(json.dumps(condition, ensure_ascii=False))
+    except (TypeError, ValueError):
+        parts.append(str(condition))
+    condition_text = str((condition or {}).get("text") or "")
+    if condition_text:
+        parts.append(condition_text)
+    blob = " ".join(parts)
+    return any(marker in blob for marker in _TEMPORARY_MARKERS)
+
+
+def _active_config_rank(memory: StrictMemory) -> tuple[int, int, int, int, str]:
+    """静态冲突排序键（越大越优先）。
+
+    与 v1 的差异：在来源优先级之后先看**配置版本号**，再看支撑单元数量；
+    并把"临时做法/例外"整体降到最低一档。
+    """
+    return (
+        0 if _is_temporary_memory(memory) else 1,
+        _source_priority(memory),
+        _config_version_number(memory),
+        len(memory.support_unit_ids),
+        str(memory.valid_from or ""),
+    )
+
+
+class ActiveConfigRecencyStaticResolver:
+    """静态冲突解析：生效配置（最新配置版本）优先，临时做法降级。
+
+    对应评测结论 v0.7：系统可通过"配置版本 + 更新时刻"推导生效状态，
+    无需新增字段即可让裁决层识别"当前生效配置"。
+    """
+
+    module_id = "conflict.static.active_config_recency.v2"
+
+    def resolve(
+        self,
+        group: StrictConflictGroup,
+        memories: Mapping[str, StrictMemory],
+    ) -> StrictConflictGroup:
+        if group.conflict_type is not ConflictType.STATIC:
+            return group
+        candidates = [memories[memory_id] for memory_id in group.memory_ids]
+        ranked = sorted(candidates, key=_active_config_rank, reverse=True)
+        if len(ranked) > 1 and _active_config_rank(ranked[0]) == _active_config_rank(ranked[1]):
+            return replace(
+                group,
+                unresolved_reason="static_priority_tie",
+                status="unresolved",
+            )
+        return replace(
+            group,
+            winner_memory_id=ranked[0].memory_id,
+            unresolved_reason="",
+            status="resolved",
+        )
 
 
 def _source_priority(memory: StrictMemory) -> int:
