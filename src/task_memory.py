@@ -82,21 +82,52 @@ def is_query_message(text: str) -> bool:
     return any(w in (text or "") for w in _QUERY_WORDS)
 
 
+# 仅表示形式/渠道的词，不能单独作为事件主体
+_SUBJECT_STOP = {"线上会议", "线下会议", "电话会议", "视频会议", "线上", "线下", "会议",
+                 "日程", "纪要", "安排", "任务", "事件"}
+
+
 def extract_subject(text: str) -> Optional[str]:
-    t = _strip_action(_strip_prefix(text or ""))
-    for pat in (r"([\u4e00-\u9fa5A-Za-z0-9]{2,10}?(?:项目)[\u4e00-\u9fa5A-Za-z0-9]{0,4}会议)",
-                r"([\u4e00-\u9fa5A-Za-z0-9]{2,14}?会议)",
-                r"([\u4e00-\u9fa5A-Za-z0-9]{2,16}?(?:安排|任务|日程|事件))"):
-        m = re.search(pat, t)
-        if m:
+    """提取事件主体（会议/验收会/评审会等命名事件）。
+
+    优先级：①「X的(当前)安排」②「X：/X，」句式 ③ X项目会议 ④ X会议 ⑤ X安排/任务/日程/事件
+    避免把「线上会议」这类形式词当成事件主体（客户验收会 → 应为"客户验收会"）。
+    """
+    raw = (text or "").strip()
+    t = _strip_action(_strip_prefix(raw))
+    pats = (
+        # ① 名称在「的(当前)安排/更新/进展」之前
+        r"([\u4e00-\u9fa5A-Za-z0-9]{2,16}?)的(?:当前)?(?:会议)?(?:安排|计划|日程|更新|进展|状态)",
+        # ② 名称后紧跟冒号/逗号/句号（更新、查询句式：更新客户验收会：… / 客户验收会。请告诉我…）
+        r"^([\u4e00-\u9fa5A-Za-z0-9]{2,16}?)(?:[：:，,。]|改为|改成)",
+        # ③ 更新/修改动词后的名称
+        r"(?:更新|修改|调整)([\u4e00-\u9fa5A-Za-z0-9]{2,16}?)(?:[：:，,。]|改为|改成|的)",
+        # ④ X项目会议
+        r"([\u4e00-\u9fa5A-Za-z0-9]{2,10}?(?:项目)[\u4e00-\u9fa5A-Za-z0-9]{0,4}会议)",
+        # ⑤ X会议
+        r"([\u4e00-\u9fa5A-Za-z0-9]{2,14}?会议)",
+        # ⑥ X安排/任务/日程/事件
+        r"([\u4e00-\u9fa5A-Za-z0-9]{2,16}?(?:安排|任务|日程|事件))",
+    )
+    for pat in pats:
+        for src in (t, raw):
+            m = re.search(pat, src)
+            if not m:
+                continue
             g = m.group(1)
             for tail in ("的当前安排", "的会议安排", "当前安排", "的更新", "安排"):
                 if g.endswith(tail):
                     g = g[:-len(tail)]
                     break
-            g = g.strip(" ，,、")
-            if g:
-                return g
+            g = _strip_action(_strip_prefix(g)).strip(" ，,、")
+            if not g or g in _SUBJECT_STOP:
+                continue
+            # 拒绝时间/形式短语（"明天下午三点""周五上午"等）当作事件主体
+            if re.search(r"(周[一二三四五六日天]|星期[一二三四五六日天]|上午|下午|晚上|"
+                         r"今天|明天|后天|大后天|[0-9一二三四五六七八九十]{1,3}[点时代]|"
+                         r"[0-9]{1,2}\s*月\s*[0-9]{1,2}\s*日)", g):
+                continue
+            return g
     return None
 
 

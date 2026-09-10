@@ -2975,10 +2975,22 @@ def _task_maybe_save(message: str) -> None:
                 _slot_hit = bool(_store.list_memories("nex_user", slot_key=_SLOT_PREFIX + _subj))
             except Exception:
                 _slot_hit = False
-        _want = (has_task_persist_intent(_u0) and not is_query_message(_u0)) \
-            or (_slot_hit and is_update_message(_u0) and not is_query_message(_u0))
-        if _want:
-            _parsed = parse_task_event(_u0)
+        _parsed = parse_task_event(_u0) if _subj else {}
+        # 领域词 + 更新语义 + 有实质状态（时间/地点/进度）→ 视为对事件档案的更新
+        from src.task_memory import _DOMAIN_WORDS as _DW
+        _has_domain = any(w in _u0 for w in _DW)
+        _has_state = bool(_parsed.get("when") or _parsed.get("where")
+                          or _parsed.get("items"))
+        _want = False
+        if _subj and not is_query_message(_u0):
+            if has_task_persist_intent(_u0):
+                _want = True
+            elif _slot_hit and is_update_message(_u0):
+                _want = True
+            elif (_has_domain and is_update_message(_u0) and _has_state):
+                # 主体命名变化（如"客户验收会"）导致未命中既有 slot 时仍建档更新
+                _want = True
+        if _want and _parsed:
             save_task_event(_eng, _parsed, source_text=_u0)
     except Exception:
         pass
