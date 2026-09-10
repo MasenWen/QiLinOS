@@ -25,19 +25,32 @@ APP_ID="kylin-mem"
 SVC="webchat"
 ICON_SRC="$PROJ_DIR/deploy/assets/kylin-mem.png"
 
-BIN_DIR="$HOME/.local/bin"
+# 若以 root 身份通过 sudo 执行，快捷方式应落到「调用者」的家目录（而不是 /root）
+TARGET_USER="$(id -un)"; TARGET_HOME="$HOME"
+if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+    TARGET_USER="${SUDO_USER}"
+    TARGET_HOME="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6)"
+    [ -n "$TARGET_HOME" ] && [ -d "$TARGET_HOME" ] || TARGET_HOME="$HOME"
+fi
+
+BIN_DIR="$TARGET_HOME/.local/bin"
 LAUNCHER="$BIN_DIR/${APP_ID}-open"
-APPS_DIR="$HOME/.local/share/applications"
-AUTOSTART_DIR="$HOME/.config/autostart"
+APPS_DIR="$TARGET_HOME/.local/share/applications"
+AUTOSTART_DIR="$TARGET_HOME/.config/autostart"
 
 # 桌面目录：优先 xdg-user-dir（已本地化，如 ~/桌面），回退常见中文/英文名
 desktop_dir() {
     local d=""
-    command -v xdg-user-dir >/dev/null 2>&1 && d="$(xdg-user-dir DESKTOP 2>/dev/null)"
-    [ -z "$d" ] || [ "$d" = "$HOME" ] && {
-        for c in "$HOME/桌面" "$HOME/Desktop"; do [ -d "$c" ] && d="$c" && break; done
+    # 以目标用户身份解析本地化桌面目录（SUDO 场景下切到该用户执行 xdg-user-dir）
+    if [ "$TARGET_HOME" != "$HOME" ] && command -v sudo >/dev/null 2>&1; then
+        d="$(sudo -u "$TARGET_USER" -H xdg-user-dir DESKTOP 2>/dev/null)"
+    else
+        command -v xdg-user-dir >/dev/null 2>&1 && d="$(xdg-user-dir DESKTOP 2>/dev/null)"
+    fi
+    [ -z "$d" ] || [ "$d" = "$TARGET_HOME" ] && {
+        for c in "$TARGET_HOME/桌面" "$TARGET_HOME/Desktop"; do [ -d "$c" ] && d="$c" && break; done
     }
-    [ -z "$d" ] && d="$HOME"
+    [ -z "$d" ] && d="$TARGET_HOME"
     echo "$d"
 }
 DESKTOP_DIR="$(desktop_dir)"
@@ -65,6 +78,7 @@ if [ "$DO_UNINSTALL" = "1" ]; then
 fi
 
 if [ "$DO_CHECK" = "1" ]; then
+    echo "目标用户   : $TARGET_USER （家目录 $TARGET_HOME）"
     echo "项目目录   : $PROJ_DIR"
     echo "桌面目录   : $DESKTOP_DIR"
     echo "端口/地址  : $PORT / $URL"
@@ -168,4 +182,10 @@ fi
 log "应用菜单项：$APPS_DIR/${APP_ID}.desktop"
 [ "$report_ok" = "1" ] && log "桌面图标：$DESKTOP_DIR/${APP_NAME}.desktop（双击即打开 ${URL}）" \
                        || log "⚠️ 未找到桌面目录，仅创建了应用菜单项"
+# root 执行时把生成物归还目标用户（否则桌面上会显示为 root 所有/不可点）
+if [ "$(id -u)" = "0" ] && [ "$TARGET_USER" != "root" ]; then
+    chown -R "$TARGET_USER":"$TARGET_USER" "$BIN_DIR" "$APPS_DIR" "$AUTOSTART_DIR" 2>/dev/null || true
+    [ -e "$DESKTOP_DIR/${APP_NAME}.desktop" ] &&         chown "$TARGET_USER":"$TARGET_USER" "$DESKTOP_DIR/${APP_NAME}.desktop" 2>/dev/null || true
+fi
+
 log "完成。若桌面图标显示为「文本文件」样式，右键 → 允许启动/信任 一次即可。"
