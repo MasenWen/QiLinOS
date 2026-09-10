@@ -96,13 +96,26 @@ mkdir -p "$BIN_DIR" "$APPS_DIR"
 cat > "$LAUNCHER" <<EOF
 #!/bin/bash
 # 麒麟记忆启动器（由 deploy/make-shortcut.sh 生成）
+# 日志：~/.local/state/kylin-mem-open.log
 URL="$URL"
 SVC="$SVC"
+STATE_DIR="\$HOME/.local/state"
+LOG="\$STATE_DIR/kylin-mem-open.log"
+mkdir -p "\$STATE_DIR" 2>/dev/null || true
+say() { echo "[\$(date '+%F %T')] \$*" >> "\$LOG" 2>/dev/null || true; }
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a "麒麟记忆" "\$1" 2>/dev/null || true; }
+
 CHECK_ONLY=0
 [ "\${1:-}" = "--check" ] && CHECK_ONLY=1
+say "启动器执行（CHECK_ONLY=\$CHECK_ONLY）"
+
+# 1) 服务未运行则拉起
 if ! systemctl is-active --quiet "\$SVC" 2>/dev/null; then
+  say "服务未运行，尝试启动"
   sudo -n systemctl start "\$SVC" 2>/dev/null || systemctl --user start "\$SVC" 2>/dev/null || true
 fi
+
+# 2) 等待 HTTP 就绪
 CODE=""
 for _ in \$(seq 1 30); do
   CODE=\$(curl -s -m 2 -o /dev/null -w '%{http_code}' "\$URL" 2>/dev/null || true)
@@ -110,11 +123,49 @@ for _ in \$(seq 1 30); do
   sleep 1
 done
 if [ "\$CODE" != "200" ]; then
+  say "失败：服务未就绪（HTTP \${CODE:-无响应}）"
+  notify "服务未就绪（HTTP \${CODE:-无响应}）：journalctl -u \$SVC -n 50"
   echo "服务未就绪（HTTP \${CODE:-无响应}）：systemctl status \$SVC ｜ journalctl -u \$SVC -n 50"
   exit 1
 fi
+say "服务就绪：\$URL"
 [ "\$CHECK_ONLY" = "1" ] && { echo "服务就绪：\$URL"; exit 0; }
-command -v xdg-open >/dev/null 2>&1 && xdg-open "\$URL" >/dev/null 2>&1 &
+
+# 3) 打开浏览器（多级回退：默认浏览器 → 常见浏览器 → xdg-open）
+open_url() {
+  local u="\$1" b
+  for b in firefox chromium chromium-browser kylin-browser google-chrome browser360 qaxbrowser; do
+    if command -v "\$b" >/dev/null 2>&1; then
+      "\$b" "\$u" >/dev/null 2>&1 & say "已用 \$b 打开"; return 0
+    fi
+  done
+  if command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "\$u" >/dev/null 2>&1 & sleep 1
+    # xdg-open 在没有浏览器时会静默失败：用默认项再确认一次
+    if command -v xdg-settings >/dev/null 2>&1; then
+      local d; d="\$(xdg-settings get default-web-browser 2>/dev/null)"
+      if [ -n "\$d" ]; then
+        local f="/usr/share/applications/\$d"
+        [ -f "\$f" ] || f="\$HOME/.local/share/applications/\$d"
+        if [ -f "\$f" ]; then
+          local ex; ex="\$(grep -m1 '^Exec=' "\$f" | cut -d= -f2- | awk '{print \$1}')"
+          command -v "\$ex" >/dev/null 2>&1 || { say "默认浏览器不可用：\$d → \$ex"; notify "未找到可用浏览器，请安装：sudo apt install firefox"; return 1; }
+        else
+          say "默认浏览器条目缺失：\$d"; notify "浏览器配置异常，请安装：sudo apt install firefox"; return 1
+        fi
+      fi
+    fi
+    say "已用 xdg-open 打开"; return 0
+  fi
+  say "失败：没有可用的浏览器（xdg-open 也缺失）"
+  notify "未找到浏览器，无法显示页面。请执行：sudo apt install firefox"
+  return 1
+}
+open_url "\$URL" || {
+  echo "未找到可用浏览器：请安装后重试（sudo apt install firefox），或手动访问 \$URL"
+  exit 2
+}
+say "完成"
 EOF
 chmod +x "$LAUNCHER"
 log "启动器已写入：$LAUNCHER"
