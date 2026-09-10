@@ -28,6 +28,27 @@ SOURCE_RELIABILITY = {
 }
 
 
+
+def _ensure_aware(value: str, now: "datetime") -> str:
+    """把事件时间统一成带时区的 ISO 字符串。
+
+    问题（2026-09-10 消融实验暴露）：数据集里的 timestamp 有的是 offset-aware
+    （``2025-12-29T09:19:20+08:00``），有的是 naive（无时区）；strict 管线在
+    生命周期阶段比较 valid_from / observed_time 时抛
+    ``TypeError: can't compare offset-naive and offset-aware datetimes``，
+    整条链路中断（301 条样本里 261 条因此失败）。这里在观察阶段入口统一补 UTC。
+    """
+    text = str(value or "").strip()
+    if not text:
+        return now.isoformat()
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except Exception:
+        return now.isoformat()
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.isoformat()
+
 class UnsafeObservationError(ValueError):
     pass
 
@@ -53,7 +74,7 @@ class TypedRuleObservationNormalizer:
             )
 
         now = ingest_time or datetime.now(timezone.utc)
-        event_time = str(event.get("event_time") or now.isoformat())
+        event_time = _ensure_aware(event.get("event_time"), now)
         content = _content(source_type, event)
         completion = _completion(source_type, event)
         content_hash = hashlib.sha256(

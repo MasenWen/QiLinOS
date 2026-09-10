@@ -1010,6 +1010,14 @@ def build_strict_v1_registry(
         TypedRuleObservationNormalizer.module_id,
         TypedRuleObservationNormalizer(),
     )
+    # O1 基线（消融对照：不做类型化归一化）；由 config.modules["observation"] 选择
+    from .observation_baseline import RawPassthroughObservationNormalizer
+
+    registry.register(
+        "observation",
+        RawPassthroughObservationNormalizer.module_id,
+        RawPassthroughObservationNormalizer(),
+    )
     registry.register(
         "stm",
         TimeTaskArtifactSTM.module_id,
