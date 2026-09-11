@@ -62,6 +62,7 @@ class StrictMemoryEngine:
             self.config
         )
         self.semantic_scorer = semantic_scorer
+        self.optimization_kappa_g = float(self.config.retrieval.get("kappa_g", 5.0))
         self.registry.validate(
             self.config,
             self.config.stages_through("episode_repair"),
@@ -71,6 +72,63 @@ class StrictMemoryEngine:
 
     def validate_full_activation(self) -> None:
         self.registry.validate_full(self.config)
+
+    def _apply_memory_optimization(
+        self,
+        result: dict[str, Any],
+        retrieval_context: StrictRetrievalContext,
+        top_k: int,
+    ) -> dict[str, Any]:
+        """内存充足时按贝叶斯个性化更新做先验平滑；任何异常都退回未优化结果。"""
+        try:
+            from ..resource_gate import optimization_decision
+            from ..optimization import apply_prior_smoothing
+
+            decision = optimization_decision()
+            items = list(result.get("items") or [])
+            if not decision.get("enabled") or not items:
+                result["trace"] = {**(result.get("trace") or {}), "optimization": {
+                    **decision, "bayes": {"active": False,
+                                          "reason": "disabled" if not decision.get("enabled") else "no_candidates"}}}
+                return result
+
+            try:
+                evidence: float | None = float(
+                    len(self.store.list_memories(retrieval_context.user_id))
+                )
+            except Exception:
+                evidence = None
+
+            adapted: list[dict[str, Any]] = []
+            for item in items:
+                scores = item.get("scores") if isinstance(item.get("scores"), dict) else {}
+                adapted.append({
+                    "activation": float(scores.get("activation") or 0.0),
+                    "activation_components": {"semantic": float(scores.get("semantic") or 0.0)},
+                })
+            meta = apply_prior_smoothing(adapted, evidence, self.optimization_kappa_g)
+            if not meta or not meta.get("active"):
+                result["trace"] = {**(result.get("trace") or {}), "optimization": {**decision, "bayes": meta}}
+                return result
+
+            for item, entry in zip(items, adapted):
+                scores = item.setdefault("scores", {})
+                scores["activation_bayes"] = entry["activation"]
+                scores["bayes_prior"] = entry["activation_components"].get("bayes_prior")
+            items.sort(key=lambda it: -float((it.get("scores") or {}).get("activation_bayes") or 0.0))
+            items = items[: max(0, int(top_k))]
+
+            planner = dict(result.get("planner") or {})
+            planner["selected_memory_ids"] = [it["memory_id"] for it in items if it.get("decision") == "actionable"]
+            planner["advisory_memory_ids"] = [it["memory_id"] for it in items if it.get("decision") == "advisory"]
+            result["items"] = items
+            result["planner"] = planner
+            result["trace"] = {**(result.get("trace") or {}), "optimization": {**decision, "bayes": meta}}
+            return result
+        except Exception as exc:  # 优化失败不得影响检索
+            result["trace"] = {**(result.get("trace") or {}), "optimization": {
+                "enabled": False, "reason": "optimization_error: %s" % type(exc).__name__}}
+            return result
 
     def retrieve(
         self,
@@ -116,6 +174,7 @@ class StrictMemoryEngine:
             kylin_semantic_scores=kylin_semantic_scores,
             semantic_scorer=self.semantic_scorer,
         )
+        result = self._apply_memory_optimization(result, retrieval_context, top_k)
         activation_output = _stage_output(
             run_id=run_id,
             stage="activation",

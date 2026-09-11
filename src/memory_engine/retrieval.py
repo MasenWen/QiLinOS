@@ -4,10 +4,11 @@ import math
 import time
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
+from typing import Any, Mapping
 
 from .context import infer_apps, infer_category, infer_memory_type, infer_scene, tokenize
 from .models import RetrievalContext, RetrievalResponse, parse_time
+from .optimization import SketchCandidateExtender, apply_prior_smoothing, tokens_to_sparse
 
 
 SearchBackend = Callable[[str, str, int], list[dict[str, Any]]]
@@ -49,14 +50,41 @@ class StructuredHybridRetriever:
 
     VERSION = "retrieval.structured_hybrid.v1"
 
-    def __init__(self, backend: SearchBackend, candidate_top_k: int = 50):
+    def __init__(
+        self,
+        backend: SearchBackend,
+        candidate_top_k: int = 50,
+        optimization: Mapping[str, Any] | None = None,
+        optimization_provider: Callable[[], Mapping[str, Any]] | None = None,
+        evidence_count: Callable[[str | None], float | None] | None = None,
+        recall_factor: int = 4,
+        kappa_g: float = 5.0,
+    ):
         self.backend = backend
         self.candidate_top_k = max(5, candidate_top_k)
+        self._optimization = dict(optimization) if optimization else None
+        self._optimization_provider = optimization_provider
+        self._evidence_count = evidence_count
+        self.recall_factor = max(1, int(recall_factor))
+        self.kappa_g = float(kappa_g)
+        self._extender = SketchCandidateExtender()
+
+    def _decision(self) -> dict[str, Any]:
+        """每次检索重新判定（内存会变化）；判定失败按未启用处理并说明原因。"""
+        if self._optimization_provider is not None:
+            try:
+                return dict(self._optimization_provider() or {})
+            except Exception:
+                return {"enabled": False, "reason": "provider_error"}
+        return dict(self._optimization or {"enabled": False, "reason": "not_configured"})
 
     def retrieve(self, context: RetrievalContext, top_k: int = 5) -> RetrievalResponse:
         started = time.perf_counter()
+        decision = self._decision()
+        optimized = bool(decision.get("enabled"))
+        recall_k = self.candidate_top_k * (self.recall_factor if optimized else 1)
         recall_started = time.perf_counter()
-        candidates = self.backend(context.query_text, context.user_id, self.candidate_top_k)
+        candidates = self.backend(context.query_text, context.user_id, recall_k)
         recall_ms = (time.perf_counter() - recall_started) * 1000.0
 
         category = infer_category(context)
@@ -78,6 +106,18 @@ class StructuredHybridRetriever:
                 )
             )
         )
+
+        # 内存充足时：用稀疏草图从更宽的召回结果中补入额外候选（不丢弃基线候选）
+        prune_meta: dict[str, Any] | None = None
+        if optimized and len(candidates) > self.candidate_top_k:
+            entries = [
+                (dict(raw), tokens_to_sparse(tokenize(str(raw.get("memory") or ""))))
+                for raw in candidates
+            ]
+            extended, prune_meta = self._extender.extend(
+                tokens_to_sparse(query_tokens), entries, self.candidate_top_k, self.candidate_top_k
+            )
+            candidates = extended
 
         filtered: list[dict[str, Any]] = []
         rejected: list[dict[str, str]] = []
@@ -163,6 +203,15 @@ class StructuredHybridRetriever:
             }
             scored.append(enriched)
 
+        # 内存充足时：按贝叶斯个性化更新做先验混合（冷启动靠拢群体参考）
+        bayes_meta: dict[str, Any] | None = None
+        if optimized and self._evidence_count is not None:
+            try:
+                evidence = self._evidence_count(context.user_id)
+            except Exception:
+                evidence = None
+            bayes_meta = apply_prior_smoothing(scored, evidence, self.kappa_g)
+
         scored.sort(key=lambda item: (-float(item["activation"]), int(item["_vector_rank"])))
         final_items = scored[:top_k]
         for item in final_items:
@@ -171,6 +220,12 @@ class StructuredHybridRetriever:
         trace = {
             "version": self.VERSION,
             "candidate_top_k": self.candidate_top_k,
+            "optimization": {
+                **decision,
+                "recall_k": recall_k,
+                "prune": prune_meta,
+                "bayes": bayes_meta,
+            },
             "candidate_count": len(candidates),
             "filtered_count": len(filtered),
             "rejected": rejected,

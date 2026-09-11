@@ -13,6 +13,7 @@ from .forgetting import LineageForgetter
 from .models import RetrievalContext, RetrievalResponse
 from .normalizers import dialogue_to_observation, observation_from_event
 from .retrieval import SearchBackend, StructuredHybridRetriever
+from .resource_gate import optimization_decision
 from .store import MemoryEngineStore
 from dataclasses import replace
 from .updater import apply_evidence
@@ -34,10 +35,19 @@ class MemoryEngine:
         search_backend: SearchBackend | None = None,
         candidate_top_k: int = 50,
         store: MemoryEngineStore | None = None,
+        optimization_provider: Any | None = None,
+        evidence_count: Any | None = None,
     ):
         search_backend = search_backend or (lambda _query, _user_id, _limit: [])
-        self.retriever = StructuredHybridRetriever(search_backend, candidate_top_k=candidate_top_k)
         self.store = store
+        # 内存充足条件下的优化：默认按系统可用内存自动判定（NEX_MEM_OPTIMIZATION=auto/on/off）
+        self.optimization_provider = optimization_provider or optimization_decision
+        self.retriever = StructuredHybridRetriever(
+            search_backend,
+            candidate_top_k=candidate_top_k,
+            optimization_provider=self.optimization_provider,
+            evidence_count=evidence_count or self._user_evidence_count,
+        )
         # 文档未激活组件（第 5/6/9/10 章）：惰性初始化
         self._tag_classifier = TagClassifier()
         self._forgetting_curve = ForgettingCurve(ForgettingCurveConfig())
@@ -219,6 +229,15 @@ class MemoryEngine:
             "created_count": len(created_ids),
             "shadow": True,
         }
+
+    def _user_evidence_count(self, user_id: str | None) -> float | None:
+        """个人证据量：用户已有记忆条数；无 store 时返回 None（先验平滑不生效）。"""
+        if self.store is None or not user_id:
+            return None
+        try:
+            return float(len(self.store.list_memories(user_id)))
+        except Exception:
+            return None
 
     def retrieve(
         self,

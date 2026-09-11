@@ -2085,6 +2085,17 @@ def _get_mstore():
     return _mstore_inst if _mstore_inst is not False else None
 
 
+def _memory_evidence_count(user_id):
+    """用户已有记忆条数（贝叶斯先验平滑的个人证据量）；不可用时返回 None。"""
+    try:
+        store = _get_mstore()
+        if store is not None and user_id:
+            return float(len(store.list_memories(user_id)))
+    except Exception:
+        return None
+    return None
+
+
 def _get_memory_engine():
     """惰性获取记忆引擎（B 方案实验开关：NEX_STRICT_ENGINE=1 → StrictMemoryEngine）。
 
@@ -2136,6 +2147,14 @@ def _get_memory_engine():
                 )
                 print("[mem] strict 引擎已启用（NEX_STRICT_ENGINE%s）" % (
                     "，无语义打分" if _scorer is None else "，语义打分=kylin"), flush=True)
+                try:
+                    from src.memory_engine.resource_gate import (
+                        decision_summary,
+                        optimization_decision,
+                    )
+                    print("[启动自检] " + decision_summary(optimization_decision()), flush=True)
+                except Exception:
+                    pass
             else:
                 from src.memory_engine.engine import MemoryEngine
                 from src.memory.mem0_store import mem0_store
@@ -2146,7 +2165,16 @@ def _get_memory_engine():
                     except Exception:
                         return []
 
-                _engine_inst = MemoryEngine(search_backend=_backend, candidate_top_k=10)
+                _engine_inst = MemoryEngine(search_backend=_backend, candidate_top_k=10,
+                                            evidence_count=_memory_evidence_count)
+                try:
+                    from src.memory_engine.resource_gate import (
+                        decision_summary,
+                        optimization_decision,
+                    )
+                    print("[启动自检] " + decision_summary(optimization_decision()), flush=True)
+                except Exception:
+                    pass
         except Exception as _e:
             print(f"[mem] 记忆引擎初始化失败: {_e}", flush=True)
             _engine_inst = False
