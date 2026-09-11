@@ -705,20 +705,12 @@ HTML = r"""<!doctype html>
   .err-bubble .bubble{border-left:3px solid #c0392b}
   .sess-search{width:calc(100% - 24px);margin:6px 12px 10px;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;box-sizing:border-box;outline:none}
   @media (max-width:1200px){ aside.panel{display:none!important} }
+  /* 截图/录制用：隐藏左侧会话列表（?sidebar=0 或 NEX_HIDE_SIDEBAR=1 默认隐藏） */
+  body.hide-sidebar aside.sidebar{display:none!important}
   @media (max-width:900px){ aside.sidebar{width:60px;overflow:hidden} aside.sidebar .brand,aside.sidebar .newchat,aside.sidebar .sess-list,aside.sidebar .sess-search{display:none} .main header .sub{display:none} }
 </style>
 </head>
-<body>
-<div class="layout">
-  <aside class="sidebar">
-    <div class="banner" id="banner">
-      <div class="banner-icon" id="bannerIcon">🤖</div>
-      <div class="banner-text">
-        <div class="banner-title" id="bannerTitle">麒麟记忆</div>
-        <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
-      </div>
-
-    </div>
+<body data-hide-sidebar="__HIDE_SIDEBAR__">
     <div class="banner-modal" id="bannerModal">
       <div class="banner-modal-box">
         <h3>Banner 配置</h3>
@@ -769,6 +761,17 @@ HTML = r"""<!doctype html>
           <div id="skillPanel" style="margin-top:8px;"></div>
         </div>
       </div>
+    </div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="banner" id="banner">
+      <div class="banner-icon" id="bannerIcon">🤖</div>
+      <div class="banner-text">
+        <div class="banner-title" id="bannerTitle">麒麟记忆</div>
+        <div class="banner-sub" id="bannerSub">记忆增强 · 系统工具</div>
+      </div>
+
     </div>
     <div class="brand">Kylin Mem<em> · 麒麟记忆</em></div>
     <div class="newchat" id="newChat">＋ 新会话</div>
@@ -1441,6 +1444,13 @@ async function refreshPanels() {
   } catch (e) {}
 }
 function applyPanelPref() {
+  // 左侧会话栏开关：?sidebar=0 隐藏、?sidebar=1 显示；未指定时读服务端默认（NEX_HIDE_SIDEBAR）
+  try {
+    const _sb = new URLSearchParams(location.search).get('sidebar');
+    if (_sb === '0') document.body.classList.add('hide-sidebar');
+    else if (_sb === '1') document.body.classList.remove('hide-sidebar');
+    else if (document.body.dataset.hideSidebar === '1') document.body.classList.add('hide-sidebar');
+  } catch (e) {}
   const panel = document.getElementById('sidePanel');
   if (!panel) return;
   // URL 参数直控面板开合（截图/录制方便）：?panel=1 展开、?panel=0 收起
@@ -3445,7 +3455,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(403, {"error": "forbidden: 缺少或错误的 X-Api-Token"})
         # 首页：容忍查询参数（如 /?panel=1 直接展开记忆面板，供截图/录制使用）
         if self.path.split("?", 1)[0] in ("/", "/index.html"):
-            _html = HTML.replace("__BUILD_VER__", _build_version())
+            _hide_sb = "1" if os.getenv("NEX_HIDE_SIDEBAR", "0").strip().lower() not in ("0", "", "false", "off") else "0"
+            _html = (HTML.replace("__BUILD_VER__", _build_version())
+                         .replace("__HIDE_SIDEBAR__", _hide_sb))
             self._send(200, _html.encode("utf-8"), "text/html; charset=utf-8",
                        extra_headers={"Cache-Control": "no-store, must-revalidate",
                                       "Pragma": "no-cache"})
